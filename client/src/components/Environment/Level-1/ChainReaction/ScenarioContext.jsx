@@ -73,7 +73,7 @@ const ScenarioContent = () => {
         // Mobile (default): Slides vertically (translateY). The value is an approximation of the height of the top panel + gap.
         // Desktop (md): Slides horizontally (translateX).
         <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 
-            [--slide-x:0] [--slide-y:36vh]
+            [--slide-x:0] [--slide-y:30vh]
             md:[--slide-x:calc(21vw_+_1.5vw)] md:[--slide-y:0]"
         >
             <style>

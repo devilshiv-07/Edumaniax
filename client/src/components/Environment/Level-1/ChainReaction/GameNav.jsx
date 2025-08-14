@@ -57,11 +57,11 @@ const GameNav = ({ timeLeft }) => {
         <BackButton className="w-16 md:w-40 "/>
       </Link>
       
-      <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] text-base sm:text-base md:text-3xl lg:text-2xl text-[#ffcc00] tracking-[0.05vw]">
+      <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] text-xl md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
         Chain Reaction
       </span>
       
-      <div className="flex items-center space-x-[1vw]">
+      <div className="flex items-center space-x-[1vw] md:space-x-0">
         <div className="relative h-[100px] flex items-center justify-center">
           <Heart className="w-16 md:w-40  "/>
           <span className="absolute text-white font-bold text-base sm:text-base md:text-3xl lg:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2">

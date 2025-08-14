@@ -8,7 +8,7 @@ const InstructionsScreen = ({ onStartGame }) => {
     <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4">
       
       {/* Pop-up box with responsive width and height */}
-      <div className="relative w-full max-w-[90vw] md:w-[75vw] h-auto md:h-[80vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-no-repeat bg-cover flex flex-col items-center py-8 md:pt-[5vh] rounded-2xl">
+      <div className="relative w-full max-w-[90vw] md:w-[75vw] h-auto md:h-[80vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-no-repeat bg-cover flex flex-col items-center py-8 md:pt-[5vh] ">
         
         {/* Cross button with responsive size and position */}
         <div className="absolute w-12 h-12 md:w-[7vw] md:h-[7vh] -top-5 -right-5 md:-top-[3vh] md:-right-[3.5vw] z-[68]">
@@ -45,7 +45,7 @@ const InstructionsScreen = ({ onStartGame }) => {
               <span className="lilita text-lg md:text-[1.2vw] font-normal text-[#fff] tracking-wide md:tracking-[0.04vw]">
                 LEARNING OUTCOME:
               </span>
-              <span className="w-full font-['Lilita_One'] text-base md:text-[0.9vw] font-normal leading-snug md:leading-[2vh] text-[#fff] tracking-normal md:tracking-[0.01vw] mt-1">
+              <span className="w-full font-['Lilita_One'] text-base text-base md:text-[14px] font-normal leading-snug md:leading-[2vh] text-[#fff] tracking-normal md:tracking-[0.01vw] mt-1">
                 You will learn to classify your surroundings into layers of earth.
               </span>
             </div>
