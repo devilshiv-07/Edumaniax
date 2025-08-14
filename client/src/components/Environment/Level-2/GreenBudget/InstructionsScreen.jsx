@@ -5,7 +5,7 @@ import ScenarioContent from './ScenarioContent.jsx';
 const InstructionsScreen = ({ onStartGame }) => {
   return (
     // Main container to center the pop-up, with a dark background
-    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4">
+    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4 overflow-x-hidden">
       
       {/* Pop-up box: Added `lg:pt-0` to work with the absolute title */}
       <div className="relative w-full max-w-5xl lg:w-[80vw] h-auto bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-cover bg-no-repeat flex flex-col items-center py-8 px-4 md:px-8 lg:pt-0 ">

@@ -5,7 +5,7 @@ import ScenarioContent from './ScenarioContext'; // Corrected import from Scenar
 const InstructionsScreen = ({ onStartGame }) => {
   return (
     // Main container to center the pop-up
-    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4">
+    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4 overflow-x-hidden">
       
       {/* Pop-up box with responsive width, height, and padding */}
       <div className="relative w-full max-w-4xl lg:w-[75vw] h-auto bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-no-repeat bg-cover flex flex-col items-center py-8 px-4 md:p-8 ">
