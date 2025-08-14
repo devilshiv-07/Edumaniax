@@ -52,70 +52,72 @@ const TIME_PER_PUZZLE = 60;
 // Reusable End-Screen Components (Responsive - No Changes)
 // =============================================================================
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
-  const { width, height } = useWindowSize();
-  return (
-    <>
-      <style>{scrollbarHideStyle}</style>
-      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
-      <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center text-white">
-        <div className="flex flex-col items-center justify-center flex-1 p-4 md:p-6">
-          <div className="relative w-48 h-48 md:w-56 md:h-56 flex items-center justify-center">
-            <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
-            <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
-          </div>
-          <h2 className="text-yellow-400 lilita-one-regular text-3xl md:text-4xl font-bold mt-6">Challenge Complete!</h2>
-          <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-lg">
-            <div className="flex-1 bg-[#09BE43] rounded-lg p-1 flex flex-col items-center">
-              <p className="text-black text-xs font-bold mb-1 mt-2 uppercase">Total Accuracy</p>
-              <div className="bg-[#131F24] w-full min-h-[5rem] rounded-md flex items-center justify-center py-2 px-3">
-                <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-                <span className="text-[#09BE43] text-2xl md:text-3xl font-extrabold">{accuracyScore}%</span>
-              </div>
-            </div>
-            <div className="flex-1 bg-[#FFCC00] rounded-lg p-1 flex flex-col items-center">
-              <p className="text-black text-xs font-bold mb-1 mt-2 uppercase">Insight</p>
-              <div className="bg-[#131F24] w-full min-h-[5rem] rounded-md flex items-center justify-center p-3 text-center">
-                <span className="text-[#FFCC00] lilita-one-regular text-base font-medium italic">{insight}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-4 flex justify-center gap-4">
-          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-14 object-contain hover:scale-105 transition-transform duration-200" />
-          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+    const { width, height } = useWindowSize();
     return (
-        <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center text-white">
+        // FIX: Changed to h-screen to lock the container height and prevent page scroll.
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
             <style>{scrollbarHideStyle}</style>
-            <div className="flex flex-col items-center justify-center flex-1 p-4 md:p-6">
-                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto mb-6" />
-                <p className="text-yellow-400 lilita-one-regular text-xl md:text-2xl font-semibold text-center max-w-md">Oops! That was close! Wanna Retry?</p>
-                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-lg">
-                    <div className="flex-1 bg-red-500 rounded-lg p-1 flex flex-col items-center">
-                        <p className="text-black text-xs font-bold mb-1 mt-2 uppercase">Total Accuracy</p>
-                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-md flex items-center justify-center py-2 px-3">
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            {/* FIX: Added overflow-y-auto and no-scrollbar to allow content to scroll internally if needed. */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
                             <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-                            <span className="text-red-500 text-2xl md:text-3xl font-extrabold">{accuracyScore}%</span>
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
                         </div>
                     </div>
-                    <div className="flex-1 bg-[#FFCC00] rounded-lg p-1 flex flex-col items-center">
-                        <p className="text-black text-sm font-bold mb-1 mt-2 uppercase">Insight</p>
-                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-md flex items-center justify-center p-3 text-center">
-                            <span className="text-[#FFCC00] lilita-one-regular text-base font-medium italic">{insight}</span>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-4 flex justify-center gap-4">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+    return (
+        // FIX: Changed to h-screen to lock the container height and prevent page scroll.
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            {/* FIX: Added overflow-y-auto and no-scrollbar to allow content to scroll internally if needed. */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
