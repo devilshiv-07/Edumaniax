@@ -147,7 +147,21 @@ function ReviewScreen({ answers, onBackToResults }) {
                     </div>
                 ))}
             </div>
-            <button onClick={onBackToResults} className="mt-6 px-8 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-lg font-bold text-black transition-colors flex-shrink-0">
+            <button 
+                onClick={onBackToResults} 
+                className="
+                    mt-6 px-8 py-3 
+                    bg-yellow-600 
+                    text-lg text-white
+                    lilita-one-regular
+                    rounded-md
+                    hover:bg-yellow-700 
+                    transition-colors 
+                    flex-shrink-0
+                    border-b-4 border-yellow-800 active:border-b-0
+                    shadow-lg
+                "
+            >
                 Back to Results
             </button>
         </div>

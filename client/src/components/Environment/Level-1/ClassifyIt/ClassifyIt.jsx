@@ -1,4 +1,4 @@
-// src/pages/ClassifyIt.jsx (or wherever this file is located)
+// src/pages/ClassifyIt.jsx
 
 import React, { useReducer, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -207,41 +207,62 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
     );
 }
 
-
 function ReviewScreen({ answers, onBackToResults }) {
-  return (
-    <div className="min-h-[90vh] flex flex-col items-center justify-center bg-green-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-sm sm:max-w-xl md:max-w-2xl lg:max-w-6xl bg-white rounded-3xl shadow flex flex-col items-center p-6 sm:p-8 lg:p-10 relative">
-        <button onClick={onBackToResults} className="flex justify-center items-center absolute top-4 right-4 z-[139] w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] rounded-full hover:bg-gray-200 transition">
-          <span className="font-['Comfortaa'] text-[36px] sm:text-[40px]  text-[#6f6f6f] rotate-[-45deg] font-semibold select-none">+</span>
-        </button>
-        <h2 className="text-3xl sm:text-4xl font-bold text-center w-full" style={{ fontFamily: 'Comic Neue, Comic Sans MS, cursive' }}>Check your answers</h2>
-        <p className="mb-6 sm:mb-8 text-base sm:text-xl text-gray-700 text-center w-full" style={{ fontFamily: 'Commissioner, Arial, sans-serif' }}>Classify the given word into one of the given categories</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full justify-items-center">
-          {answers.map((ans, idx) => {
-            const isCorrect = ans.isCorrect;
-            return (
-              <div
-                key={idx}
-                className={`main-container flex w-full max-w-[280px] sm:max-w-[256px] h-[120px] sm:h-[117px] p-4 sm:pt-[18px] sm:pr-[24px] sm:pb-[18px] sm:pl-[24px] flex-col gap-[10px] justify-center items-start rounded-[15px] relative ${isCorrect ? "bg-[#c8ff9e]" : "bg-[#ffdfe0]"}`}
-              >
-                <div className="flex w-full justify-between items-start relative">
-                  <div className="flex flex-col gap-[8px] sm:gap-[10px] items-start flex-1">
-                    <span className={`font-['Comic_Neue'] text-xl sm:text-[25px] font-bold leading-[24px] relative text-left whitespace-nowrap z-[2] ${isCorrect ? "text-[#09be43]" : "text-[#ea2b2b]"}`}>{ans.word}</span>
-                    <div className="flex flex-col gap-[2px] sm:gap-[3px] items-start w-full">
-                      <span className={`font-['Commissioner'] text-sm sm:text-[18px] font-light leading-[20px] sm:leading-[24px] relative text-left whitespace-nowrap z-[4] ${isCorrect ? "text-[#09be43]" : "text-[#ea2b2b]"}`}>You : {ans.selected}</span>
-                      <span className={`font-['Commissioner'] text-sm sm:text-[18px] font-light leading-[20px] sm:leading-[24px] relative text-left whitespace-nowrap z-[5] ${isCorrect ? "text-[#09be43]" : "text-[#ea2b2b]"}`}>Ans : {ans.correctAnswer}</span>
+    // This logic ensures the last row of the grid is always full for a cleaner look
+    const itemsPerRow = 3;
+    const emptySlots = (itemsPerRow - (answers.length % itemsPerRow)) % itemsPerRow;
+
+    return (
+        <div className="w-full h-screen bg-[#0A160E] text-white p-6 flex flex-col items-center justify-center">
+            {/* FIX: Added style tag to activate the .no-scrollbar class */}
+            <style>{scrollbarHideStyle}</style>
+            
+            <h1 className="text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 flex-shrink-0">Review Your Answers</h1>
+            
+            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-5 flex-grow overflow-y-auto no-scrollbar">
+                {answers.map((ans, idx) => (
+                    <div 
+                        key={idx} 
+                        className={`p-4 rounded-lg flex flex-col justify-center ${ans.isCorrect ? 'bg-green-800' : 'bg-red-800/80'} transition-all duration-300`}
+                    >
+                        <p className="text-gray-300 text-sm mb-2 leading-tight">Word: {ans.word}</p>
+                        <p className="font-semibold text-base">
+                            Your Answer: 
+                            <span className={ans.isCorrect ? 'text-white' : 'text-red-300'}> {ans.selected || "Not Answered"}</span>
+                        </p>
+                        {!ans.isCorrect && (
+                            <p className="font-semibold text-base">
+                                Correct Answer: 
+                                <span className="text-green-300"> {ans.correctAnswer}</span>
+                            </p>
+                        )}
                     </div>
-                  </div>
-                  <div className="w-[30px] h-[30px] sm:w-[35px] sm:h-[35px] shrink-0 bg-contain bg-no-repeat ml-2" style={{ backgroundImage: isCorrect ? "url(/check.png)" : "url(/cancel.png)" }} />
-                </div>
-              </div>
-            );
-          })}
+                ))}
+                {/* This part adds empty divs to maintain the grid structure */}
+                {Array(emptySlots).fill(0).map((_, index) => (
+                    <div key={`empty-${index}`} className="opacity-0 pointer-events-none"></div>
+                ))}
+            </div>
+
+            <button 
+                onClick={onBackToResults} 
+                className="
+                    mt-6 px-8 py-3 
+                    bg-yellow-600 
+                    text-lg text-white
+                    lilita-one-regular
+                    rounded-md
+                    hover:bg-yellow-700 
+                    transition-colors 
+                    flex-shrink-0
+                    border-b-4 border-yellow-800 active:border-b-0
+                    shadow-lg
+                "
+            >
+                Back to Results
+            </button>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 

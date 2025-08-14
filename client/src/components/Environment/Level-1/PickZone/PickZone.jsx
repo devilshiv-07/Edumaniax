@@ -22,75 +22,85 @@ const usePerformance = () => ({
 // =============================================================================
 // Reusable Components (End Screens are kept here as they are specific to this game's flow)
 // =============================================================================
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+`;
 
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
-  const { width, height } = useWindowSize();
-  return (
-    <>
-      <Confetti width={width} height={height} recycle={false} numberOfPieces={200} />
-      <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center">
-        <div className="flex flex-col items-center justify-center flex-1 p-6">
-          <div className="relative w-64 h-64 flex items-center justify-center">
-            <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
-            <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
-          </div>
-          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <div className="w-64 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
-              <p className="text-black text-sm font-bold mb-1 mt-2">TOTAL ACCURACY</p>
-              <div className="bg-[#131F24] mt-0 w-63 h-16 rounded-xl flex items-center justify-center py-3 px-5">
-                <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-                <span className="text-[#09BE43] text-xl font-extrabold">{accuracyScore}%</span>
-              </div>
-            </div>
-            <div className="w-74 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-              <p className="text-black text-sm font-bold mb-1 mt-2">INSIGHT</p>
-              <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center">
-                <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
-          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        </div>
-      </div>
-    </>
-  );
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
 }
 
 function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
-  return (
-    <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center">
-      <div className="flex flex-col items-center justify-center flex-1 p-6">
-        <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-64 h-auto mb-6" />
-        <p className="text-yellow-400 lilita-one-regular text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-center">Oops! That was close! Wanna Retry?</p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <div className="w-64 bg-red-500 rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold mb-1 mt-2">TOTAL ACCURACY</p>
-            <div className="bg-[#131F24] mt-0 w-63 h-16 rounded-xl flex items-center justify-center py-3 px-5">
-              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-              <span className="text-red-500 text-xl font-extrabold">{accuracyScore}%</span>
-            </div>
-          </div>
-          <div className="w-74 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold mb-1 mt-2">INSIGHT</p>
-            <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center">
-              <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
-        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-      </div>
-    </div>
-  );
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
 }
+
 
 // MODIFIED: ReviewScreen component updated to a 3x2 grid that fits the screen
 function ReviewScreen({ answers, onBackToResults }) {
@@ -321,20 +331,28 @@ const PickTheZone = () => {
                 </div>
             </div>
 
-            <div className="w-full h-[12vh] bg-[#28343A] flex justify-center items-center px-[5vw] z-10 fixed bottom-0">
-                <div className="w-auto md:w-[12vw] h-[8vh]">
-                    <button
-                        className="relative w-full h-full cursor-pointer px-8"
-                        onClick={state.answerSubmitted ? handleNextQuestion : handleSubmit}
-                        disabled={!isButtonEnabled}
-                    >
-                        <Checknow topGradientColor={"#09be43"} bottomGradientColor={"#068F36"} width="100%" height="100%" />
-                        <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-[2.5vh] text-white [text-shadow:0_3px_0_#000] ${!isButtonEnabled && "opacity-50"}`}>
-                            {buttonText}
-                        </span>
-                    </button>
-                </div>
-            </div>
+            <div className="w-full h-24 md:h-[12vh] bg-[#28343A] flex justify-center items-center px-4 sm:px-6 md:px-8 z-10 fixed bottom-0">
+    {/* On mobile (default), the button wrapper takes up most of the width for easy tapping.
+        On medium screens and up, it takes a fixed, more appropriate width.
+    */}
+            <div className="w-full max-w-xs md:w-56 lg:w-64 h-14 md:h-16">
+                    <button
+                        className="relative w-full h-full cursor-pointer"
+                        onClick={state.answerSubmitted ? handleNextQuestion : handleSubmit}
+                        disabled={!isButtonEnabled}
+                    >
+                        {/* The Checknow component fills its parent button */}
+                        <Checknow topGradientColor={"#09be43"} bottomGradientColor={"#068F36"} width="100%" height="100%" />
+
+                        {/* The text is centered and its size adjusts per breakpoint.
+                            This is more accessible and predictable than using 'vh' units for font size.
+                        */}
+                        <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-xl md:text-2xl text-white [text-shadow:0_3px_0_#000] ${!isButtonEnabled && "opacity-50"}`}>
+                            {buttonText}
+                        </span>
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
