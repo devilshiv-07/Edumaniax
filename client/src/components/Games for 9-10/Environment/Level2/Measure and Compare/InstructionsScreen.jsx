@@ -25,15 +25,12 @@ const InstructionsScreen = ({ onStartGame }) => {
         <div className="flex flex-col lg:flex-row items-center lg:items-start w-full gap-8 mt-4 lg:mt-[7vh]">
           
           {/* Left Column: Instructions & Learning Outcome */}
-          <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1">
+          <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-1 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">For each dilemma, players pick one response. They’re then shown the real-world consequence of their action.</p>
-              <p className="font-bold">Scoring:</p>
-              <ul className="list-none ml-0">
-                <li>+3 → for sustainable, thoughtful action</li>
-                <li>+1 → for partial awareness but not proactive</li>
-                <li>0 → for harmful or passive decision</li>
-              </ul>
+              <p className="mb-2">You will be given a situation based </p>
+              <p className="mb-2">You have to measure and compare </p>
+              <p className="mb-2">its good and bad effects and choose</p>
+              <p className="mb-2">the final effect among the four options</p>
             </div>
             
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
@@ -47,7 +44,7 @@ const InstructionsScreen = ({ onStartGame }) => {
           </div>
 
           {/* Right Column: ScenarioContent Demo */}
-          <div className="w-full lg:w-3/5 flex justify-center order-1 lg:order-2">
+          <div className="w-full lg:w-3/5 flex justify-center order-1 lg:order-2 mt-7 md:mt-0">
             <ScenarioContent />
           </div>
 

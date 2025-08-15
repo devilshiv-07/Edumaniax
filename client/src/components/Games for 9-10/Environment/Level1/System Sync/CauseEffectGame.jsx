@@ -341,6 +341,3 @@ const CauseEffectGameWrapper = () => (
 );
 
 export default CauseEffectGameWrapper;
-
-// NOTE: Paste the full component code for VictoryScreen, LosingScreen, and ReviewScreen here where indicated above.
-// They have been omitted from this block for brevity but are required for the code to run.

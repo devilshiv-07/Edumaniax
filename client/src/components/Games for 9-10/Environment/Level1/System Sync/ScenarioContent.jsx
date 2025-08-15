@@ -1,141 +1,123 @@
 import React, { useState, useEffect } from 'react';
+import { Globe, Droplets, Wind, TreePine } from 'lucide-react';
 
-// Demo data for the animation
-const demoPuzzle = {
-    cause: "Cutting down trees",
-    effects: ["Loss of tree cover", "Soil erosion", "Crop failure and desertification"],
-    image: "/environmentGameInfo/ChainReaction/cutdowntrees.png", // Verify this path
+// Demo data taken directly from your CauseEffectGame component for consistency.
+// The selected answers in the animation will be incorrect to match the video's "System Shock!" result.
+const demoQuestion = {
+    id: 1,
+    cause: "Urbanization",
+    causeIcon: "/environmentGameInfo/Cause&Effect/urbanization.png", // Make sure this path is correct in your project
+    correctEffect: "Soil sealing with concrete",
+    correctSphere: "Geosphere",
+    effects: ["Soil sealing with concrete", "Increased plant growth", "More rainfall", "Ocean warming"],
+    spheres: ["Hydrosphere", "Atmosphere", "Biosphere", "Geosphere"],
+    systemShock: "Without proper planning, cities can become heat islands and flood zones, disrupting natural water cycles!"
 };
 
-// Card component - No changes needed here, it inherits responsive size
-const Card = ({ content, isVisible = true, isPlaceholder = false }) => (
-    <div className={`flex h-[7vh] w-full items-center self-stretch shrink-0 rounded-[0.83vw] relative transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-        {isPlaceholder ? (
-            <div className="shrink-0 w-full h-full bg-[#131f24] rounded-[0.83vw] border-dashed border-[0.2vh] border-[#37464f]" />
-        ) : (
-            <>
-                <div className="shrink-0 bg-[#131f24] rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] absolute inset-[-0.05vh] shadow-[0_0.22vh_0_0_#37464f]" />
-                <div className="flex p-2 md:p-[1vw] items-center justify-center grow relative z-[5]">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb] text-center">{content}</span>
-                </div>
-            </>
-        )}
-    </div>
-);
-
-// Slot component - No changes needed here, it inherits responsive size
-const Slot = ({ text, content }) => (
-    <div className="flex h-[7vh] w-full items-center justify-center self-stretch shrink-0 rounded-[0.83vw] relative">
-        {content ? (
-             <>
-                <div className="shrink-0 bg-[#131f24] rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] absolute inset-[-0.05vh] shadow-[0_0.22vh_0_0_#37464f]" />
-                <div className="flex p-2 md:p-[1vw] items-center justify-center grow relative z-[5]">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb] text-center">{content}</span>
-                </div>
-            </>
-        ) : (
-            <>
-                <div className="w-full h-full bg-[#131f24] rounded-[0.83vw] border-dashed border-[0.2vh] border-[#37464f]" />
-                <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb]">{text}</span>
-                </div>
-            </>
-        )}
-    </div>
-);
-
+// This matches the icon mapping in your game
+const sphereIcons = {
+    Hydrosphere: <Droplets className="w-full h-full" />,
+    Atmosphere: <Wind className="w-full h-full" />,
+    Biosphere: <TreePine className="w-full h-full" />,
+    Geosphere: <Globe className="w-full h-full" />
+};
 
 const ScenarioContent = () => {
-    const [animationState, setAnimationState] = useState('idle');
+    // State to manage the animation sequence
+    const [view, setView] = useState('question');
+    const [selectedEffect, setSelectedEffect] = useState(null);
+    const [selectedSphere, setSelectedSphere] = useState(null);
 
+    // This useEffect hook creates the animation loop
     useEffect(() => {
+        let selectEffectTimer, selectSphereTimer, resultTimer, resetTimer;
+
         const animationCycle = () => {
-            setAnimationState('animating');
-            const endTimeout = setTimeout(() => setAnimationState('finished'), 1000); // Animation duration
-            const resetTimeout = setTimeout(() => setAnimationState('idle'), 3000); // Pause before reset
-            return () => {
-                clearTimeout(endTimeout);
-                clearTimeout(resetTimeout);
-            };
+            selectEffectTimer = setTimeout(() => {
+                setSelectedEffect("More rainfall");
+            }, 1000);
+
+            selectSphereTimer = setTimeout(() => {
+                setSelectedSphere("Hydrosphere");
+            }, 2500);
+
+            resultTimer = setTimeout(() => {
+                setView('result');
+            }, 4000);
+
+            resetTimer = setTimeout(() => {
+                setView('question');
+                setSelectedEffect(null);
+                setSelectedSphere(null);
+            }, 7000);
         };
-        const startTimeout = setTimeout(animationCycle, 500);
-        const loopInterval = setInterval(animationCycle, 3500);
+
+        animationCycle();
+        const loop = setInterval(animationCycle, 7500);
+
         return () => {
-            clearTimeout(startTimeout);
-            clearInterval(loopInterval);
+            clearTimeout(selectEffectTimer);
+            clearTimeout(selectSphereTimer);
+            clearTimeout(resultTimer);
+            clearTimeout(resetTimer);
+            clearInterval(loop);
         };
     }, []);
 
-    const animatedCardContent = demoPuzzle.effects[0];
-
     return (
-        // Set CSS variables for the animation based on screen size.
-        // Mobile (default): Slides vertically (translateY). The value is an approximation of the height of the top panel + gap.
-        // Desktop (md): Slides horizontally (translateX).
-        <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 
-            [--slide-x:0] [--slide-y:30vh]
-            md:[--slide-x:calc(21vw_+_1.5vw)] md:[--slide-y:0]"
-        >
-            <style>
-                {`
-                @keyframes slide-responsive {
-                    from { transform: translate(0, 0); }
-                    to { transform: translate(var(--slide-x), var(--slide-y)); }
-                }
-                .animate-slide {
-                    animation: slide-responsive 1s ease-in-out forwards;
-                }
-                `}
-            </style>
-
-            <div className="flex flex-col items-center gap-6 md:gap-[4.5vh]">
-                {/* Main container for panels. Stacks vertically on mobile, horizontally on desktop. */}
-                <div className="flex flex-col md:flex-row w-full max-w-full md:max-w-[70.7vw] justify-center items-start gap-4 md:gap-[1.5vw]">
-                    
-                    {/* Left Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
-                        
-                        {/* Wrapper for the animation */}
-                        <div className="relative h-[7vh] w-full">
-                            {animationState === 'animating' && (
-                                <div className="absolute top-0 left-0 z-10 animate-slide w-full">
-                                    <Card content={animatedCardContent} />
-                                </div>
-                            )}
-                            <div className="absolute top-0 left-0 w-full">
-                                <Card 
-                                    content={animatedCardContent} 
-                                    isPlaceholder={animationState === 'finished'} 
-                                    isVisible={animationState === 'idle'}
-                                />
+        <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 sm:px-6 sm:py-4 font-['Inter'] text-white overflow-hidden">
+            <div className="w-full max-w-2xl relative">
+                {/* Question View */}
+                <div className={`transition-opacity duration-500 ${view === 'question' ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="w-full flex flex-col items-center gap-6">
+                        <div className="w-full max-w-full bg-[rgba(32,47,54,0.3)] rounded-xl p-4 sm:p-6 border border-gray-700 backdrop-blur-sm">
+                            <h3 className="font-medium text-base sm:text-lg md:text-sm lg:text-base text-gray-300 mb-4">Choose the effect</h3>
+                            {/* MODIFIED: Effects grid is now 1 column on mobile/sm, 2 on md+ */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                {demoQuestion.effects.map((effect) => (
+                                    // MODIFIED: Text size increased on sm screens
+                                    <div key={effect} className={`text-center p-3 md:p-2 lg:p-2 rounded-lg border transition-all duration-200 shadow-md font-medium text-sm sm:text-base md:text-xs lg:text-xs ${selectedEffect === effect ? 'bg-green-500/20 border-green-500 text-white' : 'bg-[#131F24] border-[#37464F]'}`}>{effect}</div>
+                                ))}
+                            </div>
+                            <h3 className="font-medium text-base sm:text-lg md:text-sm lg:text-base text-gray-300 mt-6 mb-4">Which earth system is affected?</h3>
+                             {/* MODIFIED: Spheres grid is now 2 columns on mobile/sm, 4 on md+ */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-2 lg:gap-4">
+                                {demoQuestion.spheres.map((sphere) => (
+                                    <div key={sphere} className={`p-3 md:p-2 lg:p-2 rounded-lg border transition-all duration-200 shadow-md flex flex-col items-center gap-2 ${selectedSphere === sphere ? 'bg-green-500/20 border-green-500 text-white' : 'bg-[#131F24] border-[#37464F]'}`}>
+                                        <div className="w-6 h-6 md:w-5 md:h-5 lg:w-5 lg:h-5">{sphereIcons[sphere]}</div>
+                                        {/* MODIFIED: Text size increased on sm and is no longer hidden on md */}
+                                        <span className="font-medium text-sm sm:text-sm md:hidden lg:block">{sphere}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-
-                        <Card content={demoPuzzle.effects[1]} isVisible={true} />
-                        <Card content={demoPuzzle.effects[2]} isVisible={true} />
-                    </div>
-
-                    {/* Right Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
-                        <Slot 
-                            text="1st" 
-                            content={animationState === 'finished' ? animatedCardContent : null}
-                        />
-                        <Slot text="2nd" />
-                        <Slot text="3rd" />
                     </div>
                 </div>
 
-                {/* Bottom "Cause" section */}
-                <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-full md:max-w-[43.5vw] h-auto md:h-[10vh] gap-2">
-                    <img src={demoPuzzle.image} alt="Cause" className="w-16 h-24 md:w-[7vw] md:h-[10vh] object-contain" />
-                    <div className="relative flex items-center">
-                        <div className="absolute left-[-0.9vw] top-1/2 -translate-y-1/2 w-[1vw] h-[1.8vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-09/cZcfryFaXc.png)] bg-cover bg-no-repeat hidden md:block" />
-                        <div className="flex h-auto md:h-[5.5vh] justify-center items-center bg-[#131f24] rounded-lg md:rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] p-3 md:px-[1.8vw]">
-                            <span className="font-['Inter'] text-lg md:text-[2.1vh] font-medium text-[#f1f7fb] text-center">
-                                {demoPuzzle.cause}
-                            </span>
+                {/* Result View */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${view === 'result' ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="w-full max-w-full bg-[rgba(32,47,54,0.3)] rounded-xl p-6 sm:p-10 border border-gray-700 text-center flex flex-col items-center justify-center min-h-[250px] backdrop-blur-sm">
+                        <h2 className="text-4xl sm:text-5xl md:text-3xl lg:text-4xl text-red-400 mb-6 font-bold" style={{ fontFamily: 'serif' }}>System Shock!</h2>
+                        <p className="text-base sm:text-xl md:text-sm lg:text-lg text-gray-200 leading-relaxed font-medium">{demoQuestion.systemShock}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Cause Element at the bottom */}
+            <div className="flex items-center gap-2 sm:gap-4 mt-4">
+                 {/* MODIFIED: Image size increased on sm screens */}
+                <img src={demoQuestion.causeIcon} alt={demoQuestion.cause} className="w-20 h-20 sm:w-28 sm:h-28 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain" />
+                <div className="relative">
+                    {/* Speech bubble pointer */}
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-[13px] transform z-10">
+                        <div className="relative inline-block">
+                            <div className="absolute -top-0.5 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[18px] border-r-[#37464F] border-b-0 border-l-0"></div>
+                            <div className="relative w-0 h-0 border-t-[10px] border-t-transparent border-r-[15px] border-r-[#131F24] border-b-0 border-l-0"></div>
                         </div>
+                    </div>
+                    <div className="relative bg-[#131F24] border border-[#37464F] rounded-lg px-4 sm:px-6 py-3">
+                        {/* MODIFIED: Text size increased on sm screens */}
+                        <span className="text-lg sm:text-2xl md:text-base lg:text-lg font-bold text-gray-200">{demoQuestion.cause}</span>
                     </div>
                 </div>
             </div>

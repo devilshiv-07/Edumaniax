@@ -1,141 +1,117 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowRight } from 'lucide-react';
 
-// Demo data for the animation
-const demoPuzzle = {
-    cause: "Cutting down trees",
-    effects: ["Loss of tree cover", "Soil erosion", "Crop failure and desertification"],
-    image: "/environmentGameInfo/ChainReaction/cutdowntrees.png", // Verify this path
+// Demo data - no changes here
+const demoQuestion = {
+    id: 5,
+    title: "Snow Cover Loop",
+    flowSteps: [
+        { text: "Global Warming", icon: "🌡️" },
+        { text: "Less Snow Cover", icon: "❄️" },
+        { text: "Reduced Reflection", icon: "☀️" },
+        { text: "Missing Link", icon: "❓" }
+    ],
+    correctAnswer: "More heat absorption",
+    linkCards: [
+        "More heat absorption",
+        "Increased snow formation",
+        "Better light reflection",
+        "Cooler surface temperatures"
+    ],
+    feedbackType: "Positive",
+    explanation: "POSITIVE feedback loop! Dark surfaces absorb more heat than white snow, accelerating warming even more!"
 };
 
-// Card component - No changes needed here, it inherits responsive size
-const Card = ({ content, isVisible = true, isPlaceholder = false }) => (
-    <div className={`flex h-[7vh] w-full items-center self-stretch shrink-0 rounded-[0.83vw] relative transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-        {isPlaceholder ? (
-            <div className="shrink-0 w-full h-full bg-[#131f24] rounded-[0.83vw] border-dashed border-[0.2vh] border-[#37464f]" />
-        ) : (
-            <>
-                <div className="shrink-0 bg-[#131f24] rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] absolute inset-[-0.05vh] shadow-[0_0.22vh_0_0_#37464f]" />
-                <div className="flex p-2 md:p-[1vw] items-center justify-center grow relative z-[5]">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb] text-center">{content}</span>
-                </div>
-            </>
-        )}
-    </div>
-);
-
-// Slot component - No changes needed here, it inherits responsive size
-const Slot = ({ text, content }) => (
-    <div className="flex h-[7vh] w-full items-center justify-center self-stretch shrink-0 rounded-[0.83vw] relative">
-        {content ? (
-             <>
-                <div className="shrink-0 bg-[#131f24] rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] absolute inset-[-0.05vh] shadow-[0_0.22vh_0_0_#37464f]" />
-                <div className="flex p-2 md:p-[1vw] items-center justify-center grow relative z-[5]">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb] text-center">{content}</span>
-                </div>
-            </>
-        ) : (
-            <>
-                <div className="w-full h-full bg-[#131f24] rounded-[0.83vw] border-dashed border-[0.2vh] border-[#37464f]" />
-                <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-                    <span className="font-['Inter'] text-base md:text-[1.8vh] font-medium text-[#f1f7fb]">{text}</span>
-                </div>
-            </>
-        )}
-    </div>
-);
-
+// CSS to hide scrollbars
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
 
 const ScenarioContent = () => {
-    const [animationState, setAnimationState] = useState('idle');
+    // State and animation logic - no changes here
+    const [view, setView] = useState('question');
+    const [selectedCard, setSelectedCard] = useState(null);
 
     useEffect(() => {
+        let selectTimer, resultTimer, resetTimer;
+
         const animationCycle = () => {
-            setAnimationState('animating');
-            const endTimeout = setTimeout(() => setAnimationState('finished'), 1000); // Animation duration
-            const resetTimeout = setTimeout(() => setAnimationState('idle'), 3000); // Pause before reset
-            return () => {
-                clearTimeout(endTimeout);
-                clearTimeout(resetTimeout);
-            };
+            selectTimer = setTimeout(() => {
+                setSelectedCard(demoQuestion.correctAnswer);
+            }, 1500);
+            resultTimer = setTimeout(() => {
+                setView('result');
+            }, 2500);
+            resetTimer = setTimeout(() => {
+                setView('question');
+                setSelectedCard(null);
+            }, 5500);
         };
-        const startTimeout = setTimeout(animationCycle, 500);
-        const loopInterval = setInterval(animationCycle, 3500);
+        animationCycle();
+        const loop = setInterval(animationCycle, 6000);
         return () => {
-            clearTimeout(startTimeout);
-            clearInterval(loopInterval);
+            clearTimeout(selectTimer);
+            clearTimeout(resultTimer);
+            clearTimeout(resetTimer);
+            clearInterval(loop);
         };
     }, []);
 
-    const animatedCardContent = demoPuzzle.effects[0];
+    const cardStyle = "bg-[#131F24] border border-[#37464F] rounded-xl shadow-[0_0.2vh_0_0_#37464F]";
+    const selectedCardStyle = "bg-green-500/20 border border-green-500 text-white rounded-xl shadow-[0_0.2vh_0_0_rgba(21,128,61,0.8)]";
 
     return (
-        // Set CSS variables for the animation based on screen size.
-        // Mobile (default): Slides vertically (translateY). The value is an approximation of the height of the top panel + gap.
-        // Desktop (md): Slides horizontally (translateX).
-        <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 
-            [--slide-x:0] [--slide-y:30vh]
-            md:[--slide-x:calc(21vw_+_1.5vw)] md:[--slide-y:0]"
-        >
-            <style>
-                {`
-                @keyframes slide-responsive {
-                    from { transform: translate(0, 0); }
-                    to { transform: translate(var(--slide-x), var(--slide-y)); }
-                }
-                .animate-slide {
-                    animation: slide-responsive 1s ease-in-out forwards;
-                }
-                `}
-            </style>
-
-            <div className="flex flex-col items-center gap-6 md:gap-[4.5vh]">
-                {/* Main container for panels. Stacks vertically on mobile, horizontally on desktop. */}
-                <div className="flex flex-col md:flex-row w-full max-w-full md:max-w-[70.7vw] justify-center items-start gap-4 md:gap-[1.5vw]">
-                    
-                    {/* Left Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
-                        
-                        {/* Wrapper for the animation */}
-                        <div className="relative h-[7vh] w-full">
-                            {animationState === 'animating' && (
-                                <div className="absolute top-0 left-0 z-10 animate-slide w-full">
-                                    <Card content={animatedCardContent} />
-                                </div>
-                            )}
-                            <div className="absolute top-0 left-0 w-full">
-                                <Card 
-                                    content={animatedCardContent} 
-                                    isPlaceholder={animationState === 'finished'} 
-                                    isVisible={animationState === 'idle'}
-                                />
-                            </div>
+        <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-[2vh] font-['Inter'] text-white overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            
+            <div className="w-full max-w-4xl relative md:max-h-[60vh] md:overflow-y-auto no-scrollbar">
+                {/* Question View */}
+                <div className={`transition-opacity duration-500 ${view === 'question' ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="w-full flex flex-col items-center gap-[4vh] md:gap-[2.5vh] lg:gap-[3.5vh]">
+                        {/* Flow Steps */}
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+                            {demoQuestion.flowSteps.map((step, index) => (
+                                <React.Fragment key={index}>
+                                    {/* // CHANGED FOR LG: Made cards a tad smaller on lg screens (15vh -> 14vh) */}
+                                    <div className={`flex flex-col gap-2 items-center justify-center text-center p-3 w-[14vh] h-[14vh] sm:w-[15vh] sm:h-[15vh] md:w-[12vh] md:h-[12vh] lg:w-[14vh] lg:h-[14vh] ${cardStyle}`}>
+                                        {/* // CHANGED FOR LG: Adjusted icon and text size for the new lg card size */}
+                                        <div className="text-[4vh] md:text-[3.5vh] lg:text-[3.8vh]">{step.icon}</div>
+                                        <span className="font-medium text-[1.6vh] sm:text-[1.8vh] md:text-[1.5vh] lg:text-[1.7vh]">{step.text}</span>
+                                    </div>
+                                    {index < demoQuestion.flowSteps.length - 1 && <ArrowRight size={"5vh"} className="text-gray-400 hidden sm:block" />}
+                                </React.Fragment>
+                            ))}
                         </div>
 
-                        <Card content={demoPuzzle.effects[1]} isVisible={true} />
-                        <Card content={demoPuzzle.effects[2]} isVisible={true} />
-                    </div>
-
-                    {/* Right Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
-                        <Slot 
-                            text="1st" 
-                            content={animationState === 'finished' ? animatedCardContent : null}
-                        />
-                        <Slot text="2nd" />
-                        <Slot text="3rd" />
+                        {/* Options Section */}
+                        <div>
+                            <h3 className="font-medium text-[2vh] text-center text-gray-300 mb-[2vh]">Choose the missing link</h3>
+                            <div className="w-full max-w-sm md:max-w-xl bg-[rgba(32,47,54,0.30)] rounded-xl py-[2.5vh] px-4 sm:px-6 border border-gray-700 backdrop-blur-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {demoQuestion.linkCards.map((card) => (
+                                        <div
+                                            key={card}
+                                            className={`text-center py-[1.5vh] md:py-[1.2vh] lg:py-[1.5vh] px-5 transition-all duration-300 font-medium text-[1.6vh] sm:text-[1.8vh] md:text-[1.5vh] lg:text-[1.7vh] ${selectedCard === card ? selectedCardStyle : cardStyle}`}
+                                        >
+                                            {card}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Bottom "Cause" section */}
-                <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-full md:max-w-[43.5vw] h-auto md:h-[10vh] gap-2">
-                    <img src={demoPuzzle.image} alt="Cause" className="w-16 h-24 md:w-[7vw] md:h-[10vh] object-contain" />
-                    <div className="relative flex items-center">
-                        <div className="absolute left-[-0.9vw] top-1/2 -translate-y-1/2 w-[1vw] h-[1.8vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-09/cZcfryFaXc.png)] bg-cover bg-no-repeat hidden md:block" />
-                        <div className="flex h-auto md:h-[5.5vh] justify-center items-center bg-[#131f24] rounded-lg md:rounded-[0.83vw] border-solid border-[0.1vh] border-[#37464f] p-3 md:px-[1.8vw]">
-                            <span className="font-['Inter'] text-lg md:text-[2.1vh] font-medium text-[#f1f7fb] text-center">
-                                {demoPuzzle.cause}
-                            </span>
-                        </div>
+                {/* Result View */}
+                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${view === 'result' ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className="w-full max-w-lg md:max-w-2xl bg-[rgba(32,47,54,0.5)] rounded-xl p-[3vh] sm:p-[4vh] text-center flex flex-col items-center justify-center border border-gray-700 backdrop-blur-md">
+                        <h2 className="font-bold text-[4vh] sm:text-[5vh] text-lime-400 capitalize mb-[2vh]">
+                            {demoQuestion.feedbackType} feedback
+                        </h2>
+                        <p className="text-[1.8vh] sm:text-[2vh] text-gray-200 leading-relaxed">
+                            {demoQuestion.explanation}
+                        </p>
                     </div>
                 </div>
             </div>

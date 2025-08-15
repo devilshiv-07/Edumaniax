@@ -1,14 +1,11 @@
-// src/components/Games/CauseEffectGame/IntroScreen.jsx
-
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import BottomProgressLoader from "./BottomProgressLoader";
-
-// --- NOTE: Make sure you have these assets and components available ---
-import Vol from "@/components/icon/GreenBudget/Vol.jsx"; // Placeholder path
+import Vol from "@/components/icon/GreenBudget/Vol.jsx";
 import bgVid from "/financeGames6to8/bgVid.mp4";
 import bgMusic from "/financeGames6to8/bgMusic.mp3";
 import btnExit from "/financeGames6to8/btn-exit.svg";
+import btnAudio from "/financeGames6to8/btnAudio.svg";
 
 const IntroScreen = ({ onShowInstructions }) => {
   const audioRef = useRef(null);
@@ -17,19 +14,27 @@ const IntroScreen = ({ onShowInstructions }) => {
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
+    
+    // Toggle the muted state
     const newMutedState = !isMuted;
     audioRef.current.muted = newMutedState;
     setIsMuted(newMutedState);
 
+    // If unmuting, and it wasn't playing, try to play
     if (!newMutedState && !isPlaying) {
-      audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+      audioRef.current.play();
       setIsPlaying(true);
+    } else if (newMutedState && isPlaying) {
+      // If muting while playing, just update state
+      // We don't need to pause, just mute
     }
   };
 
   useEffect(() => {
     const playAudio = async () => {
       if (!audioRef.current) return;
+      
+      // Set to muted on initial load to bypass autoplay policy
       audioRef.current.muted = true;
       setIsMuted(true);
 
@@ -45,7 +50,7 @@ const IntroScreen = ({ onShowInstructions }) => {
   }, []);
 
   return (
-    <div className="w-full h-screen relative flex items-center justify-center bg-black">
+    <div className="w-full -mt-8 h-screen relative flex items-center justify-center">
       {/* Background Video */}
       <video
         autoPlay
@@ -58,13 +63,14 @@ const IntroScreen = ({ onShowInstructions }) => {
         Your browser does not support the video tag.
       </video>
 
-      {/* Audio Element */}
+      {/* Audio Element - This is the correct place to render it */}
       <audio ref={audioRef} loop src={bgMusic} />
 
       {/* Exit Button */}
       <Link
-        to="/" // Link to your main games page or home
-        className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] md:w-[150px] md:h-[60px] mt-11 ml-7 transition transform active:scale-95 z-20"
+        to="/environmental/games"
+        className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+          md:w-[150px] md:h-[60px] mt-11 ml-7 transition transform active:scale-95"
       >
         <img
           src={btnExit}
@@ -76,16 +82,20 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Audio Toggle Button */}
       <button
         onClick={toggleAudio}
-        className="absolute top-12 right-11 transition-transform active:scale-95 z-20"
+        className="absolute top-15 right-11 transition-transform active:scale-95"
       >
-        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] md:w-[150px] md:h-[60px]"/>
+        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+          md:w-[150px] md:h-[60px]"/>
       </button>
 
       {/* Center Content */}
-      <div className="text-center flex flex-col items-center justify-center z-10 p-4">
+      <div className="text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:-mt-100 z-10">
+        {/* Heading: The Budgeter */}
         <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
           Cause & Effect
         </span>
+
+        {/* Subheading: Challenge 1 */}
         <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl text-white -mt-2 mb-6 sm:mb-10">
           Challenge 1
         </h2>
