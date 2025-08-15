@@ -1,14 +1,16 @@
 import React from 'react';
 import CrossButton from '@/components/icon/GreenBudget/CrossButton';
-import ScenarioContent from './ScenarioContext'; // Corrected import name from ScenarioContext
+// Corrected import name to match standard component naming
+import ScenarioContent from './ScenarioContext'; 
 
 const InstructionsScreen = ({ onStartGame }) => {
   return (
-    // Main container to center the pop-up, ensures it works on all screen heights
-    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4">
+    // --- FIX APPLIED HERE ---
+    // Added `overflow-x-hidden` to prevent horizontal scrolling, especially on mobile.
+    <div className="main-container bg-[#0A160E] flex flex-col items-center justify-center min-h-screen w-screen p-4 overflow-x-hidden">
       
       {/* Pop-up box with responsive width and height */}
-      <div className="relative w-full md:w-[80vw] h-auto md:h-[80vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-no-repeat bg-cover flex flex-col items-center py-8 md:pt-[5vh] rounded-2xl">
+      <div className="relative w-full md:w-[80vw] h-auto md:h-[80vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-no-repeat bg-cover flex flex-col items-center py-8 md:pt-[5vh] ">
         
         {/* Cross button with responsive size and position */}
         <div className="absolute w-12 h-12 md:w-[7vw] md:h-[7vh] -top-5 -right-5 md:-top-[3vh] md:-right-[3.5vw] z-[68]">
@@ -20,10 +22,7 @@ const InstructionsScreen = ({ onStartGame }) => {
           How to Play?
         </h2>
         
-        {/* Container for the main content. 
-          - Mobile: Stacks vertically (flex-col).
-          - Desktop (md): Sits side-by-side (md:flex-row).
-        */}
+        {/* Container for the main content */}
         <div className="flex flex-col md:flex-row items-center md:items-start justify-center w-full mt-8 md:mt-[15vh] gap-8 md:gap-[1vw] px-4">
           
           {/* Left column: ScenarioContent */}

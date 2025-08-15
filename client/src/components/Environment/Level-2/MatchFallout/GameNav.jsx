@@ -53,7 +53,7 @@ const GameNav = ({ timeLeft }) => { // Now receives timeLeft as a prop
       <Link to="/environmental/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100 ">
         <BackButton className="w-16 md:w-40"/>
       </Link>
-      <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-base sm:text-base md:text-3xl lg:text-2xl text-[#ffcc00] tracking-[0.05vw]">
+      <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-xl md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
         Match the Fallout
       </span>
       <div className="flex items-center space-x-[1vw]">
@@ -63,7 +63,7 @@ const GameNav = ({ timeLeft }) => { // Now receives timeLeft as a prop
             {formatTime(timeLeft)}
           </span>
         </div>
-        <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-90'}`}>
+        <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
           <Vol isPlaying={isPlaying} className="w-16 md:w-40"/>
         </button>
       </div>

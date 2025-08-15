@@ -1,6 +1,6 @@
 import React from 'react';
 import CrossButton from '@/components/icon/GreenBudget/CrossButton';
-import ScenarioContent from './ScenarioContext'; // Corrected import name
+import ScenarioContent from './ScenarioContent'; // Corrected import name
 
 const InstructionsScreen = ({ onStartGame }) => {
   return (
@@ -24,20 +24,22 @@ const InstructionsScreen = ({ onStartGame }) => {
         <div className="flex flex-col md:flex-row items-center md:items-start justify-center w-full mt-8 md:mt-[15vh] gap-8 md:gap-[1vw] px-4">
           
           {/* Left column: ScenarioContent. Takes full width on mobile. */}
-          <div className="flex justify-center w-full md:w-auto mt-11 md:mt-0">
+          <div className="flex justify-center w-full md:w-auto mt-15 md:-mt-15">
             <ScenarioContent />
           </div>
           
           {/* Right column: Text and learning outcome. Takes full width on mobile. */}
-          <div className="flex flex-col items-center w-full md:w-[25vw] text-center md:text-left">
-            <span className="lilita text-base md:text-[15px] font-normal leading-relaxed md:leading-[28px] text-[#fff]">
-              You’re given a starting action or event (the “cause”). 
+          <div className="flex flex-col items-center w-full md:w-[25vw] text-center md:text-left mt-0 md:-mt-7 lg:mt-0">
+            <span className="lilita text-base lg:text-[15px] font-normal leading-relaxed md:leading-tight lg:leading-[28px] text-[#fff]">
+              Connect human activities to their effects on Earth's systems!
               <br/>
-              Your task is to predict 3 connected consequences in logical order.
+              Read the Cause Card (human activity)
               <br/>
-              Score: +5 for correct sequence
+              Select the correct Effect
               <br/>
-              Suggested Time: 1 minute per puzzle 
+              Choose which Earth System is affected
+              <br/>
+              Learn amazing facts or face a System Shock!
             </span>
             
             {/* Learning Outcome box with responsive text sizes */}
@@ -46,7 +48,9 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="w-full font-['Lilita_One'] text-base text-base md:text-[14px] font-normal leading-snug md:leading-[2vh] text-[#fff] tracking-normal md:tracking-[0.01vw] mt-1">
-                You will learn to classify your surroundings into layers of earth.
+                Discover how human activities create ripple effects across our
+          planet's systems! Connect causes to effects and learn about Earth's
+          amazing interconnected world!
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import CrossButton from '@/components/icon/GreenBudget/CrossButton';
-import ScenarioContent from './ScenarioContext'; // Corrected import name
+import ScenarioContent from './ScenarioContent'; // Corrected import name
 
 const InstructionsScreen = ({ onStartGame }) => {
   return (
@@ -24,20 +24,22 @@ const InstructionsScreen = ({ onStartGame }) => {
         <div className="flex flex-col md:flex-row items-center md:items-start justify-center w-full mt-8 md:mt-[15vh] gap-8 md:gap-[1vw] px-4">
           
           {/* Left column: ScenarioContent. Takes full width on mobile. */}
-          <div className="flex justify-center w-full md:w-auto mt-11 md:mt-0">
+          <div className="flex justify-center w-full md:w-auto mt-11 md:-mt-7">
             <ScenarioContent />
           </div>
           
           {/* Right column: Text and learning outcome. Takes full width on mobile. */}
           <div className="flex flex-col items-center w-full md:w-[25vw] text-center md:text-left">
             <span className="lilita text-base md:text-[15px] font-normal leading-relaxed md:leading-[28px] text-[#fff]">
-              You’re given a starting action or event (the “cause”). 
+              Complete broken feedback loops by finding the missing link!
               <br/>
-              Your task is to predict 3 connected consequences in logical order.
+              Each loop shows how environmental changes create chain reactions.
               <br/>
-              Score: +5 for correct sequence
+              Types of feedback loops:
               <br/>
-              Suggested Time: 1 minute per puzzle 
+              Positive feedback loops amplifies change!
+              <br/>
+              Negative feedback loops stabilizes change!
             </span>
             
             {/* Learning Outcome box with responsive text sizes */}

@@ -1,5 +1,3 @@
-// src/components/GameNav.jsx
-
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import BackButton from "@/components/icon/GreenBudget/BackButton";
@@ -7,15 +5,25 @@ import Vol from "@/components/icon/GreenBudget/Vol.jsx";
 import Heart from "@/components/icon/GreenBudget/Heart.jsx";
 
 // Assume bgMusic is available at this path. You might need to adjust it.
-import bgMusic from "/financeGames6to8/bgMusic.mp3";
+import bgMusic from "/financeGames6to8/bgMusic.mp3"; 
 
-// FIX: GameNav now accepts timeLeft as a prop from the parent game component.
-const GameNav = ({ timeLeft }) => {
+const GameNav = () => {
   const audioRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(true); // Music playing state remains local.
+  const [isPlaying, setIsPlaying] = useState(true); // Start playing by default
+  const [timeLeft, setTimeLeft] = useState(180);
 
-  // FIX: All internal timer logic (useState, useEffect for timeLeft) has been removed.
-  // The component now relies on the `timeLeft` prop for the display.
+  useEffect(() => {
+    // Exit early when we reach 0
+    if (timeLeft <= 0) return;
+
+    // Save intervalId to clear the interval when the component re-renders
+    const intervalId = setInterval(() => {
+      setTimeLeft(timeLeft - 1);
+    }, 1000);
+
+    // Clear interval on re-render to avoid memory leaks
+    return () => clearInterval(intervalId);
+  }, [timeLeft]);
 
   // Format the time left into MM:SS format
   const formatTime = (seconds) => {
@@ -57,26 +65,30 @@ const GameNav = ({ timeLeft }) => {
 
   return (
     <div className="w-full h-[10.5vh] bg-[#28343A] flex items-center justify-between px-[2vw] relative z-10">
+      
+      {/* Audio Element - correctly rendered here and linked to the ref */}
       <audio ref={audioRef} loop src={bgMusic} />
 
+      {/* Back Button linked to another page */}
       <Link to="/environmental/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100 ">
         <BackButton className="w-16 md:w-40"/>
       </Link>
       
-      <span className="lilita ml-[7vw] md:ml-[11vw] [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-xl md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
-        Classify It
+      <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-base sm:text-base md:text-3xl lg:text-2xl text-[#ffcc00] ml-[8vw] tracking-[0.05vw]">
+        Dilemma Cards
       </span>
       
       <div className="flex items-center space-x-[1vw]">
         <div className="relative h-[100px] flex items-center justify-center">
           <Heart className="w-16 md:w-40"/>
           <span className="absolute text-white font-bold text-base sm:text-base md:text-3xl lg:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2">
-            {/* FIX: Displays the time from the `timeLeft` prop */}
             {formatTime(timeLeft)}
           </span>
         </div>
         
-        <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
+        {/* Vol component connected to the audio logic */}
+        <button onClick={toggleAudio} 
+          className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-90'}`}>
           <Vol isPlaying={isPlaying} className="w-16 md:w-40"/>
         </button>
       </div>

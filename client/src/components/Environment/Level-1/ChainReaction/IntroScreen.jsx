@@ -69,8 +69,8 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Exit Button */}
       <Link
         to="/environmental/games"
-        className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
-          md:w-[202px] md:h-[82px] mt-11 ml-7 transition transform active:scale-95"
+        className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+          md:w-[150px] md:h-[60px] mt-11 ml-7 transition transform active:scale-95"
       >
         <img
           src={btnExit}
@@ -84,14 +84,14 @@ const IntroScreen = ({ onShowInstructions }) => {
         onClick={toggleAudio}
         className="absolute top-15 right-11 transition-transform active:scale-95"
       >
-        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
-    md:w-[202px] md:h-[82px]"/>
+        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+          md:w-[150px] md:h-[60px]"/>
       </button>
 
       {/* Center Content */}
       <div className="text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:-mt-100 z-10">
         {/* Heading: The Budgeter */}
-        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[7vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
+        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
           Chain Reaction
         </span>
 
