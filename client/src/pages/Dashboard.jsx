@@ -6,6 +6,10 @@ import { useBlog } from "@/contexts/BlogContext";
 import { useAccessControl } from "../utils/accessControl";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import useGameProgress from "../hooks/useGameProgress";
+import AiFeedback from "./AiFeedback";
+
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -43,10 +47,190 @@ const Dashboard = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   const { getUserComments } = useBlog();
-  const { accessStatus, hasModuleAccess } = useAccessControl(
-    subscriptions,
-    selectedModule
+  const {
+    accessStatus,
+    hasModuleAccess,
+    currentPlan,
+    isModulePurchased,
+    soloModules,
+  } = useAccessControl(subscriptions, selectedModule);
+
+  // Plan-aware access check: SOLO => only purchased modules; PRO/INSTITUTIONAL => all; STARTER/fallback => hasModuleAccess
+  const computeHasAccess = (moduleKey) => {
+    if (currentPlan === "PRO" || currentPlan === "INSTITUTIONAL") return true;
+    if (currentPlan === "SOLO") return Boolean(isModulePurchased(moduleKey));
+    return hasModuleAccess(moduleKey);
+  };
+
+  // Determine whether the user has any active subscription or unlocked modules
+  const allModules = [
+    { key: "finance", name: "Fundamentals of Finance" },
+    { key: "computers", name: "Computer Science" },
+    { key: "law", name: "Fundamentals of Law" },
+    { key: "communication", name: "Communication Mastery" },
+    { key: "entrepreneurship", name: "Entrepreneurship Bootcamp" },
+    { key: "digital-marketing", name: "Digital Marketing Pro" },
+    { key: "leadership", name: "Leadership & Adaptability" },
+    { key: "environment", name: "Environmental Sustainability" },
+    { key: "sel", name: "Wellness & Mental Health" },
+  ];
+
+  // URL mapping that mirrors the routes used in `client/src/pages/Courses.jsx` course definitions
+  const MODULE_URLS = {
+    finance: { courses: `/courses?module=finance`, games: `/finance/games`, notes: `/finance/notes` },
+    computers: { courses: `/courses?module=computers`, games: `/computer/games`, notes: `/computer/notes` },
+    law: { courses: `/courses?module=law`, games: `/law/games`, notes: `/law/notes` },
+    communication: { courses: `/courses?module=communication`, games: `/communications/games`, notes: `/communications/notes` },
+    entrepreneurship: { courses: `/courses?module=entrepreneurship`, games: `/entrepreneurship/games`, notes: `/entrepreneurship/notes` },
+    "digital-marketing": { courses: `/courses?module=digital-marketing`, games: `/digital-marketing/games`, notes: `/digital-marketing/notes` },
+    leadership: { courses: `/courses?module=leadership`, games: `/leadership/games`, notes: `/leadership/notes` },
+    environment: { courses: `/courses?module=environment`, games: `/environmental/games`, notes: `/environmental/notes` },
+    sel: { courses: `/courses?module=sel`, games: `/social-learning/games`, notes: `/social-learning/notes` },
+  };
+
+  const activeSubscription = subscriptions?.find(
+    (sub) => sub.status === "ACTIVE" && new Date(sub.endDate) > new Date()
   );
+
+  // subscriptionPlan normalised to upper-case plan name if available
+  const subscriptionPlan =
+    accessStatus?.subscription?.plan ||
+    (activeSubscription?.planType ? activeSubscription.planType.toUpperCase() : null);
+
+  // Determine whether user has purchased modules (PRO/INSTITUTIONAL => all, SOLO => purchased modules only)
+  const hasPurchasedModules =
+    currentPlan === "PRO" ||
+    currentPlan === "INSTITUTIONAL" ||
+    (currentPlan === "SOLO" && Array.isArray(soloModules) && soloModules.length > 0);
+
+  const modulesAvailable = Boolean(hasPurchasedModules);
+
+  // Compute modules to display depending on plan
+  const displayedModules = (() => {
+    if (currentPlan === "PRO" || currentPlan === "INSTITUTIONAL") return allModules;
+    if (currentPlan === "SOLO") return allModules.filter(m => soloModules.includes(m.key));
+    return []; // STARTER / no plan -> no modules listed
+  })();
+
+  // Load persisted game progress (server-backed with localStorage fallback)
+  const { progressMap } = useGameProgress(user?.id);
+
+  // Merge persisted progress into displayed modules before rendering
+  const modulesWithProgress = displayedModules.map((m) => {
+    const keyCandidates = [m.name, m.key, (m.name || "").toLowerCase().replace(/[^a-z0-9]/g, "")];
+    let progRecord = {};
+    for (const k of keyCandidates) {
+      if (k && progressMap && progressMap[k]) {
+        progRecord = progressMap[k];
+        break;
+      }
+    }
+    const percent = progRecord && typeof progRecord.averageScorePerGame === "number" ? Math.round(progRecord.averageScorePerGame) : (m.progress || 0);
+    return { ...m, progress: percent };
+  });
+
+  // TEMP DEBUG: print plan/module purchase/access info to help diagnose locked-but-purchased cases
+  try {
+    console.debug("Dashboard Access Debug:", {
+      currentPlan,
+      soloModules,
+      isCommunicationPurchased: isModulePurchased && isModulePurchased("communication"),
+      modules: modulesWithProgress.map((m) => ({
+        key: m.key,
+        name: m.name,
+        isPurchased: isModulePurchased && isModulePurchased(m.key),
+        hasAccess: computeHasAccess(m.key),
+        progress: m.progress,
+      })),
+    });
+  } catch (err) {
+    // ignore debug failures
+    void err;
+  }
+
+  // Hoist subscription/payment fetch so multiple effects can call it without temporal-deadzone
+  const userId = user && user.id;
+
+  const fetchUserSubscriptionData = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setLoadingSubscriptions(true);
+      setLoadingPayments(true);
+
+      const [subscriptionResponse, paymentResponse] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/payment/subscriptions/${userId}`),
+        fetch(`${import.meta.env.VITE_API_URL || "http://localhost:3000"}/payment/payments/${userId}`),
+      ]);
+
+      // Process subscription data
+      if (subscriptionResponse.ok) {
+        const subscriptionData = await subscriptionResponse.json();
+        const userSubscriptions = subscriptionData.success ? subscriptionData.subscriptions : [];
+        setSubscriptions(userSubscriptions);
+
+        if (userSubscriptions.length > 0) {
+          const firstActiveSubscription = userSubscriptions.find(
+            (sub) => (sub.status === "ACTIVE" && new Date(sub.endDate) > new Date()) || (sub.isExpired === false && sub.remainingDays > 0)
+          );
+
+          if (firstActiveSubscription && firstActiveSubscription.notes && firstActiveSubscription.planType === "SOLO") {
+            try {
+              const parsedNotes = JSON.parse(firstActiveSubscription.notes);
+              const rawModule = parsedNotes.selectedModule;
+
+              const moduleMapping = {
+                "Fundamentals of Finance": "finance",
+                "Computer Science": "computers",
+                "Fundamentals of Law": "law",
+                "Communication Mastery": "communication",
+                "Entrepreneurship Bootcamp": "entrepreneurship",
+                "Digital Marketing Pro": "digital-marketing",
+                "Leadership & Adaptability": "leadership",
+                "Environmental Sustainability": "environment",
+                "Wellness & Mental Health": "sel",
+              };
+
+              const mappedModule = moduleMapping[rawModule] || rawModule?.toLowerCase();
+              setSelectedModule(mappedModule);
+            } catch {
+              const moduleMapping = {
+                "Fundamentals of Finance": "finance",
+                "Computer Science": "computers",
+                "Fundamentals of Law": "law",
+                "Communication Mastery": "communication",
+                "Entrepreneurship Bootcamp": "entrepreneurship",
+                "Digital Marketing Pro": "digital-marketing",
+                "Leadership & Adaptability": "leadership",
+                "Environmental Sustainability": "environment",
+                "Wellness & Mental Health": "sel",
+              };
+
+              const mappedModule = moduleMapping[firstActiveSubscription.notes] || firstActiveSubscription.notes?.toLowerCase();
+              setSelectedModule(mappedModule);
+            }
+          }
+        }
+      } else {
+        setSubscriptions([]);
+      }
+
+      // Process payment data
+      if (paymentResponse.ok) {
+        const paymentData = await paymentResponse.json();
+        setPayments(Array.isArray(paymentData) ? paymentData : []);
+      } else {
+        setPayments([]);
+      }
+    } catch (error) {
+      console.error("Error fetching user subscription/payment data:", error);
+      setSubscriptions([]);
+      setPayments([]);
+    } finally {
+      setLoadingSubscriptions(false);
+      setLoadingPayments(false);
+    }
+  }, [userId]);
 
   // Sync avatar state with user context (fixes issue after page refresh)
   useEffect(() => {
@@ -64,42 +248,18 @@ const Dashboard = () => {
     }
   }, [user, avatar]);
 
+  // Refresh user comments when the user ID becomes available or changes
   useEffect(() => {
-    const fetchUserComments = async () => {
-      if (user?.id) {
-        // Use user ID for fetching comments to avoid issues when name changes
-        // console.log("Fetching comments for user ID:", user.id);
-        try {
-          const comments = await getUserComments(user.id, true); // true means use userId
-          // console.log("Received comments:", comments);
-          setUserComments(Array.isArray(comments) ? comments : []);
-        } catch (error) {
-          console.log("Failed to fetch user comments:", error);
-          setUserComments([]);
-        }
-      } else if (
-        user?.name &&
-        typeof user.name === "string" &&
-        user.name.trim()
-      ) {
-        // Fallback to name-based fetching for backward compatibility
-        // console.log("Fetching comments for user name:", user.name);
-        try {
-          const comments = await getUserComments(user.name.trim(), false); // false means use name
-          // console.log("Received comments:", comments);
-          setUserComments(Array.isArray(comments) ? comments : []);
-        } catch (error) {
-          console.log("Failed to fetch user comments:", error);
-          setUserComments([]);
-        }
-      } else {
-        // console.log("No valid user ID or name found:", user);
-        setUserComments([]);
-      }
-    };
+    if (!user || !user.id) return;
+    getUserComments(user.id, true)
+      .then((comments) => setUserComments(Array.isArray(comments) ? comments : []))
+      .catch((err) => console.log("Failed to fetch comments:", err));
+  }, [user, getUserComments]);
 
-    fetchUserComments();
-  }, [user?.id, user?.name, getUserComments]);
+  // Fetch user subscription and payment data on component mount
+  useEffect(() => {
+    fetchUserSubscriptionData();
+  }, [user?.id, fetchUserSubscriptionData]);
 
   // Auto-refresh subscription data daily and handle real-time updates
   useEffect(() => {
@@ -137,237 +297,26 @@ const Dashboard = () => {
       clearInterval(hourlyRefreshInterval);
       window.removeEventListener("focus", handleWindowFocus);
     };
-  }, [user?.id]);
+  }, [user?.id, fetchUserSubscriptionData]);
 
-  // Move fetchUserSubscriptionData function outside useEffect so it can be reused
-  const fetchUserSubscriptionData = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
-      setLoadingSubscriptions(true);
-      setLoadingPayments(true);
-
-      // Use Promise.all to fetch both subscription and payment data in parallel
-      const [subscriptionResponse, paymentResponse] = await Promise.all([
-        fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
-          }/payment/subscriptions/${user.id}`
-        ),
-        fetch(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:3000"
-          }/payment/payments/${user.id}`
-        ),
-      ]);
-
-      // Process subscription data
-      if (subscriptionResponse.ok) {
-        const subscriptionData = await subscriptionResponse.json();
-        // Handle the API response format {success: true, subscriptions: [...]}
-        const userSubscriptions = subscriptionData.success
-          ? subscriptionData.subscriptions
-          : [];
-        setSubscriptions(userSubscriptions);
-
-        console.log("📊 Updated subscription data:", userSubscriptions);
-
-        // For multiple SOLO subscriptions, we'll use the first one for selectedModule
-        // but the access control will handle all purchased modules
-        if (userSubscriptions.length > 0) {
-          const firstActiveSubscription = userSubscriptions.find(
-            (sub) =>
-              (sub.status === "ACTIVE" && new Date(sub.endDate) > new Date()) ||
-              (sub.isExpired === false && sub.remainingDays > 0)
-          );
-
-          if (firstActiveSubscription) {
-            // Parse notes to get selectedModule if it exists (for SOLO plans)
-            if (
-              firstActiveSubscription.notes &&
-              firstActiveSubscription.planType === "SOLO"
-            ) {
-              try {
-                const parsedNotes = JSON.parse(firstActiveSubscription.notes);
-                const rawModule = parsedNotes.selectedModule;
-
-                // Map the display name to the correct module key
-                const moduleMapping = {
-                  "Fundamentals of Finance": "finance",
-                  "Computer Science": "computers",
-                  "Fundamentals of Law": "law",
-                  "Communication Mastery": "communication",
-                  "Entrepreneurship Bootcamp": "entrepreneurship",
-                  "Digital Marketing Pro": "digital-marketing",
-                  "Leadership & Adaptability": "leadership",
-                  "Environmental Sustainability": "environment",
-                  "Wellness & Mental Health": "sel",
-                };
-
-                const mappedModule =
-                  moduleMapping[rawModule] || rawModule?.toLowerCase();
-                setSelectedModule(mappedModule);
-              } catch {
-                // If notes is not JSON, treat as plain text and map it
-                const moduleMapping = {
-                  "Fundamentals of Finance": "finance",
-                  "Computer Science": "computers",
-                  "Fundamentals of Law": "law",
-                  "Communication Mastery": "communication",
-                  "Entrepreneurship Bootcamp": "entrepreneurship",
-                  "Digital Marketing Pro": "digital-marketing",
-                  "Leadership & Adaptability": "leadership",
-                  "Environmental Sustainability": "environment",
-                  "Wellness & Mental Health": "sel",
-                };
-
-                const mappedModule =
-                  moduleMapping[firstActiveSubscription.notes] ||
-                  firstActiveSubscription.notes?.toLowerCase();
-                setSelectedModule(mappedModule);
-              }
-            }
-          }
-        }
-      }
-
-      // Process payment data
-      if (paymentResponse.ok) {
-        const paymentData = await paymentResponse.json();
-        setPayments(Array.isArray(paymentData) ? paymentData : []);
-      }
-    } catch (error) {
-      console.error("Error fetching user subscription/payment data:", error);
-      setSubscriptions([]);
-      setPayments([]);
-    } finally {
-      setLoadingSubscriptions(false);
-      setLoadingPayments(false);
-    }
-  }, [user?.id]);
-
-  // Fetch user subscription and payment data on component mount
+  // Call the hoisted fetch function on mount and wire subscriptionUpdated events
   useEffect(() => {
     fetchUserSubscriptionData();
-  }, [user?.id]);
 
-  // Original fetch useEffect (keeping for compatibility but moving logic to function above)
-  useEffect(() => {
-    const fetchUserSubscriptionData = async () => {
-      if (!user?.id) return;
-
-      try {
-        setLoadingSubscriptions(true);
-        setLoadingPayments(true);
-
-        // Use Promise.all to fetch both subscription and payment data in parallel
-        const [subscriptionResponse, paymentResponse] = await Promise.all([
-          fetch(
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:3000"
-            }/payment/subscriptions/${user.id}`
-          ),
-          fetch(
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:3000"
-            }/payment/payments/${user.id}`
-          ),
-        ]);
-
-        // Process subscription data
-        if (subscriptionResponse.ok) {
-          const subscriptionData = await subscriptionResponse.json();
-          // Handle the API response format {success: true, subscriptions: [...]}
-          const userSubscriptions = subscriptionData.success
-            ? subscriptionData.subscriptions
-            : [];
-          setSubscriptions(userSubscriptions);
-
-          // For multiple SOLO subscriptions, we'll use the first one for selectedModule
-          // but the access control will handle all purchased modules
-          if (userSubscriptions.length > 0) {
-            const firstActiveSubscription = userSubscriptions.find(
-              (sub) =>
-                sub.status === "ACTIVE" && new Date(sub.endDate) > new Date()
-            );
-
-            if (firstActiveSubscription) {
-              // Parse notes to get selectedModule if it exists (for SOLO plans)
-              if (
-                firstActiveSubscription.notes &&
-                firstActiveSubscription.planType === "SOLO"
-              ) {
-                try {
-                  const parsedNotes = JSON.parse(firstActiveSubscription.notes);
-                  const rawModule = parsedNotes.selectedModule;
-
-                  // Map the display name to the correct module key
-                  const moduleMapping = {
-                    "Fundamentals of Finance": "finance",
-                    "Computer Science": "computers",
-                    "Fundamentals of Law": "law",
-                    "Communication Mastery": "communication",
-                    "Entrepreneurship Bootcamp": "entrepreneurship",
-                    "Digital Marketing Pro": "digital-marketing",
-                    "Leadership & Adaptability": "leadership",
-                    "Environmental Sustainability": "environment",
-                    "Wellness & Mental Health": "sel",
-                  };
-
-                  const mappedModule = moduleMapping[rawModule] || rawModule;
-                  setSelectedModule(mappedModule);
-                } catch (error) {
-                  console.error("Error parsing subscription notes:", error);
-                }
-              }
-            }
-          } else {
-            setSelectedModule(null);
-          }
-        } else {
-          console.log(
-            "Failed to fetch subscriptions:",
-            subscriptionResponse.statusText
-          );
-          setSubscriptions([]);
-        }
-
-        // Process payment data
-        if (paymentResponse.ok) {
-          const paymentData = await paymentResponse.json();
-          setPayments(Array.isArray(paymentData) ? paymentData : []);
-        } else {
-          console.log("Failed to fetch payments:", paymentResponse.statusText);
-          setPayments([]);
-        }
-      } catch (error) {
-        console.error("Error fetching subscription/payment data:", error);
-        setSubscriptions([]);
-        setPayments([]);
-      } finally {
-        setLoadingSubscriptions(false);
-        setLoadingPayments(false);
-      }
-    };
-
-    fetchUserSubscriptionData();
-
-    // Listen for subscription updates from payment completion
     const handleSubscriptionUpdate = (event) => {
-      console.log("Subscription updated event received:", event.detail);
-      fetchUserSubscriptionData(); // Re-fetch subscription data
+      console.log("Dashboard: Subscription update detected", event.detail);
+      if (event.detail?.subscriptions) {
+        setSubscriptions(event.detail.subscriptions);
+      }
+      fetchUserSubscriptionData();
     };
 
     window.addEventListener("subscriptionUpdated", handleSubscriptionUpdate);
 
-    // Cleanup event listener
     return () => {
-      window.removeEventListener(
-        "subscriptionUpdated",
-        handleSubscriptionUpdate
-      );
+      window.removeEventListener("subscriptionUpdated", handleSubscriptionUpdate);
     };
-  }, [user?.id]);
+  }, [fetchUserSubscriptionData]);
 
   // Refresh comments when user returns to the dashboard (page focus)
   useEffect(() => {
@@ -832,6 +781,30 @@ const cancelLogout = () => {
               </button>
             )}
 
+
+            {/* AI Feedback - Only show for PRO plan users */}
+            {subscriptions?.[0]?.planType?.toUpperCase() === "PRO" && (
+              <button
+                className={`flex items-center gap-3 hover:text-green-700 ${selectedSection === "ai-feedback"
+                    ? "text-green-600"
+                    : "text-gray-400"
+                  }`}
+                onClick={() => setSelectedSection("ai-feedback")}
+              >
+                <img
+                  src={
+                    selectedSection === "ai-feedback"
+                      ? "/dashboardDesign/aiFeedbackgray.svg"
+                      : "/dashboardDesign/aiFeedbackGreen.svg"
+                  }
+                  alt="AI Feedback"
+                  className="w-5 h-5"
+                />
+                <span className="font-bold">AI Feedback</span>
+              </button>
+            )}
+
+
             {/* Sales Dashboard Link - Only for SALES role */}
             {role === "SALES" && (
               <Link
@@ -1028,7 +1001,7 @@ const cancelLogout = () => {
 
                 {/* Modules Grid */}
                 <div className="bg-white w-full max-w-6xl rounded-lg shadow-md p-6">
-                  {accessStatus?.subscription ? (
+                  {modulesAvailable ? (
                     <div>
                       <div className="flex justify-between items-center mb-6">
                         <div>
@@ -1036,12 +1009,14 @@ const cancelLogout = () => {
                             My Learning Journey
                           </h3>
                           <p className="text-gray-600 text-sm">
-                            {accessStatus.subscription.plan.toUpperCase()} Plan
-                            - Continue your progress
+                            {subscriptionPlan
+                              ? subscriptionPlan.toUpperCase() + " Plan"
+                              : "Plan"}{" "}- Continue your progress
                           </p>
                         </div>
-                        {accessStatus.subscription.plan !== "PRO" &&
-                          accessStatus.subscription.plan !==
+                        {(accessStatus?.subscription?.plan || subscriptionPlan) !==
+                          "PRO" &&
+                          (accessStatus?.subscription?.plan || subscriptionPlan) !==
                             "INSTITUTIONAL" && (
                             <Link
                               to="/pricing"
@@ -1058,7 +1033,7 @@ const cancelLogout = () => {
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-green-800 font-semibold">
-                                Modules Unlocked
+                                Modules Unlocked 
                               </p>
                               <p className="text-2xl font-bold text-green-600">
                                 {
@@ -1097,7 +1072,7 @@ const cancelLogout = () => {
                                       name: "Wellness & Mental Health",
                                     },
                                   ].filter((module) =>
-                                    hasModuleAccess(module.key)
+                                    computeHasAccess(module.key)
                                   ).length
                                 }
                               </p>
@@ -1113,13 +1088,21 @@ const cancelLogout = () => {
                                 Overall Progress
                               </p>
                               <p className="text-2xl font-bold text-blue-600">
-                                65%
+                                {(() => {
+                                  try {
+                                    if (!modulesWithProgress || modulesWithProgress.length === 0) return '0%';
+                                    const vals = modulesWithProgress.map(m => Number(m.progress || 0));
+                                    const avg = Math.round(vals.reduce((a,b) => a + b, 0) / vals.length);
+                                    return `${avg}%`;
+                                  } catch (err) { void err; return '0%'; }
+                                })()}
                               </p>
                             </div>
                             <div className="text-3xl">🎯</div>
                           </div>
                         </div>
 
+                        {/* Certificates Earned card removed per user request
                         <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
                           <div className="flex items-center justify-between">
                             <div>
@@ -1133,76 +1116,14 @@ const cancelLogout = () => {
                             <div className="text-3xl">🏆</div>
                           </div>
                         </div>
+                        */}
                       </div>
 
                       {/* Module Cards with Progress */}
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[
-                          {
-                            key: "finance",
-                            name: "Finance Management",
-                            icon: "💰",
-                            progress: 85,
-                            color: "green",
-                          },
-                          {
-                            key: "digital-marketing",
-                            name: "Digital Marketing",
-                            icon: "📱",
-                            progress: 60,
-                            color: "blue",
-                          },
-                          {
-                            key: "communication",
-                            name: "Communication Skills",
-                            icon: "🗣️",
-                            progress: 45,
-                            color: "orange",
-                          },
-                          {
-                            key: "computers",
-                            name: "Computer Science",
-                            icon: "💻",
-                            progress: 30,
-                            color: "purple",
-                          },
-                          {
-                            key: "entrepreneurship",
-                            name: "Entrepreneurship",
-                            icon: "🚀",
-                            progress: 0,
-                            color: "red",
-                          },
-                          {
-                            key: "environment",
-                            name: "Environmental Science",
-                            icon: "🌍",
-                            progress: 0,
-                            color: "green",
-                          },
-                          {
-                            key: "law",
-                            name: "Legal Awareness",
-                            icon: "⚖️",
-                            progress: 0,
-                            color: "indigo",
-                          },
-                          {
-                            key: "leadership",
-                            name: "Leadership Skills",
-                            icon: "👑",
-                            progress: 75,
-                            color: "yellow",
-                          },
-                          {
-                            key: "sel",
-                            name: "Social Emotional Learning",
-                            icon: "❤️",
-                            progress: 90,
-                            color: "pink",
-                          },
-                        ].map((module) => {
-                          const hasAccess = hasModuleAccess(module.key);
+                        {modulesWithProgress.map((module) => {
+                          const hasAccess = computeHasAccess(module.key);
                           const colorClasses = {
                             green:
                               "border-green-200 bg-green-50 hover:border-green-300",
@@ -1224,14 +1145,22 @@ const cancelLogout = () => {
                               key={module.key}
                               className={`border-2 rounded-xl p-6 transition-all duration-300 ${
                                 hasAccess
-                                  ? `${
-                                      colorClasses[module.color]
-                                    } hover:shadow-lg cursor-pointer transform hover:-translate-y-1`
+                                  ? `${colorClasses[module.color]} hover:shadow-lg cursor-pointer transform hover:-translate-y-1`
                                   : "border-gray-200 bg-gray-50 opacity-60"
                               }`}
                             >
                               <div className="flex items-center justify-between mb-4">
-                                <div className="text-2xl">{module.icon}</div>
+                                <div className="text-2xl">{module.icon || ( {
+                                  finance: '💰',
+                                  computers: '💻',
+                                  law: '⚖️',
+                                  communication: '🗣️',
+                                  entrepreneurship: '🚀',
+                                  'digital-marketing': '📣',
+                                  leadership: '🧭',
+                                  environment: '🌿',
+                                  sel: '🧠'
+                                }[module.key] || '📘')}</div>
                                 {hasAccess ? (
                                   <div className="flex items-center gap-2">
                                     <span className="w-3 h-3 bg-green-500 rounded-full"></span>
@@ -1267,13 +1196,7 @@ const cancelLogout = () => {
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-2">
                                       <div
-                                        className={`h-2 rounded-full transition-all duration-500 ${
-                                          module.progress >= 80
-                                            ? "bg-green-500"
-                                            : module.progress >= 50
-                                            ? "bg-yellow-500"
-                                            : "bg-blue-500"
-                                        }`}
+                                        className={`h-2 rounded-full transition-all duration-500 bg-green-500`}
                                         style={{ width: `${module.progress}%` }}
                                       ></div>
                                     </div>
@@ -1304,14 +1227,31 @@ const cancelLogout = () => {
                               ) : (
                                 <div className="text-center py-4">
                                   <p className="text-gray-500 text-sm mb-3">
-                                    Premium Required
+                                    Premium Required — try Level 1 for free
                                   </p>
-                                  <Link
-                                    to="/pricing"
-                                    className="text-[#068F36] hover:text-green-700 text-sm font-medium"
-                                  >
-                                    Upgrade to Access
-                                  </Link>
+                                  <div className="space-y-2">
+                                    <Link
+                                      to={`${(MODULE_URLS[module.key] && MODULE_URLS[module.key].courses) || `/courses?module=${module.key}`}&trial=level1`}
+                                      className="w-full bg-[#068F36] hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      Try Level 1
+                                      <ChevronRight size={16} />
+                                    </Link>
+
+                                    <Link
+                                      to={`${(MODULE_URLS[module.key] && MODULE_URLS[module.key].games) || `/${module.key}/games`}?trial=level1`}
+                                      className="w-full border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      Play Level 1 (Trial) 🎮
+                                    </Link>
+
+                                    <Link
+                                      to="/pricing"
+                                      className="text-[#068F36] hover:text-green-700 text-sm font-medium inline-block mt-2"
+                                    >
+                                      Upgrade to Access
+                                    </Link>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -1320,8 +1260,8 @@ const cancelLogout = () => {
                       </div>
 
                       {/* Special message for SOLO plan */}
-                      {accessStatus.subscription.plan === "SOLO" &&
-                        accessStatus.subscription.selectedModule && (
+                      {accessStatus?.subscription?.plan === "SOLO" &&
+                        accessStatus?.subscription?.selectedModule && (
                           <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="text-2xl">⭐</div>
@@ -1331,8 +1271,8 @@ const cancelLogout = () => {
                             </div>
                             <p className="text-blue-700">
                               With your SOLO plan, you have premium access to:{" "}
-                              <strong>
-                                {accessStatus.subscription.selectedModule}
+                                <strong>
+                                {accessStatus?.subscription?.selectedModule}
                               </strong>
                             </p>
                             <p className="text-blue-600 text-sm mt-2">
@@ -1371,6 +1311,8 @@ const cancelLogout = () => {
                 </div>
               </div>
             )}
+
+                      {selectedSection === "ai-feedback" && <AiFeedback />}
 
             {selectedSection === "profile" && (
               <div className="max-w-6xl mx-auto px-6 pt-6">
@@ -1946,27 +1888,49 @@ const cancelLogout = () => {
             {selectedSection === "subscriptions" && (
               <div className="max-w-6xl mx-auto px-6 pt-6">
                 {/* DASHBOARD HEADER */}
+                {/* <div className="bg-gradient-to-r from-green-50 to-green-100 w-full max-w-6xl rounded-lg shadow-sm px-8 py-6 mb-8 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-green-200/30 to-transparent rounded-full -mr-32 -mt-32"></div>
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-green-200/30 to-transparent rounded-full -ml-16 -mb-16"></div>
+                  <h2 className="text-3xl font-bold text-gray-900 relative z-10 flex items-center">
+                    <span className="text-green-600 mr-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
+                        <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
+                        <path d="M18 12a2 2 0 0 0 0 4h4v-4z"></path>
+                      </svg>
+                    </span>
+                    My Subscriptions
+                  </h2>
+                  <p className="text-gray-600 mt-2 ml-10 max-w-xl relative z-10">
+                    Manage your current plans and view payment history
+                  </p>
+                </div> */}
+    
+                 {/* Top Heading Box */}
                 <div className="bg-white w-full max-w-6xl rounded-lg shadow-sm px-6 py-4 mb-6">
                   <h2 className="text-3xl font-bold text-gray-900">
-                    My Subscription
+                    My Subscriptions
                   </h2>
-                            
                 </div>
 
                 {/* Current Plan Section */}
-                <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                <div className="bg-white rounded-xl shadow-md p-8 mb-8 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-full h-2 bg-gradient-to-r from-green-400 to-green-600"></div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     Current Plans
                   </h3>
                   {loadingSubscriptions ? (
-                    <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                      <span className="ml-2 text-gray-600">
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600"></div>
+                      <span className="ml-3 text-gray-600 font-medium">
                         Loading subscription data...
                       </span>
                     </div>
                   ) : subscriptions && subscriptions.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subscriptions
                         .filter(
                           (sub) =>
@@ -1991,144 +1955,132 @@ const cancelLogout = () => {
                               );
                             }
                           }
+                          
+                          // Use enriched data if available, otherwise calculate manually
+                          let remainingDays;
+                          let isExpired = false;
+
+                          if (
+                            subscription.remainingDays !== undefined
+                          ) {
+                            // Use enriched data from subscription manager
+                            remainingDays = subscription.remainingDays;
+                            isExpired =
+                              subscription.isExpired ||
+                              remainingDays <= 0;
+                          } else {
+                            // Fallback to manual calculation
+                            const endDate = new Date(
+                              subscription.endDate
+                            );
+                            const currentDate = new Date();
+                            const timeDiff =
+                              endDate.getTime() - currentDate.getTime();
+                            remainingDays = Math.ceil(
+                              timeDiff / (1000 * 3600 * 24)
+                            );
+                            isExpired = remainingDays <= 0;
+                          }
+
+                          // Calculate percentage of time remaining for progress bar
+                          const startDate = new Date(subscription.startDate);
+                          const endDate = new Date(subscription.endDate);
+                          const totalDuration = endDate.getTime() - startDate.getTime();
+                          const elapsedDuration = new Date().getTime() - startDate.getTime();
+                          const percentageRemaining = Math.max(0, Math.min(100, 100 - (elapsedDuration / totalDuration * 100)));
+                          
+                          // Determine colors and status message based on remaining days
+                          let statusColor = "bg-green-500";
+                          let statusMessage = "Active";
+                          let progressColor = "bg-green-500";
+                          
+                          if (isExpired) {
+                            statusColor = "bg-red-500";
+                            statusMessage = "Expired";
+                            progressColor = "bg-red-500";
+                          } else if (remainingDays <= 3) {
+                            statusColor = "bg-red-500";
+                            progressColor = "bg-red-500";
+                            statusMessage = "Ending Soon";
+                          } else if (remainingDays <= 7) {
+                            statusColor = "bg-yellow-500";
+                            progressColor = "bg-yellow-500";
+                            statusMessage = "Ending Soon";
+                          }
+
+                          // Emoji/icon based on plan type
+                          let planIcon;
+                          switch(subscription.planType.toUpperCase()) {
+                            case 'PRO':
+                              planIcon = "✨";
+                              break;
+                            case 'SOLO':
+                              planIcon = "🎯";
+                              break;
+                            case 'INSTITUTIONAL':
+                              planIcon = "🏛️";
+                              break;
+                            default:
+                              planIcon = "📚";
+                          }
 
                           return (
                             <div
                               key={subscription.id || index}
-                              className="border border-green-200 rounded-lg p-4 bg-green-50"
+                              className="border-2 rounded-xl p-4 transition-all duration-300 hover:shadow-md bg-white hover:border-green-300 cursor-pointer transform hover:-translate-y-1"
                             >
-                              <div className="flex justify-between items-start mb-3">
-                                <div>
-                                  <h4 className="text-xl font-semibold text-green-800">
-                                    {subscription.planType.toUpperCase()} PLAN
+                              {/* Card Header with Status */}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center">
+                                  <div className="text-2xl mr-2">{planIcon}</div>
+                                  <h4 className="font-bold text-gray-800">
+                                    {subscription.planType.toUpperCase()}
                                   </h4>
-                                  <p className="text-gray-600 text-sm">
-                                    Subscribed on:{" "}
-                                    {new Date(
-                                      subscription.startDate
-                                    ).toLocaleDateString()}
-                                  </p>
                                 </div>
-                                <div className="text-right">
-                                  <span
-                                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                      subscription.status === "ACTIVE"
-                                        ? "bg-green-100 text-green-800"
-                                        : "bg-red-100 text-red-800"
-                                    }`}
-                                  >
-                                    {subscription.status}
+                                <div className="flex items-center gap-2">
+                                  <span className={`w-2 h-2 ${statusColor} rounded-full`}></span>
+                                  <span className="text-xs font-medium">
+                                    {statusMessage}
                                   </span>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <p className="text-gray-500">Valid Until:</p>
-                                  <p className="font-semibold">
-                                    {new Date(
-                                      subscription.endDate
-                                    ).toLocaleDateString()}
-                                  </p>
+                              
+                              {/* Subscription Details */}
+                              <div className="mb-3">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="text-gray-500">Start Date:</span>
+                                  <span className="font-medium">{new Date(subscription.startDate).toLocaleDateString()}</span>
                                 </div>
-                                <div>
-                                  <p className="text-gray-500">Plan Type:</p>
-                                  <p className="font-semibold">
-                                    {subscription.planType}
-                                  </p>
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                  <span className="text-gray-500">End Date:</span>
+                                  <span className="font-medium">{new Date(subscription.endDate).toLocaleDateString()}</span>
                                 </div>
                                 {selectedModule && (
-                                  <div className="md:col-span-2">
-                                    <p className="text-gray-500">
-                                      Selected Module:
-                                    </p>
-                                    <p className="font-semibold">
-                                      {selectedModule}
-                                    </p>
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-gray-500">Module:</span>
+                                    <span className="font-medium text-right">{selectedModule}</span>
                                   </div>
                                 )}
                               </div>
-
-                              {/* Show remaining days with enhanced display */}
-                              <div className="mt-3 pt-3 border-t border-green-200">
-                                {(() => {
-                                  // Use enriched data if available, otherwise calculate manually
-                                  let remainingDays;
-                                  let isExpired = false;
-
-                                  if (
-                                    subscription.remainingDays !== undefined
-                                  ) {
-                                    // Use enriched data from subscription manager
-                                    remainingDays = subscription.remainingDays;
-                                    isExpired =
-                                      subscription.isExpired ||
-                                      remainingDays <= 0;
-                                  } else {
-                                    // Fallback to manual calculation
-                                    const endDate = new Date(
-                                      subscription.endDate
-                                    );
-                                    const currentDate = new Date();
-                                    const timeDiff =
-                                      endDate.getTime() - currentDate.getTime();
-                                    remainingDays = Math.ceil(
-                                      timeDiff / (1000 * 3600 * 24)
-                                    );
-                                    isExpired = remainingDays <= 0;
-                                  }
-
-                                  if (!isExpired && remainingDays > 0) {
-                                    // Active subscription
-                                    let textColor = "text-green-600";
-                                    let bgColor = "bg-green-50";
-
-                                    // Change color based on urgency
-                                    if (remainingDays <= 3) {
-                                      textColor = "text-red-600";
-                                      bgColor = "bg-red-50";
-                                    } else if (remainingDays <= 7) {
-                                      textColor = "text-yellow-600";
-                                      bgColor = "bg-yellow-50";
-                                    }
-
-                                    return (
-                                      <div
-                                        className={`p-2 rounded-lg ${bgColor}`}
-                                      >
-                                        <p
-                                          className={`${textColor} text-sm font-medium flex items-center gap-2`}
-                                        >
-                                          <span className="inline-block w-2 h-2 bg-current rounded-full"></span>
-                                          {remainingDays} day
-                                          {remainingDays !== 1 ? "s" : ""}{" "}
-                                          remaining
-                                        </p>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          Expires on{" "}
-                                          {new Date(
-                                            subscription.endDate
-                                          ).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                    );
-                                  } else {
-                                    // Expired subscription
-                                    return (
-                                      <div className="p-2 rounded-lg bg-red-50">
-                                        <p className="text-red-600 text-sm font-medium flex items-center gap-2">
-                                          <span className="inline-block w-2 h-2 bg-current rounded-full"></span>
-                                          Expired
-                                        </p>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          Expired on{" "}
-                                          {new Date(
-                                            subscription.endDate
-                                          ).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                    );
-                                  }
-                                })()}
+                              
+                              {/* Progress Bar */}
+                              <div className="mt-3 pt-2 border-t border-gray-100">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-gray-500">Subscription Progress</span>
+                                  <span className="text-xs font-medium">
+                                    {!isExpired && remainingDays > 0 ? (
+                                      `${remainingDays} day${remainingDays !== 1 ? 's' : ''} left`
+                                    ) : (
+                                      'Expired'
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                  <div 
+                                    className={`h-1.5 rounded-full ${progressColor}`} 
+                                    style={{ width: `${percentageRemaining}%` }}
+                                  ></div>
+                                </div>
                               </div>
                             </div>
                           );
@@ -2136,183 +2088,169 @@ const cancelLogout = () => {
                     </div>
                   ) : (
                     <div className="border border-gray-200 rounded-lg p-6 bg-gray-50 text-center">
-                      <p className="text-gray-600 mb-4">
-                        You don't have any active subscriptions yet.
+                      <div className="w-12 h-12 mx-auto mb-3 text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4M4 12l6-6m0 12l-6-6" />
+                        </svg>
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-800 mb-2">No Active Subscriptions</h4>
+                      <p className="text-gray-600 mb-4 text-sm">
+                        Subscribe to unlock premium content.
                       </p>
                       <Link
                         to="/courses"
-                        className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        className="bg-green-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-green-700 transition-colors inline-flex items-center"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                        </svg>
                         Browse Plans
                       </Link>
                     </div>
                   )}
                 </div>
 
-                {/* Accessible Modules Section */}
-                <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                    Accessible Modules
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                      { name: "Fundamentals of Finance", key: "finance" },
-                      { name: "Computer Science", key: "computers" },
-                      { name: "Fundamentals of Law", key: "law" },
-                      { name: "Communication Mastery", key: "communication" },
-                      {
-                        name: "Entrepreneurship Bootcamp",
-                        key: "entrepreneurship",
-                      },
-                      {
-                        name: "Digital Marketing Pro",
-                        key: "digital-marketing",
-                      },
-                      { name: "Leadership & Adaptability", key: "leadership" },
-                      {
-                        name: "Environmental Sustainability",
-                        key: "environment",
-                      },
-                      { name: "Wellness & Mental Health", key: "sel" },
-                    ].map((module) => {
-                      const hasAccess = hasModuleAccess(module.key);
-                      return (
-                        <div
-                          key={module.key}
-                          className={`border rounded-lg p-4 ${
-                            hasAccess
-                              ? "border-green-200 bg-green-50"
-                              : "border-gray-200 bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-semibold text-gray-800">
-                              {module.name}
-                            </h4>
-                            <span
-                              className={`w-3 h-3 rounded-full ${
-                                hasAccess ? "bg-green-500" : "bg-gray-400"
-                              }`}
-                            />
-                          </div>
-                          <p
-                            className={`text-sm ${
-                              hasAccess ? "text-green-600" : "text-gray-500"
-                            }`}
-                          >
-                            {hasAccess ? "Accessible" : "Premium Required"}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                
 
                 {/* Payment History Section */}
-                <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                <div className="bg-white rounded-xl shadow-md p-6 mb-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-indigo-400 to-purple-600"></div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     Payment History
                   </h3>
                   {loadingPayments ? (
                     <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                      <span className="ml-2 text-gray-600">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-200 border-t-indigo-600"></div>
+                      <span className="ml-2 text-gray-600 font-medium">
                         Loading payment history...
                       </span>
                     </div>
                   ) : payments.length > 0 ? (
-                    <div className="space-y-4">
-                      {payments.slice(0, 5).map((payment) => (
-                        <div
-                          key={payment.id}
-                          className="border border-gray-200 rounded-lg p-4"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-semibold text-gray-800">
-                                {payment.planType} Plan - ₹{payment.amount}
-                              </h4>
-                              <p className="text-sm text-gray-500">
-                                {new Date(
-                                  payment.createdAt
-                                ).toLocaleDateString()}{" "}
-                                at{" "}
-                                {new Date(
-                                  payment.createdAt
-                                ).toLocaleTimeString()}
-                              </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {payments.slice(0, 6).map((payment) => {
+                        // Determine status color and icon
+                        let statusColor, statusBg;
+                        let statusIcon;
+                        
+                        if (payment.status === "COMPLETED") {
+                          statusColor = "text-green-700";
+                          statusBg = "bg-green-100";
+                          statusIcon = (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          );
+                        } else if (payment.status === "PENDING") {
+                          statusColor = "text-yellow-700";
+                          statusBg = "bg-yellow-100";
+                          statusIcon = (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          );
+                        } else {
+                          statusColor = "text-red-700";
+                          statusBg = "bg-red-100";
+                          statusIcon = (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          );
+                        }
+                        
+                        // Parse date
+                        const paymentDate = new Date(payment.createdAt);
+                        const formattedDate = paymentDate.toLocaleDateString();
+                        const formattedTime = paymentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        return (
+                          <div
+                            key={payment.id}
+                            className="border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow bg-white"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-medium text-gray-800 text-sm flex items-center">
+                                  <span className="inline-flex items-center justify-center bg-indigo-100 text-indigo-800 w-6 h-6 rounded-full mr-2 text-xs">₹</span>
+                                  {payment.planType} - ₹{payment.amount}
+                                </h4>
+                                <p className="text-xs text-gray-500">
+                                  {formattedDate} at {formattedTime}
+                                </p>
+                              </div>
+                              <div className={`flex items-center ${statusBg} ${statusColor} text-xs px-2 py-1 rounded-full`}>
+                                {statusIcon}
+                                <span className="ml-1">{payment.status}</span>
+                              </div>
                             </div>
-                            <span
-                              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                payment.status === "COMPLETED"
-                                  ? "bg-green-100 text-green-800"
-                                  : payment.status === "PENDING"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {payment.status}
-                            </span>
+                              <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                              <div className="overflow-hidden">
+                                <p className="text-gray-500">Payment ID:</p>
+                                <p className="font-mono truncate">
+                                  {payment.razorpayPaymentId || "Pending"}
+                                </p>
+                              </div>
+                              <div className="overflow-hidden">
+                                <p className="text-gray-500">Order ID:</p>
+                                <p className="font-mono truncate">
+                                  {payment.razorpayOrderId || "Pending"}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {payment.notes && (
+                              <div className="mt-2 pt-2 border-t border-gray-100">
+                                <p className="text-gray-500 text-xs flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Module:
+                                </p>
+                                <p className="text-xs font-medium">
+                                  {(() => {
+                                    try {
+                                      const parsedNotes = JSON.parse(payment.notes);
+                                      return parsedNotes.selectedModule || "All Modules";
+                                    } catch {
+                                      return payment.notes || "All Modules";
+                                    }
+                                  })()}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-500">Payment ID:</p>
-                              <p className="font-mono text-xs">
-                                {payment.razorpayPaymentId || "Pending"}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-500">Order ID:</p>
-                              <p className="font-mono text-xs">
-                                {payment.razorpayOrderId}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-gray-500">Currency:</p>
-                              <p>{payment.currency}</p>
-                            </div>
-                          </div>
-                          {payment.notes && (
-                            <div className="mt-2 pt-2 border-t border-gray-100">
-                              <p className="text-gray-500 text-sm">
-                                Selected Module:
-                              </p>
-                              <p className="text-sm font-medium">
-                                {(() => {
-                                  try {
-                                    const parsedNotes = JSON.parse(
-                                      payment.notes
-                                    );
-                                    return (
-                                      parsedNotes.selectedModule ||
-                                      "All Modules"
-                                    );
-                                  } catch {
-                                    return payment.notes || "All Modules";
-                                  }
-                                })()}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {payments.length > 5 && (
-                        <div className="text-center">
-                          <p className="text-gray-500 text-sm">
-                            Showing latest 5 payments
+                        );
+                      })}
+                      
+                      {payments.length > 6 && (
+                        <div className="md:col-span-2 text-center mt-2">
+                          <p className="text-indigo-600 text-sm font-medium hover:text-indigo-800 cursor-pointer">
+                            View All Payment History
                           </p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <p className="text-gray-600 mb-4">
-                        No payment history found.
+                    <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="w-12 h-12 mx-auto mb-3 text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-base font-medium text-gray-800 mb-1">No Payment History</h4>
+                      <p className="text-gray-600 mb-4 text-sm">
+                        Your purchase history will appear here.
                       </p>
                       <Link
                         to="/courses"
-                        className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                        className="bg-indigo-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                        </svg>
                         Make Your First Purchase
                       </Link>
                     </div>
@@ -2323,6 +2261,10 @@ const cancelLogout = () => {
           </>
         )}
       </main>
+
+        
+
+
 
       {/* Image Crop Modal */}
       {showCropModal && (

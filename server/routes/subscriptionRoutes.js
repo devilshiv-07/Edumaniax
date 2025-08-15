@@ -275,6 +275,42 @@ router.patch("/:subscriptionId/status", async (req, res) => {
     const enrichedSubscription = enrichSubscriptionData(updatedSubscription);
     
     console.log(`📝 Subscription ${subscriptionId} status updated to ${status} for user ${updatedSubscription.user.name}`);
+    // If the subscription was explicitly CANCELLED and was a SOLO with a selected module,
+    // remove the user's performance data for that module so progress isn't retained.
+    try {
+      if (status === 'CANCELLED' && updatedSubscription.planType === 'SOLO') {
+        // notes may be JSON with { selectedModule }
+        let selectedModule = null;
+        if (updatedSubscription.notes) {
+          try {
+            const parsed = JSON.parse(updatedSubscription.notes);
+            selectedModule = parsed.selectedModule || null;
+          } catch (e) {
+            selectedModule = updatedSubscription.notes;
+          }
+        }
+
+        if (selectedModule) {
+          const deletedModulePerf = await prisma.modulePerformance.deleteMany({
+            where: {
+              userId: updatedSubscription.userId,
+              moduleName: selectedModule
+            }
+          });
+
+          const deletedTopicPerf = await prisma.topicPerformance.deleteMany({
+            where: {
+              userId: updatedSubscription.userId,
+              moduleName: selectedModule
+            }
+          });
+
+          console.log(`🗑️ Removed performance data for user ${updatedSubscription.userId}, module='${selectedModule}' - module: ${deletedModulePerf.count}, topics: ${deletedTopicPerf.count}`);
+        }
+      }
+    } catch (cleanupErr) {
+      console.error('Error cleaning up performance data after subscription update:', cleanupErr);
+    }
     
     res.json({
       success: true,

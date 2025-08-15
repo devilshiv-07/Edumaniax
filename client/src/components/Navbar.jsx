@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
-  const { user, role, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -158,21 +158,21 @@ const cancelLogout = () => {
                 <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-100">
                   <div className="py-1">
                     <Link
-                      to="/dashboard"
+                      to="/dashboard?section=profile"
                       className={dropdownLinkClasses}
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       My Profile
                     </Link>
                     <Link
-                      to="/dashboard"
+                      to="/dashboard?section=modules"
                       className={dropdownLinkClasses}
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       My Modules
                     </Link>
                     <Link
-                      to="/dashboard"
+                      to="/dashboard?section=subscriptions"
                       className={dropdownLinkClasses}
                       onClick={() => setIsDropdownOpen(false)}
                     >

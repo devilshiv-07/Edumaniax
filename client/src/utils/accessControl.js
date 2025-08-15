@@ -225,77 +225,118 @@ class AccessController {
     // console.log('AccessController: Found', activeSoloSubscriptions.length, 'active SOLO subscriptions');
 
     // Extract module names from SOLO subscriptions
-    const modules = activeSoloSubscriptions.map(sub => {
-      // console.log('AccessController: Processing subscription', sub.id);
-      
-      // First try to get from enriched selectedModule field (from server)
-      if (sub.selectedModule) {
-        const moduleMapping = {
-          'Fundamentals of Finance': 'finance',
-          'Computer Science': 'computers', 
-          'Fundamentals of Law': 'law',
-          'Communication Mastery': 'communication',
-          'Entrepreneurship Bootcamp': 'entrepreneurship',
-          'Digital Marketing Pro': 'digital-marketing',
-          'Leadership & Adaptability': 'leadership', 
-          'Environmental Sustainability': 'environment',
-          'Wellness & Mental Health': 'sel',
-        };
-        
-        const moduleKey = moduleMapping[sub.selectedModule] || sub.selectedModule?.toLowerCase();
-        // console.log('AccessController: From enriched data, mapped', sub.selectedModule, 'to', moduleKey);
-        return moduleKey;
-      }
-      
-      // Fallback to parsing notes field
-      if (sub.notes) {
-        try {
-          const parsedNotes = JSON.parse(sub.notes);
-          if (parsedNotes.selectedModule) {
-            const moduleMapping = {
-              'Fundamentals of Finance': 'finance',
-              'Computer Science': 'computers', 
-              'Fundamentals of Law': 'law',
-              'Communication Mastery': 'communication',
-              'Entrepreneurship Bootcamp': 'entrepreneurship',
-              'Digital Marketing Pro': 'digital-marketing',
-              'Leadership & Adaptability': 'leadership', 
-              'Environmental Sustainability': 'environment',
-              'Wellness & Mental Health': 'sel',
-            };
-            
-            const moduleKey = moduleMapping[parsedNotes.selectedModule] || parsedNotes.selectedModule?.toLowerCase();
-            // console.log('AccessController: From notes JSON, mapped', parsedNotes.selectedModule, 'to', moduleKey);
-            return moduleKey;
-          }
-        } catch {
-          // If parsing fails, try to map the notes directly (legacy format)
-          const moduleMapping = {
-            'Fundamentals of Finance': 'finance',
-            'Computer Science': 'computers', 
-            'Fundamentals of Law': 'law',
-            'Communication Mastery': 'communication',
-            'Entrepreneurship Bootcamp': 'entrepreneurship',
-            'Digital Marketing Pro': 'digital-marketing',
-            'Leadership & Adaptability': 'leadership', 
-            'Environmental Sustainability': 'environment',
-            'Wellness & Mental Health': 'sel',
-          };
-          
-          const moduleKey = moduleMapping[sub.notes] || sub.notes?.toLowerCase();
-          // console.log('AccessController: From notes directly, mapped', sub.notes, 'to', moduleKey);
-          return moduleKey;
-        }
-      }
-      
-      // Fallback to module field if it exists
-      const fallback = sub.module;
-      // console.log('AccessController: Using fallback', fallback);
-      return fallback;
-    }).filter(Boolean);
+    // Use a robust normalisation & mapping strategy to handle many display-name variants
+    const mapping = {
+      'fundamentalsoffinance': 'finance',
+      'fundamentals of finance': 'finance',
+      'finance': 'finance',
+      'computer science': 'computers',
+      'computers': 'computers',
+      'fundamentalsoflaw': 'law',
+      'fundamentals of law': 'law',
+      'law': 'law',
+      'communicationmastery': 'communication',
+      'communication mastery': 'communication',
+      'communicationskills': 'communication',
+      'communication skills': 'communication',
+      'entrepreneurshipbootcamp': 'entrepreneurship',
+      'entrepreneurship bootcamp': 'entrepreneurship',
+      'entrepreneurship': 'entrepreneurship',
+      'digitalmarketingpro': 'digital-marketing',
+      'digital marketing pro': 'digital-marketing',
+      'digital marketing': 'digital-marketing',
+      'leadership&adaptability': 'leadership',
+      'leadership & adaptability': 'leadership',
+      'leadership': 'leadership',
+      'environmentalsustainability': 'environment',
+      'environmental sustainability': 'environment',
+      'environment': 'environment',
+      'wellness&mentalhealth': 'sel',
+      'wellness & mental health': 'sel',
+      'social emotional learning': 'sel',
+      'sel': 'sel'
+    };
 
-    // console.log('AccessController: Final SOLO modules:', modules);
-    return modules;
+    const normalize = (s) => (s || '').toString().trim().toLowerCase();
+
+    const modules = activeSoloSubscriptions
+      .map((sub) => {
+        // candidate values to inspect (expanded to be more tolerant of subscription shapes)
+        const candidates = [];
+        // Common fields used by various payment providers / backends
+        const fieldsToInspect = [
+          'selectedModule',
+          'module',
+          'notes',
+          'planName',
+          'productName',
+          'subscriptionName',
+          'displayName',
+          'description',
+          'packageName',
+          'item',
+        ];
+
+        for (const f of fieldsToInspect) {
+          if (sub[f]) candidates.push(sub[f]);
+        }
+
+        // If notes contains JSON with nested selectedModule, try to parse and extract it
+        if (sub.notes && typeof sub.notes === 'string') {
+          try {
+            const parsed = JSON.parse(sub.notes);
+            if (parsed && parsed.selectedModule) candidates.push(parsed.selectedModule);
+            if (parsed && parsed.module) candidates.push(parsed.module);
+          } catch {
+            // notes might be plain text; keep as-is
+          }
+        }
+
+        // Try mapping each candidate to a module key
+        for (const raw of candidates) {
+          const n = normalize(raw);
+          // direct mapping
+          if (mapping[n]) return mapping[n];
+
+          // try relaxed matching: check whether a module key or module name is contained in the normalized string
+          for (const k of Object.keys(MODULE_CONFIGS)) {
+            const moduleName = MODULE_CONFIGS[k].name.toLowerCase();
+            if (
+              n.includes(k) ||
+              k.includes(n) ||
+              moduleName.includes(n) ||
+              n.includes(moduleName)
+            ) {
+              return k;
+            }
+          }
+
+          // try token-based matching (split words and check for key/name tokens)
+          const tokens = n.split(/[^a-z0-9]+/).filter(Boolean);
+          for (const token of tokens) {
+            if (mapping[token]) return mapping[token];
+            for (const k of Object.keys(MODULE_CONFIGS)) {
+              if (k.includes(token) || MODULE_CONFIGS[k].name.toLowerCase().includes(token)) {
+                return k;
+              }
+            }
+          }
+        }
+
+        // fallback to module field raw value
+        if (sub.module) {
+          const nm = normalize(sub.module);
+          if (mapping[nm]) return mapping[nm];
+          if (MODULE_CONFIGS[nm]) return nm;
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+
+    // remove duplicates
+    const unique = Array.from(new Set(modules));
+    return unique;
   }
 
   /**

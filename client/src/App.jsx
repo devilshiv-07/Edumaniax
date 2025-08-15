@@ -317,6 +317,7 @@ import CreateBlog from "./pages/CreateBlog";
 import Pricing from "./pages/Pricing";
 import Register from "./pages/Register";
 
+
 const INTRO_EXPIRY_HOURS = 0.5; // Change this to 1 for 1 hour, 0.1 for 6 minutes, etc.
 
 // Wrapper component to use useLocation hook
@@ -566,6 +567,7 @@ function AppContent() {
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/sales" element={<SalesLogin />} />
           <Route path="/sales/dashboard" element={<SalesDashboard />} />
+         
 
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment" element={<Payment />} />

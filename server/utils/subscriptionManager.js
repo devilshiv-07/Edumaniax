@@ -165,6 +165,8 @@ export const markExpiredSubscriptions = async () => {
     });
     
     console.log(`✅ Updated ${updateResult.count} subscriptions to EXPIRED status`);
+
+  // NOTE: do not delete user progress when subscriptions expire; explicit cancellation only
     
     return {
       expired: expiredSubscriptions.length,

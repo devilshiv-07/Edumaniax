@@ -2024,13 +2024,13 @@ const Home = () => {
       .catch(() => setImagesLoaded(true)); // Continue even if some images fail
   }, [defaultImages]);
 
-  if (!imagesLoaded) {
-    return (
-      <div className="relative w-full h-[210px] bg-gray-100 rounded-lg flex items-center justify-center">
-        <div className="text-gray-500">Loading images...</div>
-      </div>
-    );
-  }
+  // if (!imagesLoaded) {
+  //   return (
+  //     <div className="relative w-full h-[210px] bg-gray-100 rounded-lg flex items-center justify-center">
+  //       <div className="text-gray-500">Loading images...</div>
+  //     </div>
+  //   );
+  // }
 
   const filteredCourses =
     activeCategory === "All"

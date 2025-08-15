@@ -260,19 +260,19 @@ const DigitalMarketingFullNotes = () => {
               transition={{ duration: 0.8 }}
               className="text-center"
             >
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 xl:mt-30 leading-tight">
-                Welcome to the World of <br />Artificial Intelligence!
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 xl:mt-15 leading-tight">
+                Welcome to the World of Finance!
                 <br />
 
               </h1>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                  Unlock the future by teaching machines to think, learn, and adapt.
+                  Unlock the power of money by mastering how it grows, flows, and impacts lives.
                 </span>
               </h2>
 
               <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-                Artificial Intelligence isn't the future. It's the present reshaping our tomorrow.
+                Finance isn’t just about numbers. It’s the present shaping our economic future.
               </p>
               <div className="relative inline-block">
                 <button

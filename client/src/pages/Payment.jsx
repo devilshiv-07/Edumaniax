@@ -86,10 +86,22 @@ const Payment = () => {
 
   // Get available modules for SOLO plan (filter out already purchased for additional purchases)
   const getAvailableModulesForSelection = () => {
-    if (isAdditionalPurchase && accessControl) {
-      const availableForPurchase = accessControl.getAvailableForPurchase();
-      return availableForPurchase.map(module => module.name || module.key);
+    // If accessControl is available, use it to filter out already purchased modules
+    if (accessControl) {
+      // If user is explicitly adding an additional module, rely on accessControl.getAvailableForPurchase
+      if (isAdditionalPurchase && typeof accessControl.getAvailableForPurchase === 'function') {
+        const availableForPurchase = accessControl.getAvailableForPurchase();
+        return availableForPurchase.map((module) => module.name || module.key);
+      }
+
+      // Otherwise, filter the full list to remove already purchased modules
+      if (typeof accessControl.getPurchasedModules === 'function') {
+        const purchased = accessControl.getPurchasedModules().map((m) => m.name || m.key);
+        return AVAILABLE_MODULES.filter((name) => !purchased.includes(name));
+      }
     }
+
+    // Fallback to the static list
     return AVAILABLE_MODULES;
   };
 

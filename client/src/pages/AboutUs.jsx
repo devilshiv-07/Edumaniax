@@ -36,11 +36,40 @@ const StatCard = ({ number, label, suffix = "", delay = 0 }) => (
 const AboutUs = () => {
   const { user } = useAuth();
   const isLoggedIn = Boolean(user);
-  const [loading, setLoading] = useState(true);
+  // Show skeleton only on first visit during the session. Persist flag in sessionStorage
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem("aboutUsLoaded");
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
-    // Simulate API/data loading
-    setTimeout(() => setLoading(false), 3000);
+    let t;
+    try {
+      const already = sessionStorage.getItem("aboutUsLoaded");
+      if (!already) {
+        // Simulate initial load only once per session
+        t = setTimeout(() => {
+          try {
+            sessionStorage.setItem("aboutUsLoaded", "1");
+          } catch (e) {
+            void e;
+          }
+          setLoading(false);
+        }, 3000);
+      } else {
+        // Already loaded in this session
+        setLoading(false);
+      }
+    } catch {
+      setLoading(false);
+    }
+
+    return () => {
+      if (t) clearTimeout(t);
+    };
   }, []);
 
   if (loading) return <AboutUsSkeleton />;

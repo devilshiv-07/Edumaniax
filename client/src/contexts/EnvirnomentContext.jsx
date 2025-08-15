@@ -6,7 +6,8 @@ import toast from "react-hot-toast";
 const EnvirnomentContext = createContext();
 
 export const EnvirnomentProvider = ({ children }) => {
-    const { token, user } = useAuth();
+    const { user } = useAuth();
+    const token = user?.token; 
     const userClass = user?.userClass;
     const server = import.meta.env.VITE_API_URL;
 

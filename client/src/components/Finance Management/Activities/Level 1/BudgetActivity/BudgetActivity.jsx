@@ -6,7 +6,9 @@ import { toast, ToastContainer } from "react-toastify";
 import Avatar from "./Avatar";
 import { useFinance } from "../../../../../contexts/FinanceContext.jsx";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
-
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -48,9 +50,34 @@ const BudgetActivity = () => {
   const [loading, setLoading] = useState(false);
   const [feedbackAvatarType, setFeedbackAvatarType] = useState("disappointing");
 
-  //for performance 
+  //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [heartCount, setHeartCount] = useState(3); // ✅ Lives state
+  const [showFeedback, setShowFeedback] = useState(false);
+  const navigate = useNavigate(); // ensure `useNavigate()` is defined
+
+  useEffect(() => {
+    if (feedback) {
+      setTimeout(() => {
+        if (feedbackRef.current) {
+          feedbackRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [feedback]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const feedbackMap = {
     Sad: "💸 Save some! Don't be a Spendthrift",
@@ -159,14 +186,14 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
 
       // For performance
       const scoreMap = {
-        "Spendthrift": 2,
+        Spendthrift: 2,
         "Poor budgeting": 4,
         "Not bad": 6,
-        "Impressive": 7,
-        "Smart": 8,
-        "Great": 9,
-        "Excellent": 10,
-        "Miser": 3
+        Impressive: 7,
+        Smart: 8,
+        Great: 9,
+        Excellent: 10,
+        Miser: 3,
       };
       const score = scoreMap[parsed.remark] ?? 5;
       const totalTime = (Date.now() - startTime) / 1000; // seconds
@@ -179,22 +206,26 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
         avgResponseTimeSec: totalTime,
         studyTimeMinutes,
         completed: true,
-
       });
       setStartTime(Date.now());
 
       if (/Excellent|Great|Smart/i.test(parsed.remark)) {
         setShowConfetti(true);
         setFeedbackAvatarType("Happy");
-        setTimeout(() => {
-          setShowConfetti(false);
-        }, 5000);
-
-        completeFinanceChallenge(0, 3); //MARK CHALLENGE COMPLETED
+        setTimeout(() => setShowConfetti(false), 5000);
+        completeFinanceChallenge(0, 3);
       } else if (parsed.remark === "Miser") {
         setFeedbackAvatarType("Miser");
       } else {
         setFeedbackAvatarType("Sad");
+        setHeartCount((prev) => {
+          const newCount = prev - 1;
+          if (newCount <= 0) {
+            // navigate("/finance/game-over"); // ✅ redirect to game over
+            return 0;
+          }
+          return newCount;
+        });
       }
     } catch (err) {
       console.error("Error:", err);
@@ -231,171 +262,230 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
     }
   };
 
-  useEffect(() => {
-    if (feedback) {
-      setTimeout(() => {
-        if (feedbackRef.current) {
-          feedbackRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-      }, 100);
-    }
-  }, [feedback]);
+  // View Feedback Handler
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/credit-card-simulator"); // ensure `useNavigate()` is defined
+  };
 
   console.log(feedbackAvatarType);
 
   return (
-    <div
-      className="px-4 py-6 sm:px-6 md:px-8 bg-gradient-to-br from-pink-50 via-yellow-50 to-green-50"
-      style={{ fontFamily: "'Comic Neue', cursive" }}
-    >
-      <div className="flex flex-col md:flex-row items-start justify-center gap-8 max-w-6xl mx-auto">
-        {/* Form Section */}
-        <div className="p-6 w-full md:w-1/2 bg-blue-100 shadow-2xl rounded-3xl border border-green-200">
-          {showConfetti && (
-            <>
-              <Confetti />
-              <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-400 via-lime-400 to-emerald-500 text-white py-5 px-6 text-center font-extrabold shadow-xl z-50 text-lg sm:text-xl tracking-wide animate-pulse rounded-b-3xl">
-                🎉🎉{" "}
-                <span className="text-2xl sm:text-3xl">Congratulations!</span>{" "}
-                You've earned the{" "}
-                <span className="underline">Smart Budgeter</span> badge! 🏅
+    <>
+      {heartCount > 0 ? (
+        // Normal budget activity
+        <>
+          <GameNav heartCount={heartCount} />
+          <div
+            className="pt-20 md:pt-50 px-4 py-6 sm:px-6 md:px-8"
+            style={{ fontFamily: "'Comic Neue', cursive" }}
+          >
+            <div className="flex flex-col md:flex-row items-start justify-center gap-8 max-w-6xl mx-auto">
+              {/* Form Section */}
+              <div className="p-6 w-full md:w-1/2 bg-blue-100 shadow-2xl rounded-3xl border border-green-200">
+                {showConfetti && (
+                  <>
+                    <Confetti />
+                    <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-400 via-lime-400 to-emerald-500 text-white py-5 px-6 text-center font-extrabold shadow-xl z-50 text-lg sm:text-xl tracking-wide animate-pulse rounded-b-3xl">
+                      🎉🎉{" "}
+                      <span className="text-2xl sm:text-3xl">
+                        Congratulations!
+                      </span>{" "}
+                      You've earned the{" "}
+                      <span className="underline">Smart Budgeter</span> badge!
+                      🏅
+                    </div>
+                  </>
+                )}
+
+                <h2 className="text-2xl sm:text-3xl font-extrabold mb-6 text-center text-green-700 drop-shadow-sm">
+                  💰 Monthly Budget Activity
+                </h2>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <input
+                    type="number"
+                    placeholder="Monthly income (₹)"
+                    value={income}
+                    onChange={(e) => setIncome(Number(e.target.value))}
+                    className="w-full p-4 border-2 border-green-300 rounded-xl text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-green-400 shadow-sm"
+                    required
+                  />
+
+                  {/* Expenses Section */}
+                  <div>
+                    <p className="font-semibold mb-2 text-blue-600 text-lg">
+                      🛍️ Select Expenses:
+                    </p>
+                    {expenseOptions.map((option) => (
+                      <div key={option} className="mb-3">
+                        <label className="inline-flex items-center">
+                          <input
+                            type="checkbox"
+                            value={option}
+                            checked={selectedExpenses.includes(option)}
+                            onChange={(e) =>
+                              handleExpenseChange(option, e.target.checked)
+                            }
+                            className="mr-3 h-5 w-5 text-green-600"
+                          />
+                          <span className="text-base font-medium">
+                            {option}
+                          </span>
+                        </label>
+
+                        {selectedExpenses.includes(option) && (
+                          <input
+                            type="number"
+                            placeholder="Enter cost"
+                            value={
+                              expenseDetails.find(
+                                (item) => item.name === option
+                              )?.cost || ""
+                            }
+                            onChange={(e) =>
+                              handleCostChange(option, Number(e.target.value))
+                            }
+                            className="ml-4 mt-2 sm:mt-0 p-2 border-2 border-blue-300 rounded-lg w-full sm:w-44 text-base"
+                          />
+                        )}
+                      </div>
+                    ))}
+
+                    {selectedExpenses.includes("Other") && (
+                      <textarea
+                        placeholder="Enter other expense"
+                        value={customExpense}
+                        onChange={(e) => setCustomExpense(e.target.value)}
+                        className="w-full p-3 mt-2 border-2 border-blue-300 rounded-xl text-base"
+                      />
+                    )}
+                  </div>
+
+                  {/* Saving Strategies Section */}
+                  <div>
+                    <p className="font-semibold mb-2 text-purple-600 text-lg">
+                      💡 Select Saving Strategies:
+                    </p>
+                    {strategyOptions.map((option) => (
+                      <label key={option} className="block mb-2">
+                        <input
+                          type="checkbox"
+                          value={option}
+                          checked={selectedStrategies.includes(option)}
+                          onChange={(e) =>
+                            e.target.checked
+                              ? setSelectedStrategies((prev) => [
+                                  ...prev,
+                                  option,
+                                ])
+                              : setSelectedStrategies((prev) =>
+                                  prev.filter((item) => item !== option)
+                                )
+                          }
+                          className="mr-3 h-5 w-5 text-purple-500"
+                        />
+                        <span className="text-base font-medium">{option}</span>
+                      </label>
+                    ))}
+                    {selectedStrategies.includes("Other") && (
+                      <textarea
+                        placeholder="Enter custom strategy"
+                        value={customStrategy}
+                        onChange={(e) => setCustomStrategy(e.target.value)}
+                        className="w-full p-3 mt-2 border-2 border-purple-300 rounded-xl text-base"
+                      />
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3 rounded-2xl text-lg transition-all duration-300 ease-in-out shadow-md disabled:opacity-50"
+                  >
+                    {loading ? "Submitting..." : "🚀 Submit for feedback"}
+                  </button>
+                </form>
+
+                {/* Feedback Section */}
+                {feedback && (
+                  <motion.div
+                    ref={feedbackRef}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 1 }}
+                    className="mt-10 p-5 border-2 border-gray-300 rounded-xl bg-gradient-to-br from-yellow-50 to-pink-50 shadow-inner"
+                  >
+                    <h3 className="font-bold text-xl mb-3 text-indigo-600">
+                      ✨ Feedback
+                    </h3>
+                    <div className="flex items-center gap-4 mb-2">
+                      <Avatar type={feedbackAvatarType} />
+                      <span className="text-lg font-semibold whitespace-nowrap">
+                        {feedbackMap[feedbackAvatarType]}
+                      </span>
+                    </div>
+                    <p className="text-gray-800 mb-1">
+                      <strong>Remark:</strong> {remark}
+                    </p>
+                    <p className="text-gray-800">
+                      <strong>Description:</strong> {feedback}
+                    </p>
+                  </motion.div>
+                )}
               </div>
-            </>
-          )}
-
-          <h2 className="text-2xl sm:text-3xl font-extrabold mb-6 text-center text-green-700 drop-shadow-sm">
-            💰 Monthly Budget Activity
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <input
-              type="number"
-              placeholder="Monthly income (₹)"
-              value={income}
-              onChange={(e) => setIncome(Number(e.target.value))}
-              className="w-full p-4 border-2 border-green-300 rounded-xl text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-green-400 shadow-sm"
-              required
+            </div>
+            <ToastContainer />
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center overflow-hidden">
+          {/* Game Over Content */}
+          <div className="flex flex-col items-center justify-center flex-1 p-4">
+            {/* Game Over GIF */}
+            <img
+              src="/financeGames6to8/game-over-game.gif"
+              alt="Game Over"
+              className="w-48 sm:w-64 h-auto mb-4"
             />
 
-            {/* Expenses Section */}
-            <div>
-              <p className="font-semibold mb-2 text-blue-600 text-lg">
-                🛍️ Select Expenses:
-              </p>
-              {expenseOptions.map((option) => (
-                <div key={option} className="mb-3">
-                  <label className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      value={option}
-                      checked={selectedExpenses.includes(option)}
-                      onChange={(e) =>
-                        handleExpenseChange(option, e.target.checked)
-                      }
-                      className="mr-3 h-5 w-5 text-green-600"
-                    />
-                    <span className="text-base font-medium">{option}</span>
-                  </label>
+            {/* Text */}
+            <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+              Oops! That was close! Wanna Retry?
+            </p>
+          </div>
 
-                  {selectedExpenses.includes(option) && (
-                    <input
-                      type="number"
-                      placeholder="Enter cost"
-                      value={
-                        expenseDetails.find((item) => item.name === option)
-                          ?.cost || ""
-                      }
-                      onChange={(e) =>
-                        handleCostChange(option, Number(e.target.value))
-                      }
-                      className="ml-4 mt-2 sm:mt-0 p-2 border-2 border-blue-300 rounded-lg w-full sm:w-44 text-base"
-                    />
-                  )}
-                </div>
-              ))}
-
-              {selectedExpenses.includes("Other") && (
-                <textarea
-                  placeholder="Enter other expense"
-                  value={customExpense}
-                  onChange={(e) => setCustomExpense(e.target.value)}
-                  className="w-full p-3 mt-2 border-2 border-blue-300 rounded-xl text-base"
-                />
-              )}
-            </div>
-
-            {/* Saving Strategies Section */}
-            <div>
-              <p className="font-semibold mb-2 text-purple-600 text-lg">
-                💡 Select Saving Strategies:
-              </p>
-              {strategyOptions.map((option) => (
-                <label key={option} className="block mb-2">
-                  <input
-                    type="checkbox"
-                    value={option}
-                    checked={selectedStrategies.includes(option)}
-                    onChange={(e) =>
-                      e.target.checked
-                        ? setSelectedStrategies((prev) => [...prev, option])
-                        : setSelectedStrategies((prev) =>
-                          prev.filter((item) => item !== option)
-                        )
-                    }
-                    className="mr-3 h-5 w-5 text-purple-500"
-                  />
-                  <span className="text-base font-medium">{option}</span>
-                </label>
-              ))}
-              {selectedStrategies.includes("Other") && (
-                <textarea
-                  placeholder="Enter custom strategy"
-                  value={customStrategy}
-                  onChange={(e) => setCustomStrategy(e.target.value)}
-                  className="w-full p-3 mt-2 border-2 border-purple-300 rounded-xl text-base"
-                />
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3 rounded-2xl text-lg transition-all duration-300 ease-in-out shadow-md disabled:opacity-50"
-            >
-              {loading ? "Submitting..." : "🚀 Submit for feedback"}
-            </button>
-          </form>
-
-          {/* Feedback Section */}
-          {feedback && (
-            <motion.div
-              ref={feedbackRef}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1 }}
-              className="mt-10 p-5 border-2 border-gray-300 rounded-xl bg-gradient-to-br from-yellow-50 to-pink-50 shadow-inner"
-            >
-              <h3 className="font-bold text-xl mb-3 text-indigo-600">
-                ✨ Feedback
-              </h3>
-              <div className="flex items-center gap-4 mb-2">
-                <Avatar type={feedbackAvatarType} />
-                <span className="text-lg font-semibold whitespace-nowrap">
-                  {feedbackMap[feedbackAvatarType]}
-                </span>
-              </div>
-              <p className="text-gray-800 mb-1">
-                <strong>Remark:</strong> {remark}
-              </p>
-              <p className="text-gray-800">
-                <strong>Description:</strong> {feedback}
-              </p>
-            </motion.div>
-          )}
+          {/* Footer Buttons */}
+          <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-3 overflow-x-auto">
+            <img
+              src="/financeGames6to8/feedback.svg"
+              alt="Feedback"
+              onClick={handleViewFeedback}
+              className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+            />
+            <img
+              src="/financeGames6to8/retry.svg"
+              alt="Retry"
+              onClick={() => {
+                setHeartCount(3); // reset lives
+                setShowIntro(false);
+              }}
+              className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+            />
+            <img
+              src="/financeGames6to8/next-challenge.svg"
+              alt="Next Challenge"
+              onClick={handleNextChallenge}
+              className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+            />
+          </div>
         </div>
-      </div>
-      <ToastContainer />
-    </div>
+      )}
+    </>
   );
 };
 

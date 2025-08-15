@@ -1,14 +1,6 @@
-import React, { useEffect, useState } from "react";
-import HeroSkeleton from "./HeroSkeleton";
+import React from "react";
 
 const Hero = () => {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 2000); // Simulate API/data delay
-  }, []);
-
-  if (loading) return <HeroSkeleton />;
-
   return (
     <section
       className="text-white -mt-10 py-20 pb-40 text-center relative overflow-hidden"

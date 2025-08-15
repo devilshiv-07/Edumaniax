@@ -294,8 +294,18 @@ router.post("/verify-payment", checkPaymentFeature, async (req, res) => {
       subscriptionNotes = JSON.stringify({ selectedModule });
     }
 
-    // For PRO upgrades, expire existing SOLO subscriptions
+    // For PRO upgrades, expire existing SOLO subscriptions and remove their progress
     if (planType === 'PRO' && pricingInfo.soloCount > 0) {
+      // Find active SOLO subscriptions so we can inspect notes.selectedModule
+      const activeSoloSubs = await prisma.subscription.findMany({
+        where: {
+          userId: orderUserId,
+          planType: 'SOLO',
+          status: 'ACTIVE'
+        }
+      });
+
+      // Cancel them
       await prisma.subscription.updateMany({
         where: {
           userId: orderUserId,
@@ -307,6 +317,8 @@ router.post("/verify-payment", checkPaymentFeature, async (req, res) => {
           updatedAt: new Date()
         }
       });
+
+  // NOTE: per requirement, do not remove SOLO module progress when expiring/cancelling during PRO upgrade
     }
 
     // For SOLO plans, create a new subscription each time (multiple SOLO subscriptions allowed)
@@ -725,9 +737,20 @@ router.delete("/delete-all-user-data/:userId", async (req, res) => {
         }
       });
 
+      // Also delete module and topic performance for the user to fully remove progress data
+      const deletedModulePerformances = await tx.modulePerformance.deleteMany({
+        where: { userId: userId }
+      });
+
+      const deletedTopicPerformances = await tx.topicPerformance.deleteMany({
+        where: { userId: userId }
+      });
+
       return {
         deletedPayments: deletedPayments.count,
-        deletedSubscriptions: deletedSubscriptions.count
+        deletedSubscriptions: deletedSubscriptions.count,
+        deletedModulePerformances: deletedModulePerformances.count,
+        deletedTopicPerformances: deletedTopicPerformances.count
       };
     });
 

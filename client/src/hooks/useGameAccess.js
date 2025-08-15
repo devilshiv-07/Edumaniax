@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useAccessControl } from '../utils/accessControl';
+import { useAccessControl, MODULE_CONFIGS } from '../utils/accessControl';
 
 // Module mapping for all courses
 const MODULE_MAPPING = {
@@ -35,7 +35,36 @@ export const useGameAccess = (moduleKey, progress = []) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Access control hook
-  const { hasLevelAccess, currentPlan, isTrialValid, getRemainingTrialDays } = useAccessControl(subscriptions, selectedModule);
+  const { hasLevelAccess, currentPlan, isTrialValid, getRemainingTrialDays, isModulePurchased, soloModules } = useAccessControl(subscriptions, selectedModule);
+
+  // Debug: print access state after subscriptions load to diagnose purchased-level locking
+  useEffect(() => {
+    if (!isLoading) {
+      try {
+        // derive levels dynamically from MODULE_CONFIGS if available
+        let levels = [1];
+        try {
+          const cfg = MODULE_CONFIGS[moduleKey];
+          if (cfg && cfg.levels) {
+            levels = Object.keys(cfg.levels).map((k) => parseInt(k, 10)).sort((a, b) => a - b);
+          }
+        } catch {
+          // fallback to [1]
+        }
+
+        console.debug('[useGameAccess] debug', {
+          moduleKey,
+          currentPlan,
+          selectedModule,
+          soloModules,
+          isPurchased: isModulePurchased(moduleKey),
+          levelAccess: levels.map((l) => ({ level: l, access: hasLevelAccess(moduleKey, l) }))
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }, [isLoading, subscriptions, moduleKey, currentPlan, selectedModule, soloModules, hasLevelAccess, isModulePurchased]);
 
   // Fetch user subscription data
   useEffect(() => {
@@ -91,16 +120,15 @@ export const useGameAccess = (moduleKey, progress = []) => {
                   const parsedNotes = JSON.parse(firstActiveSubscription.notes);
                   const rawModule = parsedNotes.selectedModule;
                   setSelectedModule(MODULE_MAPPING[rawModule] || rawModule?.toLowerCase());
-                } catch (error) {
-                  console.error('Error parsing subscription notes:', error);
+                } catch {
                   setSelectedModule(firstActiveSubscription.notes?.toLowerCase());
                 }
               }
             }
           }
         }
-      } catch (error) {
-        console.error('Error fetching subscriptions:', error);
+      } catch {
+        console.error('Error fetching subscriptions');
         setSubscriptions([]);
       } finally {
         setIsLoading(false);
@@ -128,7 +156,7 @@ export const useGameAccess = (moduleKey, progress = []) => {
               const rawModule = parsedNotes.selectedModule;
               const mappedModule = MODULE_MAPPING[rawModule] || rawModule?.toLowerCase();
               return mappedModule === moduleKey;
-            } catch (error) {
+            } catch {
               return false;
             }
           }
@@ -170,13 +198,14 @@ export const useGameAccess = (moduleKey, progress = []) => {
       return false;
     }
 
-    // SOLO plan users have different access based on whether it's their selected module
+    // SOLO plan users have different access based on whether they've purchased this module
     if (currentPlan === 'SOLO') {
-      // For their selected module, they have full access to all levels and challenges
-      if (selectedModule === moduleKey) {
+      // If the user has purchased this module (may have multiple SOLO purchases), grant level access as per controller
+      if (isModulePurchased(moduleKey)) {
         const levelNumber = moduleIndex + 1;
         const hasSubscriptionAccess = hasLevelAccess(moduleKey, levelNumber);
         if (hasSubscriptionAccess) return true;
+        // otherwise continue to fallback checks
       } else {
         // For other modules (trial access), only allow Challenge 1 of Level 1
         if (moduleIndex === 0 && challengeIndex === 0) return true;
@@ -209,13 +238,13 @@ export const useGameAccess = (moduleKey, progress = []) => {
   const getAccessInfo = (levelNumber) => {
     return {
       currentPlan,
-      hasAccess: hasLevelAccess(moduleKey, levelNumber),
+  hasAccess: hasLevelAccess(moduleKey, levelNumber),
       selectedModule,
+  isPurchased: isModulePurchased(moduleKey),
       isTrialValid: currentPlan === 'STARTER' ? isTrialValid() : null,
       remainingDays: currentPlan === 'STARTER' ? getRemainingTrialDays() : null
     };
   };
-
   // Get button config for challenge
   const getChallengeButtonConfig = (isUnlocked, challenge, navigate) => {
     if (isUnlocked || role === "admin") {

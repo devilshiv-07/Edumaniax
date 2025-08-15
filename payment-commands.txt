@@ -67,7 +67,10 @@ Invoke-RestMethod -Uri "http://localhost:3000/payment/delete-completed-payments/
 Invoke-RestMethod -Uri "http://localhost:3000/payment/delete-all-payments/cmdooj9t90000s60gqxu48m2n" -Method DELETE
 
 # Delete all payments and subscriptions for a user (complete cleanup)
+# Delete all payments and subscriptions for a user (complete cleanup)
 Invoke-RestMethod -Uri "http://localhost:3000/payment/delete-all-user-data/cmdooj9t90000s60gqxu48m2n" -Method DELETE
+# Bash equivalent:
+curl -X DELETE "http://localhost:3000/payment/delete-all-user-data/cmdooj9t90000s60gqxu48m2n"
 
 # Verify payment (example - requires actual Razorpay response data)
 Invoke-RestMethod -Uri "http://localhost:3000/payment/verify-payment" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"razorpay_order_id":"order_xyz","razorpay_payment_id":"pay_xyz","razorpay_signature":"signature_xyz","userId":"user_id"}'

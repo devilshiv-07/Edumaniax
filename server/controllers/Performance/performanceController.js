@@ -130,3 +130,40 @@ export const updatePerformance = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+export const getUserPerformance = async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+    }
+
+    try {
+        const performances = await prisma.modulePerformance.findMany({
+            where: { userId },
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        // Return a map keyed by moduleName for easy client consumption
+        const progressMap = {};
+        performances.forEach(p => {
+            progressMap[p.moduleName] = {
+                totalGamesPlayed: p.totalGamesPlayed || 0,
+                completedGamesCount: p.completedGamesCount || 0,
+                averageScorePerGame: p.averageScorePerGame || 0,
+                accuracy: p.accuracy || 0,
+                avgResponseTimeSec: p.avgResponseTimeSec || 0,
+                studyTimeMinutes: p.studyTimeMinutes || 0,
+                daysActiveCount: p.daysActiveCount || 0,
+                lastActiveDate: p.lastActiveDate,
+                lastGamePlayedAt: p.lastGamePlayedAt,
+                updatedAt: p.updatedAt,
+            };
+        });
+
+        return res.json({ success: true, progress: progressMap });
+    } catch (error) {
+        console.error('❌ Error fetching user performance:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
