@@ -7,6 +7,7 @@ import {
     closestCenter,
     MouseSensor,
     TouchSensor,
+    PointerSensor,
     useSensor,
     useSensors,
     DragOverlay,
@@ -273,8 +274,9 @@ const ChainReaction = () => {
     const [activeId, setActiveId] = useState(null);
     
     const sensors = useSensors(
+        useSensor(PointerSensor),
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-        useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
     );
 
     useEffect(() => {
