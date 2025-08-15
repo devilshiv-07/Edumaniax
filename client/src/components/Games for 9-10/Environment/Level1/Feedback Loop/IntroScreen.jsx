@@ -84,10 +84,10 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Center Content */}
       <div className="text-center flex flex-col items-center justify-center z-10 p-4">
         <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
-          Cause & Effect
+          Feedback Loop
         </span>
         <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl text-white -mt-2 mb-6 sm:mb-10">
-          Challenge 1
+          Challenge 2
         </h2>
       </div>
 
