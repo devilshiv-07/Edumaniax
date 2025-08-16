@@ -1,72 +1,94 @@
 import React, { useState, useEffect } from 'react';
 
-// --- NEW DATA for the Scenario ---
+// --- NEW DATA based on your request ---
 const scenarioData = {
-    id: 1,
-    question: "A country with high literacy, long life expectancy, but huge deforestation – sustainable or not?",
-    options: [
-        "Sustainable",
-        "Partially sustainable",
-        "Not sustainable",
-        "Need more data",
-    ],
+    "id": 1,
+    "question": "Is this a real solution or just a tech illusion?",
+    "scenario": "A polluted city introduces self-driving cars but doesn't reduce the total number of vehicles or address emissions:",
+    "options": [
+      "This is a real solution to urban pollution",
+      "This is a tech illusion - it doesn't solve the core problem"
+    ],
 };
-
 
 // --- A Reusable, Responsive Component for each Option ---
-// NOTE: This component remains unchanged as it is designed to be reusable.
+// NOTE: This component is updated with styling from your inspiration code.
 const OptionItem = ({ text, isHighlighted }) => {
-    // Dynamically set classes for the animation highlight
-    const baseClasses = "flex items-center w-full p-3 rounded-lg border shadow-md relative transition-colors duration-300 min-h-[70px]";
-    const highlightClasses = isHighlighted ? 'border-green-500 bg-[#202f36]' : 'border-[#37464f] bg-[#131f24]';
-    const textClasses = isHighlighted ? 'text-green-300' : 'text-gray-100';
+    // Base classes for layout and transitions, consistent for all options
+    const baseClasses = "w-full p-4 min-h-[60px] flex justify-center items-center text-center rounded-xl border transition-all duration-300";
 
-    return (
-        <div className={`${baseClasses} ${highlightClasses}`}>
-            <div className="flex flex-col items-center justify-center grow relative">
-                <span className={`w-full font-['Inter'] font-medium text-sm md:text-base text-center whitespace-normal relative ${textClasses}`}>
-                    {text}
-                </span>
-            </div>
-        </div>
-    );
+    // Dynamic classes that change based on the isHighlighted prop
+    const highlightClasses = isHighlighted
+        ? 'bg-[#202f36] border-[#5f8428] shadow-[0_2px_0_0_#5f8428]' // Styles for the highlighted state
+        : 'bg-gray-900 border-gray-700 shadow-[0px_2px_0px_0px_rgba(55,70,79,1.00)]'; // Default styles
+
+    const textClasses = isHighlighted
+        ? 'text-[#79b933]' // Text color when highlighted
+        : 'text-slate-100'; // Default text color
+
+    return (
+        <div className={`${baseClasses} ${highlightClasses}`}>
+            <span className={`font-medium text-sm md:text-base leading-relaxed ${textClasses}`}>
+                {text}
+            </span>
+        </div>
+    );
 };
 
+
 // --- Main Scenario Content Component ---
+// NOTE: This component is completely refactored to match the video's layout and animation logic.
 const ScenarioContent = () => {
-    const [isHighlighted, setIsHighlighted] = useState(false);
+    // State to track which option index is currently highlighted
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            setIsHighlighted(prev => !prev);
-        }, 1000);
-        return () => clearInterval(intervalId);
-    }, []);
+    // useEffect hook to run the animation cycle
+    useEffect(() => {
+        // Set an interval to change the highlighted option every 2.5 seconds
+        const intervalId = setInterval(() => {
+            setHighlightedIndex(prevIndex => {
+                // Cycle to the next option, or loop back to the first one
+                return (prevIndex + 1) % scenarioData.options.length;
+            });
+        }, 2500); // Animation cycle duration: 2.5 seconds
 
-    return (
-        // Responsive container: stacks vertically, becomes a row on medium screens
-        <div className="w-full h-auto bg-[#00260d] rounded-lg border border-[#f2f4f6] flex flex-col md:flex-row p-4 gap-4">
-            
-            {/* Left Panel: Options (Now mapping over the new 4 options) */}
-            <div className="w-full md:w-1/2 bg-[rgba(32,47,54,0.3)] rounded-lg p-3 flex flex-col gap-3 justify-center">
-                {scenarioData.options.map((optionText, index) => (
-                    <OptionItem
-                        key={index} // Using index as key is fine for a static list
-                        text={optionText}
-                        // Animate the first item (index 0)
-                        isHighlighted={index === 0 && isHighlighted}
-                    />
-                ))}
-            </div>
+        // Cleanup function to clear the interval when the component unmounts
+        return () => clearInterval(intervalId);
+    }, []); // Empty dependency array means this effect runs only once on mount
 
-            {/* Right Panel: Scenario Description (Now displays the new question) */}
-            <div className="w-full md:w-1/2 bg-[rgba(32,47,54,0.3)] rounded-lg p-4 flex items-center justify-center min-h-[120px]">
-                <p className="font-['Inter'] text-center text-gray-200 text-base lg:text-lg font-medium leading-relaxed">
-                    {scenarioData.question}
-                </p>
-            </div>
-        </div>
-    );
+    return (
+        // Main container with a dark background, centered content
+        <div className="w-full h-auto bg-[#00260d] rounded-lg border border-[#f2f4f6] flex flex-col md:flex-row p-4 gap-4">
+            {/* Inner container for the content, styled like the inspiration code */}
+            <div className="w-full max-w-4xl bg-gray-800/30 rounded-xl p-6 md:p-10">
+                <div className="flex flex-col justify-center items-center gap-5 text-center">
+                    
+                    {/* Question Text */}
+                    <h2 className="text-slate-100 text-xl md:text-2xl font-medium leading-snug md:leading-9">
+                        {scenarioData.question}
+                    </h2>
+
+                    {/* Scenario Description */}
+                    <p className="text-gray-300 text-sm md:text-base leading-relaxed font-regular">
+                        <span className="font-bold">Scenario:</span> {scenarioData.scenario}
+                    </p>
+
+                    {/* Options container */}
+                    <div className="w-full max-w-lg mt-4 flex flex-col justify-start items-stretch gap-4">
+                        {scenarioData.options.map((optionText, index) => (
+                            <OptionItem
+                                key={index}
+                                text={optionText}
+                                // The option is highlighted if its index matches the current state
+                                isHighlighted={index === highlightedIndex}
+                            />
+                        ))}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default ScenarioContent;

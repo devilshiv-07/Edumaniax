@@ -69,12 +69,11 @@ const ScenarioContent = () => {
     const animatedCardContent = demoPuzzle.effects[0];
 
     return (
-        // Set CSS variables for the animation based on screen size.
-        // Mobile (default): Slides vertically (translateY). The value is an approximation of the height of the top panel + gap.
-        // Desktop (md): Slides horizontally (translateX).
+        // Change: Updated slide-x variable to use percentages and rems for a responsive calculation.
+        // It now translates by its own width (100%) plus the gap (1.5rem, which is gap-6).
         <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 
             [--slide-x:0] [--slide-y:30vh]
-            md:[--slide-x:calc(21vw_+_1.5vw)] md:[--slide-y:0]"
+            md:[--slide-x:calc(100%_+_1.5rem)] md:[--slide-y:0]"
         >
             <style>
                 {`
@@ -88,12 +87,16 @@ const ScenarioContent = () => {
                 `}
             </style>
 
-            <div className="flex flex-col items-center gap-6 md:gap-[4.5vh]">
+            {/* Change: Added max-w-5xl here to constrain the overall width of the component on large screens. */}
+            <div className="flex flex-col items-center gap-6 md:gap-[4.5vh] w-full max-w-5xl">
+                
                 {/* Main container for panels. Stacks vertically on mobile, horizontally on desktop. */}
-                <div className="flex flex-col md:flex-row w-full max-w-full md:max-w-[70.7vw] justify-center items-start gap-4 md:gap-[1.5vw]">
+                {/* Change: Removed md:max-w-[70.7vw] and changed md:gap-[1.5vw] to md:gap-6 for responsive spacing. */}
+                <div className="flex flex-col md:flex-row w-full justify-center items-start gap-4 md:gap-6">
                     
-                    {/* Left Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
+                    {/* Left Panel: full-width on mobile, 50% width on desktop */}
+                    {/* Change: Replaced md:w-[21vw] with md:w-1/2 for flexible, container-aware sizing. */}
+                    <div className="flex w-full md:w-1/2 h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
                         
                         {/* Wrapper for the animation */}
                         <div className="relative h-[7vh] w-full">
@@ -115,8 +118,9 @@ const ScenarioContent = () => {
                         <Card content={demoPuzzle.effects[2]} isVisible={true} />
                     </div>
 
-                    {/* Right Panel: full-width on mobile, 21vw on desktop */}
-                    <div className="flex w-full md:w-[21vw] h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
+                    {/* Right Panel: full-width on mobile, 50% width on desktop */}
+                    {/* Change: Replaced md:w-[21vw] with md:w-1/2. */}
+                    <div className="flex w-full md:w-1/2 h-auto flex-col gap-4 md:gap-[2vh] p-4 md:py-[3vh] md:px-[1vw] justify-center items-center bg-[rgba(32,47,54,0.3)] rounded-lg md:rounded-[0.83vw] border border-[#37464f]">
                         <Slot 
                             text="1st" 
                             content={animationState === 'finished' ? animatedCardContent : null}
@@ -127,7 +131,8 @@ const ScenarioContent = () => {
                 </div>
 
                 {/* Bottom "Cause" section */}
-                <div className="flex flex-col sm:flex-row items-center justify-center w-full max-w-full md:max-w-[43.5vw] h-auto md:h-[10vh] gap-2">
+                {/* Change: Removed md:max-w-[43.5vw]. Its width is now properly controlled by the parent's max-width. */}
+                <div className="flex flex-col sm:flex-row items-center justify-center w-full h-auto md:h-[10vh] gap-2">
                     <img src={demoPuzzle.image} alt="Cause" className="w-16 h-24 md:w-[7vw] md:h-[10vh] object-contain" />
                     <div className="relative flex items-center">
                         <div className="absolute left-[-0.9vw] top-1/2 -translate-y-1/2 w-[1vw] h-[1.8vh] bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-09/cZcfryFaXc.png)] bg-cover bg-no-repeat hidden md:block" />
