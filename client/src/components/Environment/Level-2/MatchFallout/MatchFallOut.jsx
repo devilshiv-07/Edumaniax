@@ -38,7 +38,7 @@ const PASSING_THRESHOLD = 0.7;
 const GAME_TIME_LIMIT = 120;
 
 // =============================================================================
-// Reusable End-Screen Components (Responsive)
+// Reusable End-Screen Components
 // =============================================================================
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
   const { width, height } = useWindowSize();
@@ -69,8 +69,8 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
           </div>
         </div>
         <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-4 flex justify-center gap-4">
-          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
-          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
+          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
+          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
         </div>
       </div>
     </>
@@ -99,10 +99,10 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                     </div>
                 </div>
             </div>
-            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-4 flex justify-center items-center gap-4 flex-wrap">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
-                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-4 flex justify-center items-center gap-4 ">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 lg:h-[7.7vh] w-auto object-contain hover:scale-105" />
             </div>
         </div>
     );
@@ -151,14 +151,13 @@ function ReviewScreen({ answers, onBackToResults }) {
 }
 
 // =============================================================================
-// DnD Components (Responsive with Touch Support)
+// DnD Components
 // =============================================================================
 const DraggableCard = React.memo(({ id, content }) => {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
     const style = {
         transform: transform ? CSS.Transform.toString(transform) : undefined,
         zIndex: isDragging ? 1000 : 'auto',
-        // FIX: Hide the original element when dragging to prevent "duplicate" glitch
         visibility: isDragging ? 'hidden' : 'visible',
         touchAction: 'none',
     };
@@ -181,7 +180,6 @@ const DroppableSlot = React.memo(({ id, labelText, content }) => {
     const style = {
         transform: transform ? CSS.Transform.toString(transform) : undefined,
         zIndex: isDragging ? 1000 : 'auto',
-        // FIX: Hide the original element when dragging from a slot
         visibility: isDragging ? 'hidden' : 'visible',
         touchAction: content ? 'none' : 'auto',
     };
@@ -193,7 +191,6 @@ const DroppableSlot = React.memo(({ id, labelText, content }) => {
                     <span className="font-['Inter'] text-sm md:text-base font-medium text-[#f1f7fb] text-center">{content}</span>
                 </div>
             ) : (
-                // FIX: Added min-height to the empty slot to ensure it matches card size
                 <div className={`flex min-h-[4rem] md:min-h-[5rem] h-full w-full items-center justify-center text-center p-2 rounded-lg bg-black/30 border-2 border-dashed ${isOver ? 'border-yellow-400' : 'border-[#37464f]'} transition-colors`}>
                     <span className="font-['Inter'] text-sm md:text-base font-medium text-gray-400">{labelText}</span>
                 </div>
@@ -244,7 +241,7 @@ function gameReducer(state, action) {
     }
 }
 // =============================================================================
-// Main Game Component (FIXED & FULLY RESPONSIVE)
+// Main Game Component
 // =============================================================================
 const MatchTheFallout = () => {
     const navigate = useNavigate();
@@ -290,22 +287,22 @@ const MatchTheFallout = () => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
 
-        const activeId = active.id;
-        const overId = over.id;
+        const activeIdStr = String(active.id);
+        const overIdStr = String(over.id);
 
         const newSlots = [...slots];
         const newAvailableFallouts = [...availableFallouts];
 
-        const isDraggingFromAvailable = newAvailableFallouts.includes(activeId);
-        const sourceSlotIndex = slots.findIndex(s => s.id === activeId);
+        const isDraggingFromAvailable = newAvailableFallouts.includes(activeIdStr);
+        const sourceSlotIndex = slots.findIndex(s => s.id === activeIdStr);
         const isDraggingFromSlot = sourceSlotIndex !== -1;
-        const draggedContent = isDraggingFromAvailable ? activeId : newSlots[sourceSlotIndex]?.content;
+        const draggedContent = isDraggingFromAvailable ? activeIdStr : newSlots[sourceSlotIndex]?.content;
 
         if (!draggedContent) return;
 
-        const targetSlotIndex = slots.findIndex(s => s.id === overId);
+        const targetSlotIndex = slots.findIndex(s => s.id === overIdStr);
         const isDroppingOnSlot = targetSlotIndex !== -1;
-        const isDroppingOnAvailable = overId.toString().startsWith('available-placeholder');
+        const isDroppingOnAvailable = overIdStr.startsWith('available-placeholder');
 
         if (isDroppingOnSlot) {
             const contentInTargetSlot = newSlots[targetSlotIndex].content;
@@ -341,13 +338,16 @@ const MatchTheFallout = () => {
     if (state.gameState === "review") return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
     
     const isSubmitEnabled = availableFallouts.length === 0;
-    const activeContent = activeId ? (availableFallouts.includes(activeId) ? activeId : slots.find(s => s.id === activeId)?.content) : null;
+    const activeContent = activeId ? (availableFallouts.includes(String(activeId)) ? String(activeId) : slots.find(s => s.id === String(activeId))?.content) : null;
 
     return (
-        <div className="w-full min-h-screen bg-[#0A160E] flex flex-col items-center p-4 pt-28 md:pt-[10vh] pb-28">
+        // MODIFIED: Main container is now a flex column and has no bottom padding. Top padding is kept for the fixed nav.
+        <div className="w-full min-h-screen bg-[#0A160E] flex flex-col items-center pt-28 md:pt-[10vh] ">
             <GameNav timeLeft={state.timeLeft} />
+            
+            {/* MODIFIED: The DndContext content is now the 'main' area that will grow to fill space. */}
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <div className="flex flex-col md:flex-row w-full max-w-5xl h-full gap-8 md:mt-10">
+                <div className="flex flex-1 flex-col md:flex-row w-full max-w-5xl gap-8 px-5 md:px-7 my-10 mt-0 md:mt-10">
                     
                     <div className="w-full md:w-1/2 flex flex-col gap-3 p-4 bg-[rgba(32,47,54,0.3)] rounded-xl border border-[#37464f]">
                         {availableFallouts.map(fallout => (
@@ -370,7 +370,8 @@ const MatchTheFallout = () => {
                 </DragOverlay>
             </DndContext>
 
-            <div className="w-full h-24 bg-[#28343A] flex justify-center items-center px-4 z-50 fixed bottom-0 left-0">
+            {/* MODIFIED: Bottom bar is no longer fixed and uses `mt-auto`. Height is now controlled by padding (`py-5`). */}
+            <div className="w-full bg-[#28343A] flex justify-center items-center px-4 mt-auto py-4 ">
                 <div className="w-full max-w-xs h-14">
                     <button
                         className="relative w-full h-full cursor-pointer disabled:opacity-50"

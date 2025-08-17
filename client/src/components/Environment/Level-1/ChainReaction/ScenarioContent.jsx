@@ -72,8 +72,8 @@ const ScenarioContent = () => {
         // Change: Updated slide-x variable to use percentages and rems for a responsive calculation.
         // It now translates by its own width (100%) plus the gap (1.5rem, which is gap-6).
         <div className="w-full h-full bg-green-950/50 rounded-lg flex flex-col items-center justify-center p-4 
-            [--slide-x:0] [--slide-y:30vh]
-            md:[--slide-x:calc(100%_+_1.5rem)] md:[--slide-y:0]"
+            [--slide-x:0] [--slide-y:13.5rem]
+            md:[--slide-x:calc(100%_+_3.2rem)] md:[--slide-y:0]"
         >
             <style>
                 {`

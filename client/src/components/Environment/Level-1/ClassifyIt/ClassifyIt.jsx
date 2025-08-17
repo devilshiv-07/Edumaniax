@@ -1,12 +1,12 @@
 // src/pages/ClassifyIt.jsx
 
-import React, { useReducer, useEffect, useState } from "react";
+import React, { useReducer, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import IntroScreen from "./IntroScreen";
 import InstructionsScreen from "./InstructionsScreen";
-import GameNav from "./GameNav"; // Correctly imported
+import GameNav from "./GameNav";
 import Checknow from "@/components/icon/GreenBudget/Checknow";
 import Confetti from "react-confetti";
 import useWindowSize from "react-use/lib/useWindowSize";
@@ -44,7 +44,6 @@ const TIME_LIMIT = 180;
 const TOTAL_QUESTIONS = data.length;
 const PERFECT_SCORE = TOTAL_QUESTIONS * 2;
 
-// FIX: Defined the missing scrollbarHideStyle variable
 const scrollbarHideStyle = `
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -55,8 +54,6 @@ const scrollbarHideStyle = `
   }
 `;
 
-
-// Reducer and initial state...
 const initialState = {
   gameState: "intro",
   introStep: "first",
@@ -133,11 +130,6 @@ function reducer(state, action) {
   }
 }
 
-
-// =============================================================================
-// Victory and Losing Screen Components
-// =============================================================================
-
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
     const { width, height } = useWindowSize();
     return (
@@ -167,8 +159,8 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
                 </div>
             </div>
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
@@ -199,22 +191,20 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                 </div>
             </div>
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
 }
 
 function ReviewScreen({ answers, onBackToResults }) {
-    // This logic ensures the last row of the grid is always full for a cleaner look
     const itemsPerRow = 3;
     const emptySlots = (itemsPerRow - (answers.length % itemsPerRow)) % itemsPerRow;
 
     return (
         <div className="w-full h-screen bg-[#0A160E] text-white p-6 flex flex-col items-center justify-center">
-            {/* FIX: Added style tag to activate the .no-scrollbar class */}
             <style>{scrollbarHideStyle}</style>
             
             <h1 className="text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 flex-shrink-0">Review Your Answers</h1>
@@ -238,7 +228,6 @@ function ReviewScreen({ answers, onBackToResults }) {
                         )}
                     </div>
                 ))}
-                {/* This part adds empty divs to maintain the grid structure */}
                 {Array(emptySlots).fill(0).map((_, index) => (
                     <div key={`empty-${index}`} className="opacity-0 pointer-events-none"></div>
                 ))}
@@ -265,13 +254,11 @@ function ReviewScreen({ answers, onBackToResults }) {
     );
 }
 
-
 const ClassifyIt = () => {
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(reducer, initialState);
   const { completeEnvirnomentChallenge } = useEnvirnoment();
   const { updatePerformance } = usePerformance();
-  const { width, height } = useWindowSize();
 
   useEffect(() => {
     let timer;
@@ -389,7 +376,7 @@ const ClassifyIt = () => {
           onViewFeedback={handleViewFeedback}
           onContinue={handleContinue}
           insight={insightText}
-          accuracyScore={accuracyScore} // FIX: Added the missing prop
+          accuracyScore={accuracyScore}
         />
       );
     }
@@ -405,10 +392,12 @@ const ClassifyIt = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center">
+    // CHANGE 1: The main container is now just a flex column. `items-center` is removed.
+    <div className="min-h-screen bg-black flex flex-col">
       <GameNav timeLeft={state.timeLeft} />
       
-      <div className="w-full flex flex-col items-center pt-2 pb-28">
+      {/* CHANGE 2: This wrapper now grows (`flex-1`) to fill available space. */}
+      <div className="w-full flex-1 flex flex-col items-center pt-2">
         {/* Word Section */}
         <div className="w-full max-w-5xl flex items-center justify-center mt-12 mb-16">
           <div className="flex items-center space-x-4">
@@ -418,7 +407,7 @@ const ClassifyIt = () => {
         </div>
 
         {/* Cards Section */}
-        <div className="w-full max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 px-4 sm:px-6 md:px-8">
+        <div className="w-full max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 px-4 sm:px-6 md:px-8 mb-8">
           {categories.map((cat) => {
             const isSelected = state.selected === cat.name;
             const currentQuestion = data[state.currentIndex];
@@ -463,8 +452,8 @@ const ClassifyIt = () => {
           })}
         </div>
 
-        {/* Bottom Bar with Button */}
-        <div className="w-full h-24 bg-[#28343A] flex justify-center items-center px-4 z-50 fixed bottom-0">
+        {/* CHANGE 3: Bottom Bar now uses `mt-auto` to push itself to the bottom of the flex container. */}
+        <div className="w-full bg-[#28343A] flex justify-center items-center px-4 mt-auto py-5">
           <div className="w-full max-w-xs h-14">  
             <button
               className="relative w-full h-full cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
