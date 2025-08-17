@@ -1,12 +1,156 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Trophy, Star, RotateCcw, Home, Clock, Target } from "lucide-react";
-import confetti from "canvas-confetti";
+import React, { useState, useEffect } from "react";
+import Confetti from 'react-confetti';
+import { useWindowSize } from 'react-use';
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
+import { Star } from "lucide-react";
+import GameNav from "./GameNav";
+
+// ======================= CHANGE 1: Import new screens =======================
+import IntroScreen from "./IntroScreen";
+import InstructionsScreen from "./InstructionsScreen";
+// ============================================================================
+
+
+// =============================================================================
+// Reusable End-Screen Components (No Changes Here)
+// =============================================================================
+
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+  const { width, height } = useWindowSize();
+  return (
+    <div className="w-full h-screen bg-[#0A160E] flex flex-col ">
+      <style>{scrollbarHideStyle}</style>
+      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+      <div className="flex-1 flex flex-col items-center sm:justify-start md:justify-center text-center px-4 overflow-y-auto md:overflow-y-hidden no-scrollbar">
+        <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+          <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+          <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+        </div>
+        <h2 className="text-yellow-400 font-['Lilita_One'] text-3xl sm:text-4xl sm:mt-6 md:mt-0">Case Solved!</h2>
+        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+          <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Pairs Found</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+              <span className="text-[#09BE43] text-2xl ">{accuracyScore}%</span>
+            </div>
+          </div>
+          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+              <span className="text-[#FFCC00] font-['Lilita_One'] text-sm ">{insight}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center items-center gap-2 sm:gap-4 shrink-0">
+        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-10 sm:h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-10 sm:h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+      </div>
+    </div>
+  );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore, moves, pairsFound, totalPairs }) {
+    return (
+      <div className="w-full min-h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+        <style>{scrollbarHideStyle}</style>
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto md:overflow-y-hidden no-scrollbar">
+          <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+          <p className="text-yellow-400 font-['Lilita_One'] text-2xl sm:text-3xl  text-center">Oops! Time's Up!</p>
+          <p className="text-yellow-400 font-['Lilita_One'] text-2xl sm:text-3xl  text-center mb-6">Wanna Retry?</p>
+          
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md md:max-w-xl ">
+            <div className="bg-red-500 rounded-xl p-1 flex flex-col items-center">
+              <p className="text-black text-sm font-bold my-2 uppercase">Accuracy</p>
+              <div className="bg-[#131F24] w-full h-20 md:h-16 lg:h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                <span className="text-red-500 text-2xl ">{accuracyScore}%</span>
+              </div>
+            </div>
+            
+            <div className="bg-blue-500 rounded-xl p-1 flex flex-col items-center">
+              <p className="text-black text-sm font-bold my-2 uppercase">Moves Used</p>
+              <div className="bg-[#131F24] w-full h-20 md:h-16 lg:h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                <span className="text-blue-400 text-2xl ">{moves}</span>
+              </div>
+            </div>
+
+            <div className="bg-purple-500 rounded-xl p-1 flex flex-col items-center">
+              <p className="text-black text-sm font-bold my-2 uppercase">Pairs Found</p>
+              <div className="bg-[#131F24] w-full h-20 md:h-16 lg:h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                <span className="text-purple-400 text-2xl ">{`${pairsFound}/${totalPairs}`}</span>
+              </div>
+            </div>
+
+            <div className="bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+              <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+              <div className="bg-[#131F24] w-full h-20 md:h-16 lg:h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                <span className="text-[#FFCC00] font-['Lilita_One'] text-sm ">{insight}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center items-center gap-2 sm:gap-4 shrink-0">
+          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-10 sm:h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-10 sm:h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-10 sm:h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        </div>
+      </div>
+    );
+}
+function ReviewScreen({ answers, onBackToResults }) {
+    return (
+      <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
+        <style>{scrollbarHideStyle}</style>
+        <h1 className="text-3xl md:text-4xl font-bold font-['Lilita_One'] mb-6 text-yellow-400 shrink-0">Review Your Matches</h1>
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 grow overflow-y-auto p-2 no-scrollbar">
+          {answers.map((ans, idx) => (
+            <div key={idx} className={`p-4 rounded-xl flex flex-col ${ans.isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+              <p className="text-gray-300 text-base mb-2 font-bold">Scenario: {ans.cause}</p>
+              <div className="text-sm space-y-1">
+                <p className="font-semibold">Your Match:</p>
+                <p className={`font-mono ${ans.isCorrect ? 'text-white' : 'text-red-300'}`}>
+                  {ans.userSequence?.join(" → ")}
+                </p>
+                {!ans.isCorrect && (
+                  <>
+                    <p className="font-semibold pt-2">Correct Match:</p>
+                    <p className="font-mono text-green-300">{ans.correctSequence?.join(" → ")}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onBackToResults} className="mt-6 px-8 py-3 bg-yellow-600 text-lg text-white font-['Lilita_One'] rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-b-0 shadow-lg">
+          Back to Results
+        </button>
+      </div>
+    );
+}
+
+
+// =============================================================================
+// Main Game Component
+// =============================================================================
 
 const ExternalityDetectiveGame = () => {
   const { completeEnvirnomentChallenge } = useEnvirnoment();
-  const [currentPage, setCurrentPage] = useState("start");
+  
+  // =================== CHANGE 2: Update initial state =======================
+  // 'intro' -> 'instructions' -> 'game' -> 'result'
+  const [currentPage, setCurrentPage] = useState("intro"); 
+  // ==========================================================================
+
+  const [resultPage, setResultPage] = useState('victory'); // 'victory', 'loss', 'review'
+  const [reviewData, setReviewData] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState([]);
   const [moves, setMoves] = useState(0);
@@ -15,69 +159,26 @@ const ExternalityDetectiveGame = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [isWinner, setIsWinner] = useState(false);
-  const [showCard, setShowCard] = useState(null);
-
+  
   //for performance
   const { updatePerformance } = usePerformance();
- const [startTime,setStartTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
 
   // Game data - scenarios and their externalities
   const cardPairs = [
-    {
-      id: 1,
-      scenario: "🚗 Heavy Traffic Congestion",
-      detail: "A city has heavy traffic congestion during rush hour",
-      externality: "🌫️ Air Pollution & Time Loss",
-      externalityDetail: "Air pollution and time lost for all commuters",
-    },
-    {
-      id: 2,
-      scenario: "📦 Cheap Plastic Packaging",
-      detail: "Companies use cheap plastic packaging for products",
-      externality: "🌍 Environmental Cleanup Cost",
-      externalityDetail: "Environment and taxpayers pay for cleanup",
-    },
-    {
-      id: 3,
-      scenario: "👕 Fast Fashion Store",
-      detail: "Fast-fashion store sells clothes very cheaply",
-      externality: "🗑️ Textile Waste & Poor Labor",
-      externalityDetail: "Textile waste and poor labor conditions",
-    },
-    {
-      id: 4,
-      scenario: "🌾 Agricultural Fertilizers",
-      detail: "Farmers use fertilizers to boost crop yields",
-      externality: "💧 Water Pollution & Algae",
-      externalityDetail: "Water pollution and harmful algae blooms",
-    },
-    {
-      id: 5,
-      scenario: "🏖️ Tourist Resort Motorboats",
-      detail: "Tourist resorts near coral reefs use motorboats",
-      externality: "🐠 Coral Damage & Noise",
-      externalityDetail: "Coral damage and marine noise pollution",
-    },
+    { id: 1, scenario: "🚗 Heavy Traffic Congestion", externality: "🌫️ Air Pollution & Time Loss" },
+    { id: 2, scenario: "📦 Cheap Plastic Packaging", externality: "🌍 Environmental Cleanup Cost" },
+    { id: 3, scenario: "👕 Fast Fashion Store", externality: "🗑️ Textile Waste & Poor Labor" },
+    { id: 4, scenario: "🌾 Agricultural Fertilizers", externality: "💧 Water Pollution & Algae" },
+    { id: 5, scenario: "🏖️ Tourist Resort Motorboats", externality: "🐠 Coral Damage & Noise" },
   ];
 
   // Create shuffled cards array
   const createCards = () => {
     const cards = [];
     cardPairs.forEach((pair) => {
-      cards.push({
-        id: `scenario-${pair.id}`,
-        type: "scenario",
-        content: pair.scenario,
-        detail: pair.detail,
-        pairId: pair.id,
-      });
-      cards.push({
-        id: `externality-${pair.id}`,
-        type: "externality",
-        content: pair.externality,
-        detail: pair.externalityDetail,
-        pairId: pair.id,
-      });
+      cards.push({ id: `scenario-${pair.id}`, type: "scenario", content: pair.scenario, pairId: pair.id });
+      cards.push({ id: `externality-${pair.id}`, type: "externality", content: pair.externality, pairId: pair.id });
     });
     return cards.sort(() => Math.random() - 0.5);
   };
@@ -90,20 +191,11 @@ const ExternalityDetectiveGame = () => {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !gameOver) {
+      setIsWinner(false); // Explicitly set as not winner
       setGameOver(true);
       setCurrentPage("result");
     }
   }, [timeLeft, gameStarted, gameOver]);
-
-  // Auto-flip card effect
-  useEffect(() => {
-    if (showCard) {
-      const timer = setTimeout(() => {
-        setShowCard(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showCard]);
 
   const startGame = () => {
     setCurrentPage("game");
@@ -114,419 +206,210 @@ const ExternalityDetectiveGame = () => {
     setFlippedCards([]);
     setMatchedPairs([]);
     setGameOver(false);
+    setIsWinner(false);
     setCards(createCards());
     setStartTime(Date.now());
-
   };
 
   const handleCardClick = (cardId) => {
-    if (
-      gameOver ||
-      flippedCards.includes(cardId) ||
-      matchedPairs.includes(cardId)
-    )
-      return;
+    if (gameOver || flippedCards.length >= 2 || flippedCards.includes(cardId) || matchedPairs.includes(cardId)) return;
 
-    // If no cards are flipped, flip the first card
-    if (flippedCards.length === 0) {
-      setFlippedCards([cardId]);
+    const newFlippedCards = [...flippedCards, cardId];
+    setFlippedCards(newFlippedCards);
+    
+    if(newFlippedCards.length === 1) {
+        // Auto-close after 3 seconds if no second card is selected
+        setTimeout(() => {
+            setFlippedCards((current) => current.length === 1 && current[0] === cardId ? [] : current);
+        }, 3000);
+    }
 
-      // Auto-close after 3 seconds if no second card is selected
-      setTimeout(() => {
-        setFlippedCards((current) => {
-          if (current.length === 1 && current[0] === cardId) {
-            return [];
-          }
-          return current;
-        });
-      }, 3000);
-    } else if (flippedCards.length === 1 && !flippedCards.includes(cardId)) {
-      // Second card clicked - immediately show both cards
-      setFlippedCards([...flippedCards, cardId]);
+    if (newFlippedCards.length === 2) {
       setMoves(moves + 1);
-
-      // Check for match
-      const card1 = cards.find((c) => c.id === flippedCards[0]);
-      const card2 = cards.find((c) => c.id === cardId);
+      const card1 = cards.find((c) => c.id === newFlippedCards[0]);
+      const card2 = cards.find((c) => c.id === newFlippedCards[1]);
 
       if (card1.pairId === card2.pairId) {
         // Match found!
         setTimeout(() => {
-          const newMatchedPairs = [...matchedPairs, ...flippedCards, cardId];
+          const newMatchedPairs = [...matchedPairs, ...newFlippedCards];
           setMatchedPairs(newMatchedPairs);
           setFlippedCards([]);
-          setScore(score + 100 + Math.max(0, 60 - moves) * 5); // Bonus for fewer moves
+          setScore(score + 100 + Math.max(0, 60 - moves) * 5); 
+
           if (newMatchedPairs.length === cards.length) {
             setIsWinner(true);
-          }
-
-          // Check if game is complete
-          if (matchedPairs.length + 2 === cards.length) {
             setGameOver(true);
             setCurrentPage("result");
           }
         }, 1000);
       } else {
-        // No match - flip both cards back after 3 seconds
-        setTimeout(() => {
-          setFlippedCards([]);
-        }, 3000);
+        // No match
+        setTimeout(() => setFlippedCards([]), 1500);
       }
     }
   };
 
   const resetGame = () => {
-    setCurrentPage("start");
-    setFlippedCards([]);
-    setMatchedPairs([]);
-    setMoves(0);
-    setScore(0);
-    setTimeLeft(120);
+    // On continue, go back to the very start
+    setCurrentPage("intro");
     setGameStarted(false);
-    setGameOver(false);
-    setShowCard(null);
-    setStartTime(Date.now());
-
   };
 
-  const getCardStyle = (card) => {
-    const isFlipped =
-      flippedCards.includes(card.id) ||
-      matchedPairs.includes(card.id) ||
-      showCard === card.id;
-    const isMatched = matchedPairs.includes(card.id);
-
-    let bgColor =
-      card.type === "scenario"
-        ? "from-blue-400 to-blue-600"
-        : "from-green-400 to-green-600";
-
-    if (isMatched) {
-      bgColor = "from-yellow-400 to-orange-500";
-    }
-
-    return `${bgColor} ${isMatched ? "ring-4 ring-yellow-300" : ""}`;
+  // Handlers for the new end screens
+  const handlePlayAgain = () => startGame();
+  const handleContinue = () => resetGame();
+  const handleViewReview = () => setResultPage("review");
+  const handleBackToResults = () => {
+      setResultPage(isWinner ? "victory" : "loss");
   };
 
-  // Start Screen
-  const fullText = "Weelcome, Detective!";
-  const [displayedText, setDisplayedText] = useState("");
-
   useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + fullText.charAt(index));
-      index++;
-      if (index >= fullText.length) clearInterval(interval);
-    }, 100);
+    if (!gameOver) return;
 
-    return () => clearInterval(interval);
-  }, []);
+    if (currentPage === 'result') {
+        setResultPage(isWinner ? "victory" : "loss");
+        if(isWinner) {
+            completeEnvirnomentChallenge(1, 1);
+        }
 
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!isWinner || currentPage !== "result") {
-      return;
+        const generatedReviewData = cardPairs.map(pair => {
+            const scenarioCardId = `scenario-${pair.id}`;
+            const wasFound = matchedPairs.includes(scenarioCardId);
+            return {
+              cause: pair.scenario,
+              isCorrect: wasFound,
+              userSequence: wasFound ? [pair.externality] : ["-- Not Matched --"],
+              correctSequence: [pair.externality]
+            };
+        });
+        setReviewData(generatedReviewData);
     }
-
-    completeEnvirnomentChallenge(1, 1);
-
-
-    // Use the default confetti (full screen)
-    const end = Date.now() + 3 * 1000;
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
-
-    const frame = () => {
-      if (Date.now() > end) return;
-
-      confetti({
-        particleCount: 5,
-        angle: 60,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 0, y: 0.5 },
-        colors,
-      });
-
-      confetti({
-        particleCount: 5,
-        angle: 120,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 1, y: 0.5 },
-        colors,
-      });
-
-      requestAnimationFrame(frame);
-    };
-
-    // Initial burst
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors,
-    });
-
-    frame();
-  }, [isWinner, currentPage]);
-
-  useEffect(() => {
-    if (!gameOver || currentPage !== "result") return;
-
+    
+    // Logic for performance update
     const endTime = Date.now();
     const timeTakenSec = Math.floor((endTime - startTime) / 1000);
     const studyTimeMin = Math.ceil(timeTakenSec / 60);
     const accuracy = matchedPairs.length / cards.length;
     const finalScore = score + (isWinner ? Math.max(0, timeLeft * 10) : 0);
-    // Scale score out of 10
-    const maxPossibleScore = cardPairs.length * 2 * 100 + 60 * 5; // match points + max move bonus
+    const maxPossibleScore = cardPairs.length * 100 + 60 * 5; 
     const scaledScore = parseFloat(((finalScore / maxPossibleScore) * 10).toFixed(2));
 
     updatePerformance({
       moduleName: "Environment",
       topicName: "ecoDecisionMaker",
-      score: scaledScore, // score out of 10
+      score: scaledScore,
       accuracy: parseFloat((accuracy * 100).toFixed(2)),
-      avgResponseTimeSec: parseFloat((timeTakenSec / moves).toFixed(2)),
+      avgResponseTimeSec: parseFloat((timeTakenSec / (moves || 1)).toFixed(2)),
       studyTimeMinutes: studyTimeMin,
       completed: true,
-       
     });
-    setStartTime(Date.now());
 
-  }, [gameOver, currentPage]);
+  }, [gameOver, currentPage, isWinner]);
 
+  // ================ CHANGE 3: REMOVED the old start screen logic ================
+  // The typing effect has been moved to IntroScreen.js
+  // ============================================================================
+  
+  // ================ CHANGE 4: Add new handler and update rendering ============
+  const handleShowInstructions = () => {
+    setCurrentPage("instructions");
+  };
 
-
-  if (currentPage === "start") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-red-400 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.2)] p-8 max-w-md w-full text-center transform hover:scale-105 transition-transform duration-300">
-          <div className="text-3xl md:text-4xl font-bold mb-4 text-purple-800">
-            {displayedText}
-          </div>
-
-          <div className="text-7xl mb-4 animate-bounce">🕵️‍♂️</div>
-
-          <h1 className="text-4xl font-extrabold text-purple-800 mb-3 drop-shadow-md">
-            Externality Detective
-          </h1>
-
-          <p className="text-pink-700 text-lg font-medium mb-6">
-            Find the hidden costs in everyday scenarios!
-          </p>
-
-          <div className="bg-gradient-to-r from-blue-100 to-indigo-200 rounded-xl p-5 mb-6 border-2 border-blue-300 shadow-inner">
-            <h3 className="font-bold text-indigo-900 text-lg mb-2">
-              🎮 How to Play:
-            </h3>
-            <ul className="text-sm text-indigo-800 text-left space-y-2 list-disc list-inside">
-              <li>Tap cards to see them for 3 seconds</li>
-              <li>Match scenarios with their hidden costs</li>
-              <li>Complete all pairs before time runs out</li>
-              <li>Fewer moves = higher score!</li>
-            </ul>
-          </div>
-
-          <button
-            onClick={startGame}
-            className="bg-gradient-to-br from-green-400 via-blue-400 to-purple-500 text-white font-bold py-4 px-8 rounded-full text-xl hover:from-green-500 hover:to-purple-600 transform hover:scale-110 transition-all duration-300 shadow-xl hover:shadow-2xl"
-          >
-            Start Detective Mission! 🚀
-          </button>
-        </div>
-      </div>
-    );
+  if (currentPage === "intro") {
+    return <IntroScreen onShowInstructions={handleShowInstructions} />;
   }
 
-  // Game Screen
+  if (currentPage === "instructions") {
+    return <InstructionsScreen onStartGame={startGame} />;
+  }
+  // ============================================================================
+
   if (currentPage === "game") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6 bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setCurrentPage("start")}
-              className="bg-white/30 hover:bg-white/50 rounded-full p-2 transition-colors"
-            >
-              <Home className="w-6 h-6 text-white" />
-            </button>
-            <div className="text-white font-bold">
-              <div className="flex items-center space-x-2">
-                <Target className="w-5 h-5" />
-                <span>Moves: {moves}</span>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen w-full bg-[#0A160E]">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          <GameNav timeLeft={timeLeft} moves={moves} />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 mt-12 md:mt-16 lg:mt-35">
+            {cards.map((card) => {
+              const isFlipped = flippedCards.includes(card.id) || matchedPairs.includes(card.id);
+              const isMatched = matchedPairs.includes(card.id);
+              let cardStyle = "";
+              let textColor = "";
 
-          <div className="flex items-center space-x-4 text-white font-bold">
-            <div className="flex items-center space-x-2">
-              <Star className="w-5 h-5 text-yellow-300" />
-              <span>{score}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5" />
-              <span
-                className={timeLeft < 30 ? "text-red-300 animate-pulse" : ""}
-              >
-                {Math.floor(timeLeft / 60)}:
-                {(timeLeft % 60).toString().padStart(2, "0")}
-              </span>
-            </div>
-          </div>
-        </div>
+              if (isMatched) {
+                cardStyle = "rounded-[0.75rem] border border-[#2BFF00] bg-[rgba(43,255,0,0.25)] shadow-[0_2px_0_0_#2BFF00]";
+                textColor = "text-[#2BFF00]";
+              } else if (isFlipped) {
+                cardStyle = "rounded-[0.75rem] border border-[#08B6FF] bg-[rgba(8,182,255,0.20)] shadow-[0_2px_0_0_#08B6FF]";
+                textColor = "text-[#08B6FF]";
+              } else {
+                cardStyle = "rounded-[0.75rem] border border-[#37464F] bg-[#131F24] shadow-[0_2px_0_0_#37464F]";
+              }
 
-        {/* Game Board */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
-          {cards.map((card) => {
-            const isFlipped =
-              flippedCards.includes(card.id) || matchedPairs.includes(card.id);
-            const isMatched = matchedPairs.includes(card.id);
-
-            return (
-              <div
-                key={card.id}
-                onClick={() => handleCardClick(card.id)}
-                className={`
-                  relative aspect-square cursor-pointer transform transition-all duration-300 hover:scale-105
-                  ${isMatched ? "animate-pulse" : ""}
-                `}
-              >
-                <div
-                  className={`
-                  absolute inset-0 bg-gradient-to-br rounded-2xl shadow-lg transition-all duration-500
-                  ${isFlipped ? getCardStyle(card) : "from-gray-400 to-gray-600"
-                    }
-                  ${isFlipped ? "rotate-0" : "rotate-y-180"}
-                `}
-                >
-                  {!isFlipped ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-4xl animate-pulse">🔍</div>
-                    </div>
-                  ) : (
-                    <div className="p-3 h-full flex flex-col justify-center items-center text-center">
-                      <div className="text-4xl mb-2">
-                        {card.content.split(" ")[0]}
-                      </div>
-                      <div className="text-lg font-bold text-white break-words">
-                        {card.content.substring(card.content.indexOf(" ") + 1)}
-                      </div>
-                      {isMatched && (
-                        <div className="absolute top-1 right-1 text-yellow-300">
-                          <Star className="w-4 h-4 fill-current" />
+              return (
+                <div key={card.id} onClick={() => handleCardClick(card.id)} className="relative aspect-square cursor-pointer transform transition-all duration-300 hover:scale-105">
+                  <div className={`absolute inset-0 transition-all duration-500 ${cardStyle} ${isFlipped ? "rotate-0" : "-rotate-y-180"}`} style={{ transformStyle: "preserve-3d" }}>
+                    <div className={`absolute inset-0 h-full w-full flex flex-col justify-center items-center text-center p-2 sm:p-3 backface-hidden ${isFlipped ? '' : 'hidden'}`}>
+                        <div className="text-2xl sm:text-3xl lg:text-4xl mb-1 sm:mb-2">
+                          {card.content.split(" ")[0]}
                         </div>
-                      )}
+                        <div className={`text-xs sm:text-sm lg:text-lg font-bold break-words ${textColor}`}>
+                          {card.content.substring(card.content.indexOf(" ") + 1)}
+                        </div>
+                        {isMatched && (
+                          <div className={`absolute top-1 right-1 ${textColor}`}>
+                            <Star className="w-4 h-4 fill-current" />
+                          </div>
+                        )}
                     </div>
-                  )}
+                    <div className={`absolute inset-0 h-full w-full flex items-center justify-center rotate-y-180 backface-hidden ${isFlipped ? 'hidden' : ''}`}>
+                        <div className="text-4xl animate-pulse">🔍</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Progress */}
-        <div className="mt-6 bg-white/20 backdrop-blur-sm rounded-2xl p-4 max-w-md mx-auto">
-          <div className="flex justify-between text-white text-sm mb-2">
-            <span>Progress</span>
-            <span>
-              {matchedPairs.length / 2} / {cardPairs.length} pairs
-            </span>
-          </div>
-          <div className="w-full bg-white/30 rounded-full h-3">
-            <div
-              className="bg-gradient-to-r from-green-400 to-blue-500 h-3 rounded-full transition-all duration-500"
-              style={{
-                width: `${(matchedPairs.length / cards.length) * 100}%`,
-              }}
-            ></div>
+              );
+            })}
           </div>
         </div>
       </div>
     );
   }
 
-  // Result Screen
+  // New Result Screen Logic
   if (currentPage === "result") {
-    const finalScore = score + (isWinner ? Math.max(0, timeLeft * 10) : 0); // Time bonus
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center transform hover:scale-105 transition-transform duration-300 relative">
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
-          />
-          <div className="text-8xl mb-4 animate-bounce">
-            {isWinner ? "🏆" : "⏰"}
-          </div>
-
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            {isWinner ? "Case Solved!" : "Time's Up!"}
-          </h1>
-
-          <p className="text-gray-600 mb-6">
-            {isWinner
-              ? "Great detective work! You found all the hidden costs!"
-              : "Keep practicing to become a better externality detective!"}
-          </p>
-
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {finalScore}
-                </div>
-                <div className="text-sm text-gray-600">Final Score</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {moves}
-                </div>
-                <div className="text-sm text-gray-600">Moves Used</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {matchedPairs.length / 2}
-                </div>
-                <div className="text-sm text-gray-600">Pairs Found</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-red-600">
-                  {Math.floor((120 - timeLeft) / 60)}:
-                  {((120 - timeLeft) % 60).toString().padStart(2, "0")}
-                </div>
-                <div className="text-sm text-gray-600">Time Used</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex space-x-4">
-            <button
-              onClick={resetGame}
-              className="flex-1 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-bold py-3 px-6 rounded-full hover:from-blue-500 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
-            >
-              <Home className="w-5 h-5 inline mr-2" />
-              Home
-            </button>
-            <button
-              onClick={startGame}
-              className="flex-1 bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-3 px-6 rounded-full hover:from-green-500 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
-            >
-              <RotateCcw className="w-5 h-5 inline mr-2" />
-              Play Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    const pairsFoundCount = matchedPairs.length / 2;
+    const totalPairsCount = cardPairs.length;
+    const accuracyScore = Math.round((matchedPairs.length / cards.length) * 100);
+    const insight = isWinner ? "Great detective work! You linked every scenario to its hidden cost." : "Some externalities are tricky. Review them to sharpen your skills!";
+    
+    switch (resultPage) {
+        case 'victory':
+            return <VictoryScreen 
+                accuracyScore={accuracyScore}
+                insight={insight}
+                onContinue={handleContinue}
+                onViewFeedback={handleViewReview}
+            />;
+        case 'loss':
+            return <LosingScreen 
+                accuracyScore={accuracyScore}
+                insight={insight}
+                onPlayAgain={handlePlayAgain}
+                onContinue={handleContinue}
+                onViewFeedback={handleViewReview}
+                moves={moves}
+                pairsFound={pairsFoundCount}
+                totalPairs={totalPairsCount}
+            />;
+        case 'review':
+            return <ReviewScreen 
+                answers={reviewData}
+                onBackToResults={handleBackToResults}
+            />;
+        default:
+            return null; // Should not happen
+    }
   }
 };
 

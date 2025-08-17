@@ -62,8 +62,7 @@ const ScenarioContent = () => {
             </div>
 
             {/* Right Panel: Description */}
-            {/* MODIFIED: Corrected typo `md:w-1.2` to `md:w-1/2` */}
-            <div className="w-full md:w-1/2 bg-[rgba(32,47,54,0.3)] rounded-lg p-4 flex items-center justify-center min-h-[150px]">
+            <div className="w-full md:w-1.2 bg-[rgba(32,47,54,0.3)] rounded-lg p-4 flex items-center justify-center min-h-[150px]">
                 <p className="font-['Inter'] text-center text-gray-200 text-base lg:text-lg font-medium leading-relaxed">
                     {scenarioDescription}
                 </p>

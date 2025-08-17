@@ -91,12 +91,12 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Center Content */}
       <div className="text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:-mt-100 z-10">
         {/* Heading: The Budgeter */}
-        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
-          Green Budget
+        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-4xl lg:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
+          Infrastructure Showdown
         </span>
 
         {/* Subheading: Challenge 1 */}
-        <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl text-white -mt-2 mb-6 sm:mb-10">
+        <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl md:text-3xl lg:text-4xl text-white -mt-2 mb-6 sm:mb-10">
           Challenge 1
         </h2>
       </div>

@@ -1,714 +1,493 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  ChevronRight,
-  TreePine,
-  Zap,
-  Car,
-  Droplets,
-  Sun,
-  Building,
-  Recycle,
-  Brain,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Home,
-  Star,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Confetti from "react-confetti";
+import useWindowSize from "react-use/lib/useWindowSize";
+import GameNav from "./GameNav";
+import Checknow from "@/components/icon/GreenBudget/Checknow";
+import ThinkingCloud from "@/components/icon/ThinkingCloud";
+import IntroScreen from "./IntroScreen";
+import InstructionsScreen from "./InstructionsScreen";
+import { useNavigate } from "react-router-dom";
 
-import clickSoundFile from "../../Sound/clickSoundFile.mp3";
-import clickSoundFileYay from "../../Sound/clickSoundFileYay.mp3";
-import clickSoundFileOops from "../../Sound/clickSoundFileOops.mp3";
-import confetti from "canvas-confetti";
-import { motion } from "framer-motion";
-import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
-import { usePerformance } from "@/contexts/PerformanceContext";
+// Placeholder for context functions
+const useEnvirnoment = () => ({
+  completeEnvirnomentChallenge: (challengeId, taskId) => {
+    console.log(
+      `(Mock) Environment Challenge ${challengeId}, Task ${taskId} completed!`
+    );
+  },
+});
 
-const SustainabilityGames2 = () => {
+const usePerformance = () => ({
+  updateEnvirnomentPerformance: (data) => {
+    console.log("(Mock) Performance updated:", data);
+  },
+});
+
+// =============================================================================
+// Game Data (Question-Based)
+// =============================================================================
+const questions = [
+  {
+    "id": 1,
+    "question": "Is this a real solution or just a tech illusion?",
+    "scenario": "A polluted city introduces self-driving cars but doesn't reduce the total number of vehicles or address emissions:",
+    "options": [
+      "This is a real solution to urban pollution",
+      "This is a tech illusion - it doesn't solve the core problem"
+    ],
+    "correct": "This is a tech illusion - it doesn't solve the core problem",
+    "explanation": "Self-driving cars don't reduce pollution if there are still the same number of polluting vehicles!"
+  },
+  {
+    "id": 2,
+    "question": "Which approach better addresses air quality?",
+    "scenario": "A company suggests putting air purifiers in every room instead of planting trees in the city:",
+    "options": [
+      "Planting trees - nature's solution is more effective",
+      "Air purifiers in every room - modern technology is better"
+    ],
+    "correct": "Planting trees - nature's solution is more effective",
+    "explanation": "Trees are nature's air purifiers AND provide oxygen, habitat, shade, and beauty!"
+  },
+  {
+    "id": 3,
+    "question": "Which solution addresses traffic problems more sustainably?",
+    "scenario": "A city faces traffic congestion. They're considering two approaches:",
+    "options": [
+      "Installing AI-powered traffic signals to optimize car flow",
+      "Expanding public transportation (buses, trains, metros)"
+    ],
+    "correct": "Expanding public transportation (buses, trains, metros)",
+    "explanation": "Public transport reduces the number of cars on roads - much better than just managing more cars!"
+  },
+  {
+    "id": 4,
+    "question": "Which approach to climate change is more effective?",
+    "scenario": "To fight climate change, a company proposes two different strategies:",
+    "options": [
+      "Building expensive carbon-capture machines to remove CO2 from air",
+      "Reducing emissions at the source by using renewable energy"
+    ],
+    "correct": "Reducing emissions at the source by using renewable energy",
+    "explanation": "Prevention is always better than trying to fix the problem after it's created!"
+  },
+  {
+    "id": 5,
+    "question": "How should you respond to this sustainability claim?",
+    "scenario": "A company's advertisement claims their product is 'eco-friendly' but provides no data or proof:",
+    "options": [
+      "Be suspicious - this could be greenwashing without proof",
+      "Trust the company - they wouldn't lie about being eco-friendly"
+    ],
+    "correct": "Be suspicious - this could be greenwashing without proof",
+    "explanation": "Always look for real data, certifications, and proof when companies claim to be sustainable!"
+  }
+]
+
+// Data Transformation
+const dilemmas = questions.map((q) => ({
+  id: q.id,
+  question: q.question,
+  scenario: q.scenario,
+  options: q.options.map((optText) => {
+    const isCorrect = optText === q.correct;
+    return {
+      text: optText,
+      score: isCorrect ? 3 : 0,
+      consequence: q.explanation, // Using the direct explanation
+    };
+  }),
+}));
+
+
+// =============================================================================
+// Child Components
+// =============================================================================
+
+// OptionCard is no longer used in the main game view but is updated for consistency.
+function OptionCard({ option, isSelected, onClick, isDisabled }) {
+  const cardClasses = `flex items-center justify-center inter-font
+    w-full min-h-[60px] px-4 py-3 rounded-xl shadow-md transition-all duration-200 ease-in-out cursor-pointer text-center
+    lg:w-[24vw] lg:min-h-[7vh] lg:px-[2vw] lg:py-[1.5vh] lg:rounded-[1.2vh] lg:shadow-[0_2px_0_0_#37464f]
+    ${
+      isSelected
+        ? "bg-[#202f36] border-2 border-[#5f8428] shadow-[0_2px_0_0_#5f8428] lg:border-[0.2vh]"
+        : "bg-[#131f24] border-2 border-[#37464f] lg:border-[0.2vh]"
+    } ${
+    isDisabled && !isSelected
+      ? "opacity-50 cursor-not-allowed"
+      : "hover:scale-102"
+  }`;
+  
+  const textClasses = `font-medium 
+    text-base leading-normal 
+    lg:text-[1.1vw] lg:leading-[3vh] 
+    ${isSelected ? "text-[#79b933]" : "text-[#f1f7fb]"}`;
+
+  return (
+    <div className={cardClasses} onClick={onClick}>
+      <span className={textClasses}>{option.text}</span>
+    </div>
+  );
+}
+
+function FeedbackCharacter({ message }) {
+  return (
+    // Parent Flex Container
+    <div className="flex items-end justify-center">
+      {/* Flex Item 1: The Character GIF */}
+      <img
+        src="/feedbackcharacter.gif"
+        alt="Character talking"
+        className="w-[4rem] md:w-[5rem] h-auto object-contain shrink-0"
+      />
+      {/* Flex Item 2: The Cloud and Text */}
+      <div className="relative  md:ml-[1rem] md:mb-[2rem]">
+        <ThinkingCloud className="w-[180px] md:w-[320px] lg:w-[300px]" />
+        {/* [MODIFIED] Switched font to inter-font */}
+        <p 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85%] pl-4
+                     text-[9px] md:text-sm leading-tight text-white text-center inter-font font-medium"
+        >
+          {message}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
+
+// VictoryScreen
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+  const { width, height } = useWindowSize();
+  return (
+    // [MODIFIED] Added inter-font to the main container for inheritance
+    <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden inter-font">
+      <style>{scrollbarHideStyle}</style>
+      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+        <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+          <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+          <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+        </div>
+        <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+          <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+              <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+            </div>
+          </div>
+          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+              <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+      </div>
+    </div>
+  );
+}
+
+// LosingScreen
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+  return (
+    // [MODIFIED] Added inter-font to the main container for inheritance
+    <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden inter-font">
+      <style>{scrollbarHideStyle}</style>
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+        <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+        <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+        <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+          <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+              <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+            </div>
+          </div>
+          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+              <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+      </div>
+    </div>
+  );
+}
+
+// ReviewScreen
+function ReviewScreen({ answers, onBackToResults }) {
+  return (
+    // [MODIFIED] Added inter-font to the main container for inheritance
+    <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center inter-font">
+      <style>{scrollbarHideStyle}</style>
+      <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 shrink-0">Review Your Answers</h1>
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 grow overflow-y-auto p-2 no-scrollbar">
+        {answers.map((ans, idx) => {
+            const isCorrect = ans.scoreAwarded === 3;
+            return (
+              <div key={idx} className={`p-4 rounded-xl flex flex-col ${isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+                <p className="text-gray-300 text-base mb-2 font-bold">{ans.scenario}</p>
+                <div className="text-sm space-y-1">
+                  <p className="font-semibold">Your Answer:</p>
+                  {/* [MODIFIED] Removed specific font class, now inherits */}
+                  <p className={`${isCorrect ? 'text-white' : 'text-red-300'}`}>
+                    {ans.selectedOption.text}
+                  </p>
+                  {!isCorrect && (
+                    <>
+                      <p className="font-semibold pt-2">Correct Answer:</p>
+                      {/* [MODIFIED] Removed specific font class, now inherits */}
+                      <p className="text-green-300">{ans.correctAnswerText}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+        })}
+      </div>
+      <button onClick={onBackToResults} className="mt-6 px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-b-0 shadow-lg">
+        Back to Results
+      </button>
+    </div>
+  );
+}
+
+
+// =============================================================================
+// Main Game Component
+// =============================================================================
+
+export default function MeasureCompareQuiz() {
   const { completeEnvirnomentChallenge } = useEnvirnoment();
-  const [currentPage, setCurrentPage] = useState("home");
-  const [currentGame, setCurrentGame] = useState("infrastructure");
-  const [score, setScore] = useState(0);
-  const [showResult, setShowResult] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [gameCompleted, setGameCompleted] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
+  const { updateEnvirnomentPerformance } = usePerformance();
+  const navigate = useNavigate();
 
-  //for performance
-  const { updatePerformance } = usePerformance();
- const [startTime,setStartTime] = useState(Date.now());
-  const [totalResponseTime, setTotalResponseTime] = useState(0);
+  const [step, setStep] = useState("intro");
+  const [introStep, setIntroStep] = useState("first");
+  const [currentDilemmaIndex, setCurrentDilemmaIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [totalScore, setTotalScore] = useState(0);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [dilemmaResults, setDilemmaResults] = useState([]);
 
-  const infrastructureQuestions = [
-    {
-      question:
-        "Which infrastructure project contributes more to long-term sustainability?",
-      scenario:
-        "A city wants to beautify its downtown area. They're considering two options:",
-      options: [
-        "Building decorative fountains in the plaza",
-        "Installing vertical gardens on building walls",
-      ],
-      correct: 1,
-      explanation:
-        "Vertical gardens improve air quality, provide insulation, and create habitats for wildlife!",
-      icon: <TreePine className="w-8 h-8" />,
-    },
-    {
-      question: "Which option creates a more sustainable urban environment?",
-      scenario:
-        "The city council is planning street improvements. They need to choose between:",
-      options: [
-        "Planting trees along all major streets",
-        "Installing bright LED billboards for advertising",
-      ],
-      correct: 0,
-      explanation:
-        "Tree-lined streets clean the air, provide shade, reduce heat, and create a healthier environment!",
-      icon: <TreePine className="w-8 h-8" />,
-    },
-    {
-      question:
-        "Which transportation infrastructure is better for sustainability?",
-      scenario:
-        "Traffic is increasing in the city. The mayor must decide between:",
-      options: [
-        "Building dedicated bike lanes throughout the city",
-        "Making roads wider to accommodate more cars",
-      ],
-      correct: 0,
-      explanation:
-        "Bike lanes reduce pollution, promote health, and create safer streets for everyone!",
-      icon: <Car className="w-8 h-8" />,
-    },
-    {
-      question: "Which water management system is more sustainable?",
-      scenario:
-        "The city needs to improve its water infrastructure. They're debating between:",
-      options: [
-        "Building new decorative swimming pools in parks",
-        "Installing water reuse and recycling systems",
-      ],
-      correct: 1,
-      explanation:
-        "Water reuse systems conserve precious water resources and reduce waste!",
-      icon: <Droplets className="w-8 h-8" />,
-    },
-    {
-      question: "Which energy infrastructure choice is more sustainable?",
-      scenario:
-        "New buildings are being constructed. The architect must choose between:",
-      options: [
-        "Designing tall glass skyscrapers with lots of windows",
-        "Installing solar panels on all rooftops",
-      ],
-      correct: 1,
-      explanation:
-        "Solar rooftops generate clean, renewable energy and reduce dependence on fossil fuels!",
-      icon: <Sun className="w-8 h-8" />,
-    },
-  ];
+  const currentDilemma = useMemo(() => dilemmas[currentDilemmaIndex], [currentDilemmaIndex]);
 
-  const technoSolutionismQuestions = [
-    {
-      question: "Is this a real solution or just a tech illusion?",
-      scenario:
-        "A polluted city introduces self-driving cars but doesn't reduce the total number of vehicles or address emissions:",
-      options: [
-        "This is a real solution to urban pollution",
-        "This is a tech illusion - it doesn't solve the core problem",
-      ],
-      correct: 1,
-      explanation:
-        "Self-driving cars don't reduce pollution if there are still the same number of polluting vehicles!",
-      icon: <Car className="w-8 h-8" />,
-    },
-    {
-      question: "Which approach better addresses air quality?",
-      scenario:
-        "A company suggests putting air purifiers in every room instead of planting trees in the city:",
-      options: [
-        "Planting trees - nature's solution is more effective",
-        "Air purifiers in every room - modern technology is better",
-      ],
-      correct: 0,
-      explanation:
-        "Trees are nature's air purifiers AND provide oxygen, habitat, shade, and beauty!",
-      icon: <TreePine className="w-8 h-8" />,
-    },
-    {
-      question: "Which solution addresses traffic problems more sustainably?",
-      scenario:
-        "A city faces traffic congestion. They're considering two approaches:",
-      options: [
-        "Installing AI-powered traffic signals to optimize car flow",
-        "Expanding public transportation (buses, trains, metros)",
-      ],
-      correct: 1,
-      explanation:
-        "Public transport reduces the number of cars on roads - much better than just managing more cars!",
-      icon: <Car className="w-8 h-8" />,
-    },
-    {
-      question: "Which approach to climate change is more effective?",
-      scenario:
-        "To fight climate change, a company proposes two different strategies:",
-      options: [
-        "Building expensive carbon-capture machines to remove CO2 from air",
-        "Reducing emissions at the source by using renewable energy",
-      ],
-      correct: 1,
-      explanation:
-        "Prevention is always better than trying to fix the problem after it's created!",
-      icon: <Recycle className="w-8 h-8" />,
-    },
-    {
-      question: "How should you respond to this sustainability claim?",
-      scenario:
-        "A company's advertisement claims their product is 'eco-friendly' but provides no data or proof:",
-      options: [
-        "Be suspicious - this could be greenwashing without proof",
-        "Trust the company - they wouldn't lie about being eco-friendly",
-      ],
-      correct: 0,
-      explanation:
-        "Always look for real data, certifications, and proof when companies claim to be sustainable!",
-      icon: <AlertTriangle className="w-8 h-8" />,
-    },
-  ];
+  const handleShowInstructions = () => setIntroStep("instructions");
 
-  const gameInstructions = {
-    infrastructure: {
-      title: "Infrastructure Showdown",
-      description:
-        "Help build a sustainable city by choosing the best infrastructure projects!",
-      rules: [
-        "You'll see different infrastructure scenarios",
-        "Choose which option contributes more to long-term sustainability",
-        "Think about environmental impact, community benefits, and future generations",
-        "Get points for each correct answer!",
-      ],
-    },
-    techno: {
-      title: "Tech Detective",
-      description:
-        "Become a detective and spot when technology is oversold as a magic solution!",
-      rules: [
-        "You'll see different technology scenarios",
-        "Identify if it's a real solution or just tech illusion",
-        "Look for solutions that address root problems, not just symptoms",
-        "Watch out for greenwashing - false environmental claims!",
-      ],
-    },
-  };
-
-  const startGame = (gameType) => {
-    setCurrentGame(gameType);
-    setShowInstructions(true);
-    setScore(0);
-    setQuestionIndex(0);
-    setShowResult(false);
-    setSelectedAnswer(null);
-    setGameCompleted(false);
-    setStartTime(Date.now());
-
-  };
-
-  const startQuestions = () => {
-    setShowInstructions(false);
-    setCurrentPage("game");
-    setStartTime(Date.now());
-
-  };
-
-  const clickSoundRefPop = useRef(new Audio(clickSoundFile));
-  const clickSoundRefYay = useRef(new Audio(clickSoundFileYay));
-  const clickSoundRefOops = useRef(new Audio(clickSoundFileOops));
-
-  const playClickSound = (clickSoundRef) => {
-    if (clickSoundRef.current) {
-      clickSoundRef.current.currentTime = 0;
-      clickSoundRef.current.play();
-    }
-  };
-
-  const handleAnswer = (answerIndex) => {
-    const endTime = Date.now();
-    const responseTime = (endTime - startTime) / 1000; // in seconds
-    setTotalResponseTime((prev) => prev + responseTime);
-
-    setSelectedAnswer(answerIndex);
-    const questions =
-      currentGame === "infrastructure"
-        ? infrastructureQuestions
-        : technoSolutionismQuestions;
-    const isCorrect = answerIndex === questions[questionIndex].correct;
-
-    if (isCorrect) {
-      setScore(score + 1);
-      playClickSound(clickSoundRefYay);
+  const handleNextDilemma = useCallback(() => {
+    setShowFeedback(false);
+    if (currentDilemmaIndex < dilemmas.length - 1) {
+      setCurrentDilemmaIndex((prevIndex) => prevIndex + 1);
+      setSelectedOption(null);
+      setFeedbackMessage("");
     } else {
-      playClickSound(clickSoundRefOops);
+      setStep("end");
     }
+  }, [currentDilemmaIndex]);
 
-    setShowResult(true);
-
-    setTimeout(() => {
-      if (questionIndex < questions.length - 1) {
-        setQuestionIndex(questionIndex + 1);
-        setShowResult(false);
-        setSelectedAnswer(null);
-      } else {
-        setGameCompleted(true);
-      }
-    }, 3500);
-  };
-
-
-  const resetGame = () => {
-    setCurrentPage("home");
-    setCurrentGame(null);
-    setScore(0);
-    setQuestionIndex(0);
-    setShowResult(false);
-    setSelectedAnswer(null);
-    setGameCompleted(false);
-    setShowInstructions(false);
-    setStartTime(Date.now());
-
-  };
-
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!gameCompleted) return;
-
-    const totalQuestions = currentGame === "infrastructure"
-      ? infrastructureQuestions.length
-      : technoSolutionismQuestions.length;
-
-    const accuracy = (score / totalQuestions) * 100;
-    const scaledScore = Math.round((score / totalQuestions) * 10);
-    const avgResponseTimeSec = totalResponseTime / totalQuestions;
-    const studyTimeMinutes = (Date.now() - startTime) / 60000;
-
-    updatePerformance({
-      moduleName: "Environment",
-      topicName: "sustainableLeader",
-      score: scaledScore,
-      accuracy: parseFloat(accuracy.toFixed(2)),
-      avgResponseTimeSec: parseFloat(avgResponseTimeSec.toFixed(2)),
-      studyTimeMinutes: parseFloat(studyTimeMinutes.toFixed(2)),
-      completed: true,
-      
-    });
-  }, [gameCompleted]);
-
-
-  useEffect(() => {
-    if (score < 5 || !gameCompleted) {
+  const handleSubmit = useCallback(() => {
+    if (!selectedOption) {
+      setFeedbackMessage("Please select an option.");
+      setShowFeedback(true);
       return;
     }
 
-    completeEnvirnomentChallenge(2, 1);
+    const { score, consequence } = selectedOption;
+    
+    setTotalScore((prevScore) => prevScore + score);
+    setFeedbackMessage(consequence);
+    setShowFeedback(true);
 
-    // Use the default confetti (full screen)
-    const end = Date.now() + 3 * 1000;
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+    const correctAnswer = currentDilemma.options.find(opt => opt.score === 3);
 
-    const frame = () => {
-      if (Date.now() > end) return;
+    setDilemmaResults((prevResults) => [...prevResults, {
+      scenario: currentDilemma.question,
+      selectedOption: selectedOption,
+      scoreAwarded: score,
+      correctAnswerText: correctAnswer ? correctAnswer.text : "N/A",
+    }]);
 
-      confetti({
-        particleCount: 5,
-        angle: 60,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 0, y: 0.5 },
-        colors,
-      });
+  }, [selectedOption, currentDilemma]);
 
-      confetti({
-        particleCount: 5,
-        angle: 120,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 1, y: 0.5 },
-        colors,
-      });
-
-      requestAnimationFrame(frame);
-    };
-
-    // Initial burst
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors,
-    });
-
-    frame();
-  }, [score, gameCompleted]);
-
-  const HomePage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4 animate-bounce">
-            🌱 Eco Champions 🌱
-          </h1>
-          <p className="text-lg sm:text-xl text-white/90 mb-8">
-            Learn about sustainability through fun games!
-          </p>
-        </div>
-
-        <div
-          onClick={() => startGame("techno")}
-          className="bg-gradient-to-br from-pink-400 via-yellow-300 to-blue-400 rounded-3xl p-6 sm:p-8 border-4 border-white/30 cursor-pointer transform hover:scale-110 transition-all duration-300 shadow-xl hover:shadow-pink-200"
-        >
-          <div className="text-center">
-            <div className="mb-6 flex justify-center">
-              <div className="bg-yellow-400 p-4 rounded-full animate-bounce shadow-md hover:rotate-6 transition-all duration-300">
-                <Brain className="w-8 h-8 sm:w-12 sm:h-12 text-pink-700" />
-              </div>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900 drop-shadow-md mb-4">
-              Tech Detective
-            </h2>
-            <p className="text-purple-950 mb-6 text-sm sm:text-base font-medium">
-              Spot when technology is oversold as a solution without addressing
-              root issues!
-            </p>
-            <div className="flex items-center justify-center text-white">
-              <span className="mr-2 bg-black px-5 py-3 rounded-2xl  font-bold text-lg hover:rotate-3 hover:shadow-black hover:shadow-2xl transition-all duration-200 ease-in-out">
-                Start Game
-              </span>
-              <ChevronRight className="w-5 h-5 animate-bounce text-yellow-200" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const InstructionsPage = () => {
-    const instructions = gameInstructions[currentGame];
-    return (
-      <div
-        className={`min-h-screen p-4 flex items-center justify-center ${currentGame === "infrastructure"
-          ? "bg-gradient-to-br from-green-400 via-teal-500 to-blue-600"
-          : "bg-gradient-to-br from-purple-500 via-pink-500 to-red-500"
-          }`}
-      >
-        <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-8 max-w-2xl mx-auto border-4 border-white/50">
-          <div className="text-center mb-6">
-            <div
-              className={`inline-block p-4 rounded-full mb-4 ${currentGame === "infrastructure"
-                ? "bg-green-500"
-                : "bg-purple-500"
-                }`}
-            >
-              {currentGame === "infrastructure" ? (
-                <Building className="w-12 h-12 text-white" />
-              ) : (
-                <Brain className="w-12 h-12 text-white" />
-              )}
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
-              {instructions.title}
-            </h1>
-            <p className="text-lg text-gray-600 mb-6">
-              {instructions.description}
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-              📋 How to Play:
-            </h2>
-            <div className="space-y-3">
-              {instructions.rules.map((rule, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold ${currentGame === "infrastructure"
-                      ? "bg-green-500"
-                      : "bg-purple-500"
-                      }`}
-                  >
-                    {index + 1}
-                  </div>
-                  <p className="text-gray-700">{rule}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={resetGame}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-full font-bold transition-all duration-300"
-            >
-              ← Back to Games
-            </button>
-            <button
-              onClick={startQuestions}
-              className={`px-8 py-3 rounded-full font-bold text-white transition-all duration-300 transform hover:scale-105 ${currentGame === "infrastructure"
-                ? "bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600"
-                : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                }`}
-            >
-              Start Playing! 🎮
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  const startGame = () => {
+    setStep("playing");
+    setIntroStep("first");
+    setCurrentDilemmaIndex(0);
+    setSelectedOption(null);
+    setTotalScore(0);
+    setDilemmaResults([]);
+    setShowFeedback(false);
+    setFeedbackMessage("");
   };
 
-  const GamePage = () => {
-    const questions =
-      currentGame === "infrastructure"
-        ? infrastructureQuestions
-        : technoSolutionismQuestions;
-    const currentQuestion = questions[questionIndex];
-    const isCorrect = selectedAnswer === currentQuestion.correct;
-
-    if (gameCompleted) {
-      const percentage = Math.round((score / questions.length) * 100);
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-800 to-blue-800 via-indigo-500 p-4 flex items-center justify-center relative">
-          <canvas
-            ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none z-10"
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
-          />
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-8 max-w-md mx-auto text-center border-4 border-yellow-300">
-            <div className="mb-6">
-              {score === questions.length ? (
-                <div className="text-6xl mb-4 animate-bounce">🏆</div>
-              ) : score >= questions.length * 0.7 ? (
-                <div className="text-6xl mb-4 animate-bounce">⭐</div>
-              ) : (
-                <div className="text-6xl mb-4 animate-bounce"></div>
-              )}
-            </div>
-
-            <motion.h2
-              initial={{ opacity: 0.1, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                repeat: Infinity,
-                repeatType: "mirror",
-                ease: "easeInOut",
-              }}
-              className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"
-            >
-              {currentGame === "infrastructure"
-                ? "Infrastructure Challenge Complete!"
-                : "Detective Mission Complete!"}
-            </motion.h2>
-
-            <div className="bg-gray-100 rounded-2xl p-4 mb-6">
-              <div className="text-3xl font-bold text-gray-800 mb-2">
-                {score} / {questions.length}
-              </div>
-              <div className="flex justify-center">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-6 h-6 ${i < Math.floor(percentage / 20)
-                      ? "text-yellow-500 fill-current"
-                      : "text-gray-300"
-                      }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <motion.p
-              initial={{ opacity: 0.1 }}
-              animate={{ opacity: 0.9 }}
-              transition={{
-                duration: 0.4,
-                repeat: Infinity,
-                repeatType: "mirror",
-                ease: "easeInOut",
-              }}
-              className="text-xl text-gray-600 mb-6"
-            >
-              {score === questions.length
-                ? "Perfect! You're a true Eco Champion! 🌱"
-                : score >= questions.length * 0.7
-                  ? "Excellent work! You're learning fast! 🚀"
-                  : "Keep practicing to become an expert! 💪"}
-            </motion.p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={resetGame}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-full font-bold hover:scale-105 transform transition-all duration-300"
-              >
-                <Home className="w-4 h-4 inline mr-2" />
-                Home
-              </button>
-              <button
-                onClick={() => {
-                  setScore(0);
-                  setQuestionIndex(0);
-                  setShowResult(false);
-                  setSelectedAnswer(null);
-                  setGameCompleted(false);
-                }}
-                className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-3 rounded-full font-bold hover:scale-105 transform transition-all duration-300"
-              >
-                Play Again
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        className={`min-h-screen p-4 ${currentGame === "infrastructure"
-          ? "bg-gradient-to-br from-green-400 via-teal-500 to-blue-600"
-          : "bg-gradient-to-br from-purple-500 via-pink-500 to-red-500"
-          }`}
-      >
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={resetGame}
-                className="bg-white/20 backdrop-blur-lg text-white px-4 py-2 rounded-full hover:bg-white/30 transition-all"
-              >
-                ← Back
-              </button>
-              <div className="bg-white/20 backdrop-blur-lg text-white px-4 py-2 rounded-full font-bold">
-                Question {questionIndex + 1} of {questions.length}
-              </div>
-              <div className="bg-white/20 backdrop-blur-lg text-white px-4 py-2 rounded-full font-bold">
-                Score: {score}
-              </div>
-            </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-              {currentGame === "infrastructure"
-                ? "🏗️ Infrastructure Showdown"
-                : "🕵️ Tech Detective"}
-            </h1>
-          </div>
-
-          {/* Question Card */}
-          <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 sm:p-8 mb-6 border-4 border-white/50">
-            <div className="text-center mb-6">
-              <div
-                className={`inline-block p-4 rounded-full mb-4 ${currentGame === "infrastructure"
-                  ? "bg-green-100"
-                  : "bg-purple-100"
-                  }`}
-              >
-                {currentQuestion.icon}
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-                {currentQuestion.question}
-              </h2>
-              <div className="bg-gray-50 rounded-2xl p-4 mb-6">
-                <p className="text-gray-700 text-sm sm:text-base">
-                  <strong>Scenario:</strong> {currentQuestion.scenario}
-                </p>
-              </div>
-            </div>
-
-            {/* Answer Options */}
-            <div className="grid gap-4 sm:gap-6">
-              {currentQuestion.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => !showResult && handleAnswer(index)}
-                  disabled={showResult}
-                  className={`p-4 sm:p-6 rounded-2xl border-3 font-bold text-sm sm:text-base transition-all duration-300 transform hover:scale-105 text-left ${showResult
-                    ? index === currentQuestion.correct
-                      ? "bg-green-500 text-white border-green-600 animate-pulse"
-                      : selectedAnswer === index
-                        ? "bg-red-500 text-white border-red-600"
-                        : "bg-gray-200 text-gray-500 border-gray-300"
-                    : currentGame === "infrastructure"
-                      ? "bg-green-100 hover:bg-green-200 border-green-300 text-green-800"
-                      : "bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-800"
-                    }`}
-                >
-                  <div className="flex items-center">
-                    <div
-                      className={`w-8 h-8 rounded-full mr-4 flex items-center justify-center font-bold text-white ${currentGame === "infrastructure"
-                        ? "bg-green-500"
-                        : "bg-purple-500"
-                        }`}
-                    >
-                      {String.fromCharCode(65 + index)}
-                    </div>
-                    {option}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Result Popup */}
-          {showResult && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div
-                className={`bg-white rounded-3xl p-6 sm:p-8 max-w-md mx-auto text-center transform animate-bounce ${isCorrect
-                  ? "border-4 border-green-500"
-                  : "border-4 border-red-500"
-                  }`}
-              >
-                <div className="mb-4">
-                  {isCorrect ? (
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto animate-spin" />
-                  ) : (
-                    <XCircle className="w-16 h-16 text-red-500 mx-auto animate-bounce" />
-                  )}
-                </div>
-                <h3
-                  className={`text-2xl font-bold mb-4 ${isCorrect ? "text-green-600" : "text-red-600"
-                    }`}
-                >
-                  {isCorrect ? "🎉 Correct!" : "😔 Oops!"}
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  {currentQuestion.explanation}
-                </p>
-                <div className="text-sm text-gray-500">
-                  {questionIndex < questions.length - 1
-                    ? "Next question coming up..."
-                    : "Calculating final score..."}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  const handleSelectOption = (option) => {
+    if (showFeedback) return;
+    setSelectedOption(option);
   };
+  
+  const handlePlayAgain = () => startGame();
+  const handleReviewAnswers = () => setStep("review");
+  const handleBackToResults = () => setStep("end");
+  const handleContinue = () => navigate("/environmental/games");
 
-  if (showInstructions) {
-    return <InstructionsPage />;
-  }
+  const buttonText = showFeedback ? "Continue" : "Check Now";
+  const isButtonEnabled = showFeedback || selectedOption !== null;
 
   return (
-    <div className="font-sans">
-      {currentPage === "home" && <HomePage />}
-      {currentPage === "game" && <GamePage />}
+    <div>
+      {step === "intro" && introStep === "first" && (<IntroScreen onShowInstructions={handleShowInstructions} />)}
+      {step === "intro" && introStep === "instructions" && (<InstructionsScreen onStartGame={startGame} />)}
+      
+      {step !== "intro" && (
+        // [MODIFIED] Added inter-font to the main container for inheritance
+        <div className="main-container w-full h-screen bg-[#0A160E] relative overflow-hidden flex flex-col justify-between inter-font">
+          {step === "playing" && currentDilemma && (
+            <>
+              <GameNav />
+
+              <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
+                
+                {/* Main Game Layout */}
+                <div className="flex-grow flex items-center justify-center p-4">
+                  <div className="w-full max-w-4xl bg-gray-800/30 rounded-xl p-6 md:p-10">
+                    <div className="flex flex-col justify-center items-center gap-5 text-center">
+                        {/* [MODIFIED] Removed font-['Inter'] as it will be inherited */}
+                        <h2 className="text-slate-100 text-xl md:text-2xl font-medium leading-snug md:leading-9">
+                            {currentDilemma.question}
+                        </h2>
+                        {/* [MODIFIED] Removed font-['Inter'] as it will be inherited */}
+                        <p className="text-gray-300 text-sm md:text-base leading-relaxed font-regular">
+                            <span className="font-bold">Scenario:</span> {currentDilemma.scenario}
+                        </p>
+
+                        {/* Options container */}
+                        <div className="w-full max-w-lg mt-4 flex flex-col justify-start items-stretch gap-4">
+                            {currentDilemma.options.map((option, index) => {
+                                const isSelected = selectedOption?.text === option.text;
+                                const isDisabled = showFeedback && !isSelected;
+
+                                return (
+                                    <div
+                                        key={index}
+                                        onClick={() => handleSelectOption(option)}
+                                        className={`
+                                            w-full p-4 min-h-[60px] flex justify-center items-center text-center
+                                            rounded-xl shadow-[0px_2px_0px_0px_rgba(55,70,79,1.00)] 
+                                            border transition-all duration-200
+                                            ${isSelected
+                                                ? 'bg-[#202f36] border-[#5f8428] shadow-[0_2px_0_0_#5f8428]'
+                                                : 'bg-gray-900 border-gray-700'
+                                            }
+                                            ${isDisabled
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'cursor-pointer hover:bg-gray-800'
+                                            }
+                                        `}
+                                    >
+                                        {/* [MODIFIED] Removed font-['Inter'] as it will be inherited */}
+                                        <span className={`
+                                            font-medium 
+                                            text-sm md:text-base leading-relaxed
+                                            ${isSelected ? 'text-[#79b933]' : 'text-slate-100'}
+                                        `}>
+                                            {option.text}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="w-full h-28 md:h-32 flex justify-center items-end shrink-0">
+                  <div className={`transition-opacity duration-300 ${showFeedback ? 'opacity-100' : 'opacity-0'}`}>
+                    <FeedbackCharacter message={feedbackMessage} />
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 z-10 shrink-0">
+                <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                  <button className="relative w-full h-full cursor-pointer" onClick={showFeedback ? handleNextDilemma : handleSubmit} disabled={!isButtonEnabled}>
+                    <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                    <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] ${!isButtonEnabled && "opacity-50"}`}>
+                      {buttonText}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {step === "end" && (() => {
+            const totalPossibleScore = dilemmas.length * 3;
+            const accuracyScore = totalPossibleScore > 0 ? Math.round((totalScore / totalPossibleScore) * 100) : 0;
+            const isVictory = accuracyScore === 100;
+
+            let insightText = "";
+            if (accuracyScore === 100) {
+              insightText = "Perfect score! You're a true sustainability champion with a deep understanding of its interconnected pillars!";
+            } else if (accuracyScore >= 70) {
+              insightText = "Excellent! You grasp the key concepts of sustainability well. Keep exploring how social, economic, and environmental factors influence each other.";
+            } else {
+              insightText = "Good effort! Sustainability can be complex. Reviewing your answers will help clarify the balance between development and ecological health.";
+            }
+
+            if (isVictory) {
+              return (
+                <VictoryScreen
+                  accuracyScore={accuracyScore}
+                  insight={insightText}
+                  onViewFeedback={handleReviewAnswers}
+                  onContinue={handleContinue}
+                />
+              );
+            } else {
+              return (
+                <LosingScreen
+                  accuracyScore={accuracyScore}
+                  insight={insightText}
+                  onPlayAgain={handlePlayAgain}
+                  onViewFeedback={handleReviewAnswers}
+                  onContinue={handleContinue}
+                />
+              );
+            }
+          })()}
+
+          {step === "review" && (
+            <ReviewScreen answers={dilemmaResults} onBackToResults={handleBackToResults} />
+          )}
+        </div>
+      )}
     </div>
   );
-};
-
-export default SustainabilityGames2;
+}

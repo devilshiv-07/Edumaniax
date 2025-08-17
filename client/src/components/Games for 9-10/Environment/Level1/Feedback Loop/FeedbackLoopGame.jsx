@@ -1,379 +1,263 @@
 import React, { useState, useEffect, useRef } from "react";
+import { BrowserRouter as Router, useNavigate, Link } from "react-router-dom";
+import Confetti from "react-confetti";
+import useWindowSize from "react-use/lib/useWindowSize";
 import {
-  ChevronRight,
-  RotateCcw,
+  ChevronLeft,
+  Volume2,
   Star,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
   ArrowRight,
-  RefreshCw,
 } from "lucide-react";
 
-import clickSoundFile from "../../Sound/clickSoundFile.mp3";
-import clickSoundFileYay from "../../Sound/clickSoundFileYay.mp3";
-import clickSoundFileOops from "../../Sound/clickSoundFileOops.mp3";
-import confetti from "canvas-confetti";
+// Import custom hooks & other components
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; 
+import { usePerformance } from "@/contexts/PerformanceContext";
+import IntroScreen from "./IntroScreen";
+import InstructionsScreen from "./InstructionsScreen";
+import Checknow from "@/components/icon/GreenBudget/Checknow";
+import GameNav from "./GameNav";
 
+// CSS to hide scrollbars
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+// =============================================================================
+// Reusable End-Screen Components
+// =============================================================================
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+  const { width, height } = useWindowSize();
+  return (
+    <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+      <style>{scrollbarHideStyle}</style>
+      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+        <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+          <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+          <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+        </div>
+        <h2 className="text-yellow-400 font-['Lilita_One'] text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+          <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+              <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+            </div>
+          </div>
+          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+              <span className="text-[#FFCC00] font-['Lilita_One'] text-sm font-medium italic">{insight}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+      </div>
+    </div>
+  );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+          <style>{scrollbarHideStyle}</style>
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+            <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+            <p className="text-yellow-400 font-['Lilita_One'] text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+            <p className="text-yellow-400 font-['Lilita_One'] text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+            <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+              <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                  <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                  <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                </div>
+              </div>
+              <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                  <span className="text-[#FFCC00] font-['Lilita_One'] text-sm font-medium italic">{insight}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+            <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          </div>
+        </div>
+      );
+}
+
+function ReviewScreen({ answers, onBackToResults }) {
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
+          <style>{scrollbarHideStyle}</style>
+          <h1 className="text-3xl md:text-4xl font-bold font-['Lilita_One'] mb-6 text-yellow-400 shrink-0">Review Your Answers</h1>
+          <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 grow overflow-y-auto p-2 no-scrollbar">
+            {answers.map((ans, idx) => (
+              <div key={idx} className={`p-4 rounded-xl flex flex-col ${ans.isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+                <p className="text-gray-300 text-base mb-2 font-bold">Loop: {ans.cause}</p>
+                <div className="text-sm space-y-1">
+                  <p className="font-semibold">Your Answer:</p>
+                  <p className={`font-mono ${ans.isCorrect ? 'text-white' : 'text-red-300'}`}>
+                    {ans.userSequence.join(" → ")}
+                  </p>
+                  {!ans.isCorrect && (
+                    <>
+                      <p className="font-semibold pt-2">Correct Answer:</p>
+                      <p className="font-mono text-green-300">{ans.correctSequence.join(" → ")}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={onBackToResults} className="mt-6 px-8 py-3 bg-yellow-600 text-lg text-white font-['Lilita_One'] rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-b-0 shadow-lg">
+            Back to Results
+          </button>
+        </div>
+      );
+}
+
+
+// =============================================================================
+// Standalone GamePage Component
+// =============================================================================
+const GamePage = ({
+    questions,
+    currentQuestion,
+    showResult,
+    selectedCard,
+    setSelectedCard,
+    checkAnswer,
+    nextQuestion,
+  }) => {
+    const currentQ = questions[currentQuestion];
+    const isSubmitEnabled = selectedCard !== null;
+  
+    // Common style for flow cards and option buttons
+    const cardStyle = "bg-[#131F24] border border-[#37464F] rounded-xl shadow-[0_2px_0_0_#37464F]";
+    const selectedCardStyle = "bg-green-500/20 border border-green-700/80 text-white rounded-xl shadow-[0_2px_0_0_rgba(21,128,61,0.8)]";
+
+    return (
+      <div className="w-full min-h-screen bg-[#09160E] font-['Inter'] text-white flex flex-col">
+        <GameNav/>
+  
+        <main className="flex-grow w-full flex flex-col justify-center items-center p-4 sm:p-6 md:p-8 overflow-y-auto mt-24 md:mt-18">
+          {!showResult ? (
+            <div className="w-full flex flex-col items-center gap-8 md:gap-14">
+              {/* Desktop Flow (LG screens and up) */}
+              <div className="hidden lg:flex items-center justify-center gap-4">
+                {currentQ.flowSteps.map((step, index) => (
+                  <React.Fragment key={index}>
+                    <div className={`flex flex-col gap-2 items-center justify-center text-center p-4 w-40 h-40 ${cardStyle}`}>
+                      <div className="text-4xl">{step.icon}</div>
+                      <span className="font-medium">{step.text}</span>
+                    </div>
+                    {index < currentQ.flowSteps.length - 1 && <ArrowRight size={32} className="text-gray-150" />}
+                  </React.Fragment>
+                ))}
+              </div>
+  
+              {/* Mobile & Tablet Flow (up to LG screens) */}
+              <div className="lg:hidden grid grid-cols-2 gap-x-8 gap-y-12 relative w-fit">
+                {currentQ.flowSteps.map((step, index) => (
+                  <div key={index} className={`flex flex-col gap-2 items-center justify-center text-center p-3 w-36 h-36 ${cardStyle}`}>
+                    <div className="text-4xl">{step.icon}</div>
+                    <span className="font-semibold text-sm">{step.text}</span>
+                  </div>
+                ))}
+                <ArrowRight size={24} className="absolute text-gray-150 top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                <ArrowRight size={24} className="absolute text-gray-150 top-1/2 left-[calc(100%-77px)] -translate-y-1/2 -rotate-270" />
+                <ArrowRight size={24} className="absolute text-gray-150 top-3/4 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-180" />
+              </div>
+              <div>
+                <h3 className="font-medium text-lg text-center text-gray-150 mb-4">Choose the missing link</h3>
+                <div className="w-full max-w-sm md:max-w-4xl bg-[rgba(32,47,54,0.30)] rounded-xl py-6 px-7.5 border border-gray-700 backdrop-blur-md ">                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 ">
+                    {currentQ.linkCards.map((card) => (
+                      <button key={card} onClick={() => setSelectedCard(card)} className={`text-center py-3 px-5 transition-colors duration-200 font-medium text-sm sm:text-base ${selectedCard === card ? selectedCardStyle : `${cardStyle} hover:bg-[#1f2d34]`}`}>{card}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full flex flex-col items-center">
+              <div className="w-full max-w-lg md:max-w-3xl bg-[rgba(32,47,54,0.3)] rounded-xl p-6 sm:p-10 text-center flex flex-col items-center justify-center">
+                <h2 className="font-['Inter'] font-bold text-4xl sm:text-5xl text-[#6CFF00] mb-6">{currentQ.feedbackType} feedback</h2>
+                <p className="text-base sm:text-xl text-gray-200 leading-relaxed">{currentQ.explanation}</p>
+              </div>
+            </div>
+          )}
+        </main>
+  
+        <footer className="w-full bg-[#28343A] py-5 flex justify-center items-center shrink-0">
+          <div className="w-full max-w-xs h-16">
+            {!showResult ? (
+              <button onClick={checkAnswer} disabled={!isSubmitEnabled} className="w-full h-full relative cursor-pointer disabled:opacity-50 group">
+                <Checknow className="w-full h-full transition-transform duration-200 ease-in-out group-hover:scale-105" topGradientColor={"#09be43"} bottomGradientColor={"#068F36"} />
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-['Lilita_One'] text-3xl text-white [text-shadow:0_2px_0_#000]">Submit</span>
+              </button>
+            ) : (
+              <button onClick={nextQuestion} className="w-full h-full relative cursor-pointer group">
+                <Checknow className="w-full h-full transition-transform duration-200 ease-in-out group-hover:scale-105" topGradientColor={"#09be43"} bottomGradientColor={"#068F36"} />
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-['Lilita_One'] text-3xl text-white [text-shadow:0_2px_0_#000]">Continue</span>
+              </button>
+            )}
+          </div>
+        </footer>
+      </div>
+    );
+};
+
+
+// =============================================================================
+// Main Game Component
+// =============================================================================
 const FeedbackLoopGame = () => {
+  const navigate = useNavigate();
   const { completeEnvirnomentChallenge } = useEnvirnoment();
-  const [currentPage, setCurrentPage] = useState("welcome");
+  const [currentPage, setCurrentPage] = useState("intro");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedCard, setSelectedCard] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
-  const [gameComplete, setGameComplete] = useState(false);
-  const [animateWrong, setAnimateWrong] = useState(false);
-  const [showCrash, setShowCrash] = useState(false);
   const [questions, setQuestions] = useState([]);
-
-  //for performance
+  const [answersForReview, setAnswersForReview] = useState([]);
+  
   const { updatePerformance } = usePerformance();
- const [startTime,setStartTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
 
   const toShuffleQuestions = [
-    {
-      id: 1,
-      title: "Climate Warming Loop",
-      flowSteps: [
-        {
-          text: "Increased CO2",
-          icon: "🏭",
-          color: "from-red-400 to-orange-500",
-        },
-        {
-          text: "Global Warming",
-          icon: "🌡️",
-          color: "from-orange-400 to-yellow-800",
-        },
-        {
-          text: "More Forest Fires",
-          icon: "🔥",
-          color: "from-red-500 to-pink-500",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-500 to-gray-700",
-          missing: true,
-        },
-      ],
-      correctAnswer: "Release more CO2",
-      linkCards: [
-        "Release more CO2",
-        "Create more oxygen",
-        "Cool the atmosphere",
-        "Increase rainfall",
-      ],
-      feedbackType: "positive",
-      explanation:
-        "This is a POSITIVE feedback loop! Forest fires release more CO2, which causes more warming, creating even more fires - it amplifies the change!",
-      crashMessage:
-        "Without stopping this cycle, runaway climate change could make large areas of Earth uninhabitable!",
-      crashIcon: "🌍💥",
-    },
-    {
-      id: 2,
-      title: "Ocean Phytoplankton Loop",
-      flowSteps: [
-        {
-          text: "Warming Oceans",
-          icon: "🌊",
-          color: "from-blue-400 to-red-400",
-        },
-        {
-          text: "Less Phytoplankton",
-          icon: "🦠",
-          color: "from-green-400 to-yellow-500",
-        },
-        {
-          text: "Less CO2 Absorbed",
-          icon: "⬇️",
-          color: "from-blue-500 to-purple-500",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "More CO2 in atmosphere",
-      linkCards: [
-        "More CO2 in atmosphere",
-        "Cooler ocean temperatures",
-        "More fish in oceans",
-        "Cleaner air quality",
-      ],
-      feedbackType: "positive",
-      explanation:
-        "Another POSITIVE feedback loop! Less phytoplankton means more CO2 stays in the air, warming oceans even more!",
-      crashMessage:
-        "Ocean ecosystems could collapse, affecting billions of people who depend on marine food sources!",
-      crashIcon: "🐟💀",
-    },
-    {
-      id: 3,
-      title: "Air Conditioning Loop",
-      flowSteps: [
-        {
-          text: "Hot Weather",
-          icon: "☀️",
-          color: "from-yellow-400 to-red-500",
-        },
-        {
-          text: "More AC Usage",
-          icon: "❄️",
-          color: "from-blue-400 to-cyan-500",
-        },
-        {
-          text: "Higher Electricity Use",
-          icon: "⚡",
-          color: "from-yellow-500 to-orange-500",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "More fossil fuel burning",
-      linkCards: [
-        "More fossil fuel burning",
-        "Cleaner energy production",
-        "Less power consumption",
-        "Solar panel installation",
-      ],
-      feedbackType: "positive",
-      explanation:
-        "POSITIVE feedback strikes again! More fossil fuel burning creates more heat, requiring even more air conditioning!",
-      crashMessage:
-        "Energy grids could fail during extreme heat waves, leaving millions without cooling when they need it most!",
-      crashIcon: "🔌💥",
-    },
-    {
-      id: 4,
-      title: "Permafrost Thaw Loop",
-      flowSteps: [
-        {
-          text: "Rising Temperatures",
-          icon: "🌡️",
-          color: "from-red-400 to-orange-500",
-        },
-        {
-          text: "Permafrost Thawing",
-          icon: "🧊",
-          color: "from-blue-400 to-white",
-        },
-        {
-          text: "Methane Released",
-          icon: "💨",
-          color: "from-green-400 to-yellow-500",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "Enhanced greenhouse effect",
-      linkCards: [
-        "Enhanced greenhouse effect",
-        "Atmospheric cooling",
-        "Ice sheet formation",
-        "Reduced gas emissions",
-      ],
-      feedbackType: "positive",
-      explanation:
-        "POSITIVE feedback loop! Methane is 25x more powerful than CO2 at trapping heat, making the greenhouse effect even stronger!",
-      crashMessage:
-        "Massive methane releases could trigger unstoppable climate tipping points!",
-      crashIcon: "🌍🔥",
-    },
-    {
-      id: 5,
-      title: "Snow Cover Loop",
-      flowSteps: [
-        {
-          text: "Global Warming",
-          icon: "🌡️",
-          color: "from-red-400 to-orange-500",
-        },
-        {
-          text: "Less Snow Cover",
-          icon: "❄️",
-          color: "from-white to-blue-300",
-        },
-        {
-          text: "Reduced Reflection",
-          icon: "☀️",
-          color: "from-yellow-400 to-orange-500",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "More heat absorption",
-      linkCards: [
-        "More heat absorption",
-        "Increased snow formation",
-        "Better light reflection",
-        "Cooler surface temperatures",
-      ],
-      feedbackType: "positive",
-      explanation:
-        "POSITIVE feedback loop! Dark surfaces absorb more heat than white snow, accelerating warming even more!",
-      crashMessage:
-        "Arctic ice could disappear completely, raising sea levels and drowning coastal cities!",
-      crashIcon: "🏝️🌊",
-    },
-    {
-      id: 6,
-      title: "Ozone Recovery Loop",
-      flowSteps: [
-        {
-          text: "Ban on CFCs",
-          icon: "🚫",
-          color: "from-green-500 to-blue-500",
-        },
-        {
-          text: "Ozone Layer Heals",
-          icon: "🌀",
-          color: "from-blue-400 to-purple-400",
-        },
-        {
-          text: "Less UV Reaches Earth",
-          icon: "🌤️",
-          color: "from-yellow-300 to-green-300",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "Less skin cancer risk",
-      linkCards: [
-        "Less skin cancer risk",
-        "More UV exposure",
-        "More ozone depletion",
-        "Increased global warming",
-      ],
-      feedbackType: "negative",
-      explanation:
-        "NEGATIVE feedback loop! Healing the ozone layer reduces UV radiation and improves health outcomes, reversing previous damage.",
-      crashMessage:
-        "Reversing this trend could bring harmful radiation levels back!",
-      crashIcon: "☀️🧴",
-    },
-    {
-      id: 7,
-      title: "Plant Growth Loop",
-      flowSteps: [
-        { text: "Higher CO2", icon: "💨", color: "from-gray-400 to-green-500" },
-        {
-          text: "Faster Plant Growth",
-          icon: "🌱",
-          color: "from-green-400 to-green-700",
-        },
-        {
-          text: "More CO2 Absorbed",
-          icon: "📉",
-          color: "from-blue-300 to-green-300",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-400",
-          missing: true,
-        },
-      ],
-      correctAnswer: "Reduced CO2 in atmosphere",
-      linkCards: [
-        "Reduced CO2 in atmosphere",
-        "Less plant growth",
-        "Increased emissions",
-        "Warming intensifies",
-      ],
-      feedbackType: "negative",
-      explanation:
-        "This is a NEGATIVE feedback loop! Plants absorb more CO2, which helps balance atmospheric carbon and slow warming.",
-      crashMessage:
-        "Deforestation can break this helpful loop, worsening climate change.",
-      crashIcon: "🌳💔",
-    },
-    {
-      id: 8,
-      title: "Cloud Formation Loop",
-      flowSteps: [
-        {
-          text: "More Evaporation",
-          icon: "💧",
-          color: "from-blue-400 to-gray-600",
-        },
-        {
-          text: "Increased Cloud Cover",
-          icon: "☁️",
-          color: "from-white to-gray-700",
-        },
-        {
-          text: "More Sunlight Reflected",
-          icon: "🔆",
-          color: "from-yellow-300 to-gray-600",
-        },
-        {
-          text: "???",
-          icon: "❓",
-          color: "from-gray-300 to-gray-700",
-          missing: true,
-        },
-      ],
-      correctAnswer: "Cooling effect on Earth",
-      linkCards: [
-        "Cooling effect on Earth",
-        "Higher global warming",
-        "Less cloud formation",
-        "More solar energy absorbed",
-      ],
-      feedbackType: "negative",
-      explanation:
-        "NEGATIVE feedback! More clouds can reflect sunlight, helping cool the Earth and reduce warming effects.",
-      crashMessage: "Loss of cloud formation could accelerate climate heating.",
-      crashIcon: "☁️🔥",
-    },
+    { id: 1, title: "Climate Warming Loop", flowSteps: [{ text: "Increased CO2", icon: "🏭" }, { text: "Global Warming", icon: "🌡️" }, { text: "More Forest Fires", icon: "🔥" }, { text: "Missing Link", icon: "❓" }], correctAnswer: "Release more CO2", linkCards: ["Release more CO2", "Create more oxygen", "Cool the atmosphere", "Increase rainfall"], feedbackType: "Positive", explanation: "POSITIVE feedback loop! Dark surfaces absorb more heat than white snow, accelerating warming even more!" },
+    { id: 5, title: "Snow Cover Loop", flowSteps: [{ text: "Global Warming", icon: "🌡️" }, { text: "Less Snow Cover", icon: "❄️" }, { text: "Reduced Reflection", icon: "☀️" }, { text: "Missing Link", icon: "❓" }], correctAnswer: "More heat absorption", linkCards: ["More heat absorption", "Increased snow formation", "Better light reflection", "Cooler surface temperatures"], feedbackType: "Positive", explanation: "POSITIVE feedback loop! Dark surfaces absorb more heat than white snow, accelerating warming even more!"},
+    { id: 7, title: "Plant Growth Loop", flowSteps: [{ text: "Higher CO2", icon: "💨" }, { text: "Faster Plant Growth", icon: "🌱" }, { text: "More CO2 Absorbed", icon: "📉" }, { text: "Missing Link", icon: "❓" }], correctAnswer: "Reduced CO2 in atmosphere", linkCards: ["Reduced CO2 in atmosphere", "Less plant growth", "Increased emissions", "Warming intensifies"], feedbackType: "Negative", explanation: "This is a NEGATIVE feedback loop! Plants absorb more CO2, which helps balance atmospheric carbon and slow warming." },
+    { id: 8, title: "Cloud Formation Loop", flowSteps: [{ text: "More Evaporation", icon: "💧" }, { text: "Increased Cloud Cover", icon: "☁️" }, { text: "More Sunlight Reflected", icon: "🔆" }, { text: "Missing Link", icon: "❓" }], correctAnswer: "Cooling effect on Earth", linkCards: ["Cooling effect on Earth", "Higher global warming", "Less cloud formation", "More solar energy absorbed"], feedbackType: "Negative", explanation: "NEGATIVE feedback! More clouds can reflect sunlight, helping cool the Earth and reduce warming effects." },
   ];
 
-  const handleCardSelect = (card) => {
-    setSelectedCard(card);
-    playClickSound(clickSoundRefPop);
-  };
+  useEffect(() => {
+    setQuestions([...toShuffleQuestions].sort(() => Math.random() - 0.5));
+  }, []);
 
   const checkAnswer = () => {
+    if (showResult) return;
     const currentQ = questions[currentQuestion];
     const isCorrect = selectedCard === currentQ.correctAnswer;
-
-    if (isCorrect) {
-      setScore(score + 1);
-      playClickSound(clickSoundRefYay);
-    } else {
-      setAnimateWrong(true);
-      setShowCrash(true);
-      setTimeout(() => {
-        setAnimateWrong(false);
-        setShowCrash(false);
-      }, 3000);
-      playClickSound(clickSoundRefOops);
-    }
-
+    if (isCorrect) setScore(score + 1);
+    setAnswersForReview(prev => [...prev, {
+      cause: currentQ.title,
+      userSequence: [selectedCard || "Not Answered"],
+      correctSequence: [currentQ.correctAnswer],
+      isCorrect,
+    }]);
     setShowResult(true);
   };
 
@@ -383,492 +267,52 @@ const FeedbackLoopGame = () => {
       setSelectedCard(null);
       setShowResult(false);
     } else {
-      setGameComplete(true);
+      setCurrentPage("finished");
     }
   };
 
   const resetGame = () => {
+    setCurrentPage("intro");
     setCurrentQuestion(0);
     setSelectedCard(null);
     setShowResult(false);
     setScore(0);
-    setGameComplete(false);
-    setCurrentPage("welcome");
-    setStartTime(Date.now());
-
+    setAnswersForReview([]);
+    setQuestions([...toShuffleQuestions].sort(() => Math.random() - 0.5));
   };
-
-  const clickSoundRefPop = useRef(new Audio(clickSoundFile));
-  const clickSoundRefYay = useRef(new Audio(clickSoundFileYay));
-  const clickSoundRefOops = useRef(new Audio(clickSoundFileOops));
-
-  const playClickSound = (clickSoundRef) => {
-    if (clickSoundRef.current) {
-      clickSoundRef.current.currentTime = 0;
-      clickSoundRef.current.play();
-    }
-  };
-
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const shuffledQuestions = [...toShuffleQuestions].sort(
-      () => Math.random() - 0.5
+  
+  if (currentPage === "intro") { return <IntroScreen onShowInstructions={() => setCurrentPage("instructions")} />; }
+  if (currentPage === "instructions") { return <InstructionsScreen onStartGame={() => setCurrentPage("game")} />; }
+  if (currentPage === "game") {
+    return questions.length > 0 ? (
+      <GamePage
+        questions={questions}
+        currentQuestion={currentQuestion}
+        showResult={showResult}
+        selectedCard={selectedCard}
+        setSelectedCard={setSelectedCard}
+        checkAnswer={checkAnswer}
+        nextQuestion={nextQuestion}
+      />
+    ) : <div className="w-full h-screen bg-[#09160E] flex items-center justify-center text-white text-2xl font-['Inter']">Loading Game...</div>;
+  }
+  if (currentPage === "finished") {
+    const accuracyScore = Math.round((score / questions.length) * 100);
+    const isVictory = accuracyScore > 80;
+    const insightText = accuracyScore > 80 ? "You're a master of system dynamics!" : "Great work spotting those connections!";
+    return isVictory ? (
+      <VictoryScreen accuracyScore={accuracyScore} insight={insightText} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
+    ) : (
+      <LosingScreen accuracyScore={accuracyScore} insight={insightText} onPlayAgain={resetGame} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
     );
-    setQuestions(shuffledQuestions);
-  }, []);
+  }
+  if (currentPage === "review") { return <ReviewScreen answers={answersForReview} onBackToResults={() => setCurrentPage("finished")} />; }
 
-  useEffect(() => {
-    if (score < 8 || !gameComplete) {
-      return;
-    }
-    completeEnvirnomentChallenge(0, 1); // ✅ Add this line here
-    const myCanvas = canvasRef.current;
-    const myConfetti = confetti.create(myCanvas, {
-      resize: true,
-      useWorker: true,
-    });
-
-    const end = Date.now() + 3 * 1000;
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
-
-    const frame = () => {
-      if (Date.now() > end) return;
-
-      myConfetti({
-        particleCount: 2,
-        angle: 60,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 0, y: 0.5 }, // left of container
-        colors,
-      });
-
-      myConfetti({
-        particleCount: 2,
-        angle: 120,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 1, y: 0.5 }, // right of container
-        colors,
-      });
-
-      requestAnimationFrame(frame);
-    };
-
-    frame();
-  }, [score, gameComplete]);
-
-  useEffect(() => {
-    if (!gameComplete) return;
-
-    const studyTimeMinutes = Math.round((Date.now() - startTime) / 60000);
-    const avgResponseTimeSec = Math.round((Date.now() - startTime) / 1000 / questions.length); // simple average
-    const accuracy = (score / questions.length) * 100;
-    const scaledScore = (score / questions.length) * 10;
-
-    updatePerformance({
-      moduleName: "Environment",
-      topicName: "climateAnalyst",
-      score: scaledScore,
-      accuracy,
-      avgResponseTimeSec,
-      studyTimeMinutes,
-      completed: score >= 8,
-      
-    });
-    setStartTime(Date.now());
-
-  }, [gameComplete, score]);
-
-
-  const WelcomePage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 flex items-center justify-center p-4">
-      <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 md:p-12 max-w-2xl w-full text-center shadow-2xl">
-        <div className="text-6xl md:text-8xl mb-6 animate-spin-slow">🔄</div>
-        <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-          Feedback Loop
-        </h1>
-        <h2 className="text-2xl md:text-3xl font-bold text-indigo-700 mb-6">
-          Fix Challenge! 🎯
-        </h2>
-        <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-          Environmental systems are full of feedback loops that can amplify or
-          stabilize changes! Can you complete the missing links and understand
-          how Earth's systems connect? 🌍
-        </p>
-        <button
-          onClick={() => setCurrentPage("instructions")}
-          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-full text-xl transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
-        >
-          Start Challenge! <ChevronRight className="w-6 h-6" />
-        </button>
-      </div>
-    </div>
-  );
-
-  const InstructionsPage = () => (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 md:p-10 max-w-4xl w-full shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="text-5xl md:text-6xl mb-4">🔧</div>
-          <h2 className="text-2xl md:text-4xl font-bold text-blue-800 mb-4">
-            How to Fix Feedback Loops
-          </h2>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-blue-100 to-cyan-100 p-6 rounded-2xl border-l-4 border-blue-400">
-            <h3 className="font-bold text-lg md:text-xl text-blue-800 mb-3 flex items-center gap-2">
-              <span className="text-2xl">🎯</span> Your Mission
-            </h3>
-            <p className="text-gray-700 text-base md:text-lg">
-              Complete broken feedback loops by finding the missing link! Each
-              loop shows how environmental changes create chain reactions.
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-r from-green-100 to-emerald-100 p-6 rounded-2xl border-l-4 border-green-400">
-            <h3 className="font-bold text-lg md:text-xl text-green-800 mb-3 flex items-center gap-2">
-              <span className="text-2xl">🔄</span> Feedback Types
-            </h3>
-            <div className="grid md:grid-cols-2 gap-4 text-sm md:text-base">
-              <div className="bg-red-50 p-4 rounded-xl border border-red-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">📈</span>
-                  <span className="font-bold text-red-700">
-                    POSITIVE Feedback
-                  </span>
-                </div>
-                <p className="text-gray-600">
-                  Amplifies change - makes things grow bigger/faster!
-                </p>
-              </div>
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">⚖️</span>
-                  <span className="font-bold text-blue-700">
-                    NEGATIVE Feedback
-                  </span>
-                </div>
-                <p className="text-gray-600">
-                  Stabilizes change - keeps things balanced!
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-2xl border-l-4 border-orange-400">
-            <h3 className="font-bold text-lg md:text-xl text-orange-800 mb-3 flex items-center gap-2">
-              <span className="text-2xl">🎮</span> How to Play
-            </h3>
-            <ol className="text-gray-700 text-base md:text-lg space-y-2 list-decimal list-inside">
-              <li>
-                Study the <strong>flow diagram</strong> with the missing link
-              </li>
-              <li>
-                Choose the correct <strong>Link Card</strong> from the options
-              </li>
-              <li>See if you can complete the feedback loop!</li>
-              <li>
-                Learn about <strong>positive vs negative</strong> feedback
-              </li>
-              <li>
-                Watch out for <strong>System Crashes</strong> if you're wrong!
-                💥
-              </li>
-            </ol>
-          </div>
-        </div>
-
-        <div className="text-center mt-8">
-          <button
-            onClick={() => setCurrentPage("game")}
-            className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-bold py-4 px-8 rounded-full text-xl transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
-          >
-            Fix the Loops! <Zap className="w-6 h-6" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const GamePage = () => {
-    const currentQ = questions[currentQuestion];
-
-    if (gameComplete) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600 flex items-center justify-center p-4 ">
-          <div className="bg-white/95 backdrop-blur-sm relative rounded-3xl p-8 md:p-12 max-w-2xl w-full text-center shadow-2xl">
-            <canvas
-              ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            />
-            <div className="text-6xl md:text-8xl mb-6 animate-bounce">🏆</div>
-            <h2 className="text-3xl md:text-4xl font-bold text-green-800 mb-4">
-              {`${score < 7
-                ? "Keep Trying"
-                : score < 8
-                  ? "Well done"
-                  : "Outstanding, Champ"
-                }`}
-            </h2>
-            <p className="text-xl md:text-2xl text-gray-700 mb-6">
-              You fixed {score} out of {questions.length} loops!
-            </p>
-            <div className="text-lg text-gray-600 mb-8">
-              {score === questions.length
-                ? "Perfect! You understand feedback systems completely! 🌟"
-                : score >= questions.length * 0.7
-                  ? "Great job! You're getting the hang of feedback loops! 🔄"
-                  : "Good effort! Environmental systems are complex - keep learning! 🌱"}
-            </div>
-            <button
-              onClick={resetGame}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-8 rounded-full text-xl transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
-            >
-              Play Again! <RotateCcw className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (showCrash) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 flex items-center justify-center p-4">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 max-w-2xl w-full text-center shadow-2xl animate-pulse">
-            <div className="text-6xl md:text-8xl mb-6 animate-bounce">
-              {currentQ.crashIcon}
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-red-600 mb-6">
-              System Crash! 💥
-            </h2>
-            <div className="bg-red-100 rounded-2xl p-6 mb-6">
-              <p className="text-lg md:text-xl text-red-800 leading-relaxed">
-                {currentQ.crashMessage}
-              </p>
-            </div>
-            <div className="text-lg text-gray-600">
-              Let's see the correct answer...
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 p-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 mb-6 shadow-lg">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <div className="text-lg md:text-xl font-bold text-purple-800">
-                Loop {currentQuestion + 1} of {questions.length}
-              </div>
-              <div className="text-lg md:text-xl font-bold text-green-800 flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                Fixed: {score}
-              </div>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3 mt-3">
-              <div
-                className="bg-gradient-to-r from-purple-400 to-pink-500 h-3 rounded-full transition-all duration-500"
-                style={{
-                  width: `${((currentQuestion + 1) / questions.length) * 100}%`,
-                }}
-              ></div>
-            </div>
-          </div>
-
-          {!showResult ? (
-            <div className="space-y-6">
-              {/* Loop Title */}
-              <div className="text-center">
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-                  {currentQ.title}
-                </h2>
-                <p className="text-lg text-white/80">
-                  Find the missing link to complete the feedback loop!
-                </p>
-              </div>
-
-              {/* Flow Diagram */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 items-center">
-                  {currentQ.flowSteps.map((step, index) => (
-                    <React.Fragment key={index}>
-                      <div
-                        className={`bg-gradient-to-br ${step.color
-                          } rounded-2xl p-4 md:p-6 text-center shadow-lg transform hover:scale-105 transition-all duration-300 ${step.missing ? "animate-pulse" : ""
-                          }`}
-                      >
-                        <div className="text-3xl md:text-4xl mb-2">
-                          {step.icon}
-                        </div>
-                        <div className="text-sm md:text-base font-bold text-white">
-                          {step.text}
-                        </div>
-                      </div>
-                      {index < currentQ.flowSteps.length - 1 && (
-                        <div className="hidden md:flex justify-center">
-                          <ArrowRight className="w-6 h-6 text-purple-600" />
-                        </div>
-                      )}
-                      {index < currentQ.flowSteps.length - 1 && (
-                        <div className="md:hidden flex justify-center py-2">
-                          <ArrowRight className="w-6 h-6 text-purple-600 rotate-90" />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-
-                {/* Loop back arrow */}
-                <div className="flex justify-center mt-6">
-                  <div className="flex items-center gap-2 text-purple-600 font-bold">
-                    <RefreshCw className="w-6 h-6" />
-                    <span className="text-sm md:text-base">Feedback Loop</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Link Cards */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl">
-                <h3 className="text-xl md:text-2xl font-bold text-center text-purple-800 mb-6 flex items-center justify-center gap-2">
-                  🧩 Choose the Missing Link
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {currentQ.linkCards.map((card, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleCardSelect(card)}
-                      className={`p-4 md:p-6 rounded-2xl font-semibold text-left transition-all duration-300 transform hover:scale-105 ${selectedCard === card
-                        ? "bg-gradient-to-r from-green-400 to-blue-400 text-white shadow-lg scale-105"
-                        : "bg-gradient-to-r from-gray-100 to-gray-200 hover:from-blue-100 hover:to-purple-100 text-gray-700"
-                        } ${animateWrong && selectedCard === card
-                          ? "animate-pulse bg-red-400"
-                          : ""
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">🔗</span>
-                        <span className="text-sm md:text-base">{card}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {selectedCard && (
-                  <div className="text-center mt-6 animate-fadeIn">
-                    <button
-                      onClick={checkAnswer}
-                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold py-3 px-8 rounded-full text-lg transform hover:scale-105 transition-all duration-300 shadow-lg"
-                    >
-                      Fix the Loop! 🔧
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 md:p-8 shadow-2xl">
-              {selectedCard === currentQ.correctAnswer ? (
-                <div className="text-center">
-                  <div className="text-6xl md:text-8xl mb-6 animate-bounce">
-                    🎉
-                  </div>
-                  <h3 className="text-2xl md:text-3xl font-bold text-green-600 mb-4">
-                    Loop Fixed!
-                  </h3>
-                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-2xl p-6 mb-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                      <h4 className="font-bold text-lg md:text-xl text-green-800">
-                        Understanding Feedback
-                      </h4>
-                    </div>
-                    <p className="text-gray-700 text-base md:text-lg leading-relaxed mb-4">
-                      {currentQ.explanation}
-                    </p>
-                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-full inline-block font-bold">
-                      {currentQ.feedbackType.toUpperCase()} FEEDBACK LOOP
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-2xl p-6 mb-6">
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <XCircle className="w-6 h-6 text-red-600" />
-                      <h4 className="font-bold text-lg md:text-xl text-red-800">
-                        The Correct Loop
-                      </h4>
-                    </div>
-                    <p className="text-gray-700 text-base md:text-lg leading-relaxed mb-4">
-                      {currentQ.explanation}
-                    </p>
-                    <div className="bg-white/80 rounded-xl p-4">
-                      <p className="text-sm md:text-base text-gray-600">
-                        <strong>Correct Answer:</strong>{" "}
-                        {currentQ.correctAnswer}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="text-center">
-                <button
-                  onClick={nextQuestion}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3 px-8 rounded-full text-lg transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
-                >
-                  {currentQuestion < questions.length - 1
-                    ? "Next Loop"
-                    : "See Results"}
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="font-sans">
-      <style jsx>{`
-        @keyframes spin-slow {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 3s linear infinite;
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-      {currentPage === "welcome" && <WelcomePage />}
-      {currentPage === "instructions" && <InstructionsPage />}
-      {currentPage === "game" && <GamePage />}
-    </div>
-  );
+  return null;
 };
 
-export default FeedbackLoopGame;
+const FeedbackLoopGameWrapper = () => (
+    <FeedbackLoopGame />
+);
+
+export default FeedbackLoopGameWrapper;

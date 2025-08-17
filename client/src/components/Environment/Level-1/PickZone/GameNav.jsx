@@ -88,7 +88,7 @@ const GameNav = () => {
         
         {/* Vol component connected to the audio logic */}
         <button onClick={toggleAudio} 
-          className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-90'}`}>
+          className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
           <Vol isPlaying={isPlaying} className="w-16 md:w-40"/>
         </button>
       </div>

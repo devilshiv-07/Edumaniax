@@ -2686,7 +2686,7 @@ const Home = () => {
               {plans.map((plan, idx) => (
                 <div
                   key={idx}
-                  className={`bg-white rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between relative border-[#D9D9D9] border-2 filter hover:border-[#068F36]`}
+                  className={`bg-white rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between relative border-2 filter hover:border-[#068F36] ${plan.title === "PRO PLAN" ? "border-[#068F36]" : "border-[#D9D9D9]"}`}
                   style={{
                     filter: "drop-shadow(1px -1px 5px rgba(0, 0, 0, 0.25))",
                   }}
@@ -2714,7 +2714,7 @@ const Home = () => {
                       {plan.title}
                     </h3>
                   </div>
-                  <p className="text-[12.5px] text-black font-light mt-2">
+                  <p className="text-[12.5px] text-black font-normal mt-2">
                     {plan.description}
                   </p>
                   <hr className="my-3 border-gray-300" />

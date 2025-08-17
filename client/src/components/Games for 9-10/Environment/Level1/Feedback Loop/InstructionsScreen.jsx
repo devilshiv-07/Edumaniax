@@ -28,7 +28,7 @@ const InstructionsScreen = ({ onStartGame }) => {
           
 
           {/* Right Column: ScenarioContent Demo */}
-          <div className="w-full lg:w-3/5 flex justify-center order-1 lg:mx-6 mt-11 lg:mt-0">
+          <div className="w-full lg:w-3/5 flex justify-center order-1  mt-11 lg:mt-0">
             <ScenarioContent />
           </div>
           <div className="w-auto flex flex-col items-center lg:items-start text-center lg:text-left order-2  mt-2">
