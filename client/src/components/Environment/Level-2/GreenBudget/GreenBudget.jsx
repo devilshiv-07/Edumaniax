@@ -72,37 +72,36 @@ const itemsToSelect = 3;
 // =============================================================================
 
 function ItemCard({ item, isSelected, onClick, isDisabled }) {
-  // Mobile-first compact styles, md for tablet, lg for original desktop vw/vh styles
   const cardClasses = `flex items-center w-full p-1.5 rounded-lg transition-all duration-200 ease-in-out cursor-pointer 
-    md:min-h-[70px] md:p-2 
+    md:min-h-0 md:p-1.5
     lg:w-[27vw] lg:min-h-[9vh] lg:px-[2vw] lg:py-[1.5vh] lg:rounded-[1.2vh] 
-    ${isSelected 
-      ? "bg-[#202f36] border-2 border-[#5f8428] shadow-[0_2px_0_0_#5f8428] lg:border-[0.2vh]" 
+    ${isSelected
+      ? "bg-[#202f36] border-2 border-[#5f8428] shadow-[0_2px_0_0_#5f8428] lg:border-[0.2vh]"
       : "bg-[#131f24] border-2 border-[#37464f] shadow-[0_2px_0_0_#37464f] lg:border-[0.2vh]"} 
     ${isDisabled && !isSelected ? "opacity-50 cursor-not-allowed" : "hover:scale-102"}`;
 
   const walletIconUrl = isSelected ? "https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-04/tuvaKMgcsm.png" : "https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-04/CGOQJaAXZU.png";
-  
+
   const nameClasses = `font-['Inter'] font-medium text-xs 
-    md:text-sm 
+    md:text-xs 
     lg:text-[1.4vw] lg:leading-[2.5vh] 
     ${isSelected ? "text-[#79b933]" : "text-[#f1f7fb]"}`;
-    
+
   const costClasses = `font-['Lilita_One'] font-normal text-[#fff] ml-1 text-[11px] 
-    md:text-xs 
+    md:text-[11px] 
     lg:text-[1.2vw] lg:leading-[2.5vh] lg:ml-[0.5vw]`;
 
   const iconClasses = `w-7 h-7 shrink-0 object-contain ml-auto 
-    md:w-8 md:h-8 
+    md:w-7 md:h-7 
     lg:w-[2vw] lg:h-[2vw]`;
 
   const priceContainerClasses = `flex w-16 h-8 justify-center items-center rounded-md border-2 
-    md:w-20 md:h-9 
+    md:w-16 md:h-8 
     lg:w-[7vw] lg:h-[4vh] lg:rounded-[0.8vh] lg:border-[0.2vh] 
     ${isSelected ? "border-[#79b933]" : "border-[#37464f]"}`;
 
   const priceIconClasses = `w-4 h-4 shrink-0 object-contain 
-    md:w-5 md:h-5 
+    md:w-4 md:h-4 
     lg:w-[2.5vh] lg:h-[2.5vh]`;
 
   return (
@@ -118,20 +117,18 @@ function ItemCard({ item, isSelected, onClick, isDisabled }) {
 }
 
 function FeedbackGIF({ message }) {
-  // This entire component will be hidden on mobile screens using className on the parent div in GreenBudgetGame
   return (
-    <div className="absolute flex items-end 
-      md:left-18 md:-bottom-8 
-      lg:-right-[9vw] lg:-bottom-[6vh] lg:left-auto">
-      <img src="/feedbackcharacter.gif" alt="Character talking" className="w-28 h-auto object-contain md:w-28 lg:w-[10vw] lg:h-[15vh]" />
-      <div className="absolute  
-        md:left-28 md:bottom-16
+    <div className="relative flex items-end
+      lg:absolute lg:-right-[9vw] lg:-bottom-[6vh] lg:left-auto">
+      <img src="/feedbackcharacter.gif" alt="Character talking" className="w-20 -ml-4 md:ml-0 h-auto object-contain md:w-20 lg:w-[10vw] lg:h-[15vh]" />
+      <div className="absolute left-14 bottom-7   
+        md:left-22 md:bottom-9
         lg:left-[8vw] lg:bottom-[6vh]">
-          <ThinkingCloud width="110px" className="md:w-[21vw] lg:w-[11vw]" />
+          <ThinkingCloud width="120px" className="md:w-[21vw] lg:w-[11vw]" />
       </div>
-      <p className="absolute w-full text-xs text-white text-center font-['Comic_Neue']
-        md:bottom-[88px] md:left-[140px]
-        lg:bottom-[11vh] lg:left-[8.8vw] lg:text-[0.7vw]">
+      <p className="absolute w-full text-[9px] md:text-xs text-white text-center font-['Comic_Neue'] left-22 bottom-14
+        md:left-32 md:bottom-16
+        lg:bottom-[10vh] lg:left-[8.8vw] lg:text-[0.75vw]">
           {message}
       </p>
     </div>
@@ -167,8 +164,8 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
                     </div>
                 </div>
                 <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                    <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                    <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                    <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                    <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
                 </div>
             </div>
         </>
@@ -198,9 +195,9 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                 </div>
             </div>
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
@@ -208,7 +205,6 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
 
 
 function ReviewScreen({ answers, onBackToResults }) {
-    // FIX: This component is updated to use the actual data structure from the game (`scenario`, `selectedItems`, etc.)
     return (
         <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 sm:p-6 flex flex-col items-center">
             <h1 className="text-3xl sm:text-4xl font-bold lilita-one-regular my-6 text-yellow-400 flex-shrink-0">Review Your Choices</h1>
@@ -228,8 +224,8 @@ function ReviewScreen({ answers, onBackToResults }) {
                     );
                 })}
             </div>
-            <button 
-                onClick={onBackToResults} 
+            <button
+                onClick={onBackToResults}
                 className="
                     mt-6 px-8 py-3 
                     bg-yellow-600 
@@ -355,7 +351,7 @@ export default function GreenBudgetGame() {
 
   const buttonText = showFeedback ? "Continue" : "Check Now";
   const isButtonEnabled = showFeedback || selectedItems.length === itemsToSelect;
-    
+
   return (
     <div>
       {step === "intro" && introStep === "first" && (<IntroScreen onShowInstructions={handleShowInstructions} />)}
@@ -365,65 +361,78 @@ export default function GreenBudgetGame() {
           {step === "playing" && currentQuestion && (
             <>
               <GameNav />
-              {/* Main content area: Stacks on mobile, row on medium+, original vw/vh on large+ */}
-              <div className="flex flex-col flex-1 items-center w-full p-4 gap-4 
-                md:flex-row md:justify-center md:items-start md:p-6 md:gap-8 
-                lg:flex-row lg:items-center lg:justify-center lg:px-[5vw] lg:py-[2vh] lg:gap-[4vw]">
-                
-                {/* Item List: Fixed height on mobile, scroll on medium+, original on large+ */}
-                <div className="w-full flex flex-col gap-2 p-3 bg-[rgba(32,47,54,0.3)] rounded-lg h-[370px]
-                    md:w-1/2 md:h-[75vh] md:overflow-y-auto md:gap-3 
+              {/* FIXED: This container is now 'relative' to act as a positioning context */}
+              <div className="flex-1 flex flex-col relative">
+                {/* Main content area (Game Area) */}
+                <div className="flex flex-col items-center w-full p-4 gap-4 
+                  md:flex-row md:justify-center md:items-start md:p-6 md:gap-8 
+                  lg:flex-row lg:items-center lg:justify-center lg:px-[5vw] lg:py-[2vh] lg:gap-[4vw]">
+
+                  {/* Item List */}
+                  <div className="w-full flex flex-col gap-2 p-3 bg-[rgba(32,47,54,0.3)] rounded-lg h-[370px]
+                    md:w-1/2 md:h-[370px] md:gap-2 
                     lg:w-auto lg:h-[68vh] lg:py-[3vh] lg:p-[2vh] lg:rounded-[1.2vh] lg:gap-[1.5vh]">
-                  {currentQuestion.items.map((item) => (
-                    <ItemCard
-                      key={item.name}
-                      item={item}
-                      isSelected={selectedItems.some((selected) => selected.name === item.name)}
-                      onClick={() => toggleItem(item)}
-                      isDisabled={
-                        (selectedItems.length >= itemsToSelect && !selectedItems.some((selected) => selected.name === item.name)) ||
-                        (remainingBalance < item.cost && !selectedItems.some((selected) => selected.name === item.name))
-                      }
-                    />
-                  ))}
+                    {currentQuestion.items.map((item) => (
+                      <ItemCard
+                        key={item.name}
+                        item={item}
+                        isSelected={selectedItems.some((selected) => selected.name === item.name)}
+                        onClick={() => toggleItem(item)}
+                        isDisabled={
+                          (selectedItems.length >= itemsToSelect && !selectedItems.some((selected) => selected.name === item.name)) ||
+                          (remainingBalance < item.cost && !selectedItems.some((selected) => selected.name === item.name))
+                        }
+                      />
+                    ))}
+                  </div>
+
+                  {/* Scenario Box */}
+                  <div className="relative flex flex-col w-full p-6 bg-[rgba(32,47,54,0.3)] rounded-lg justify-center items-center text-white text-center 
+                    md:w-1/2 md:h-[370px]
+                    lg:w-[29vw] lg:h-[68vh] lg:p-[4vh] lg:rounded-[1.2vh]">
+                      <span className="font-['Inter'] text-lg font-medium 
+                        md:text-xl 
+                        lg:text-[1.4vw] lg:leading-[3vh] lg:max-w-[30vw]">
+                          {currentQuestion.scenario}
+                      </span>
+                      {/* The lg feedback GIF is no longer here */}
+                  </div>
                 </div>
 
-                {/* Scenario Box: Responsive sizing and original vw/vh on large */}
-                <div className="relative flex flex-col w-full p-6 bg-[rgba(32,47,54,0.3)] rounded-lg justify-center items-center text-white text-center 
-                  md:w-1/2 md:h-[75vh] 
-                  lg:w-[29vw] lg:h-[68vh] lg:p-[4vh] lg:rounded-[1.2vh]">
-                    <span className="font-['Inter'] text-lg font-medium 
-                      md:text-xl 
-                      lg:text-[1.4vw] lg:leading-[3vh] lg:max-w-[30vw]">
-                        {currentQuestion.scenario}
-                    </span>
-                    {/* Feedback GIF is hidden on mobile, appears on medium+ */}
-                    <div className="hidden md:block">
-                        {showFeedback && <FeedbackGIF message={feedbackMessage} />}
+                {/* FIXED: Feedback for sm and md screens (centered) */}
+                <div className="w-full flex justify-center items-center relative mt-auto lg:hidden">
+                    {showFeedback && <FeedbackGIF message={feedbackMessage} />}
+                </div>
+
+                {/* FIXED: New feedback container for lg screens ONLY (absolute positioning) */}
+                {showFeedback && (
+                    <div className="hidden lg:block absolute bottom-10 right-75 pointer-events-none">
+                        <FeedbackGIF message={feedbackMessage} />
                     </div>
-                </div>
-
+                )}
               </div>
-              
+
               {/* Bottom Navigation */}
-              <div className="w-full h-auto bg-[#28343A] flex flex-col items-center p-3 gap-4 z-10 
-                sm:flex-row sm:justify-between 
-                lg:flex-row lg:justify-evenly lg:h-[10vh] lg:px-[5vw]">
-                <div className="flex items-center gap-3 lg:gap-[1vw]">
-                  <div className="w-14 h-14 rounded-full bg-[#232e34] border-2 border-white flex justify-center items-center lg:w-[7vh] lg:h-[7vh] lg:border-[0.2vh]">
-                    <img src="/Coin_gold.png" alt="wallet" className="w-10 h-10 lg:w-[5vh] lg:h-[5vh]" />
+              <div className="w-full h-auto bg-[#28343A] flex flex-row items-center justify-between p-2 gap-2 z-10 
+                lg:justify-evenly lg:h-[10vh] lg:px-[5vw]">
+
+                <div className="flex items-center gap-2 lg:gap-[1vw]">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-[#232e34] border-2 border-white flex justify-center items-center lg:w-[7vh] lg:h-[7vh] lg:border-[0.2vh]">
+                    <img src="/Coin_gold.png" alt="wallet" className="w-8 h-8 sm:w-10 sm:h-10 lg:w-[5vh] lg:h-[5vh]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="lilita text-lg text-[#ffcc00] [text-stroke:1px_black] tracking-wider lg:text-[2.5vh] lg:tracking-[0.05vw]">Total Wallet:</span>
-                    <span className="lilita text-lg text-white lg:text-[2.5vh]">₹{remainingBalance}</span>
+                    <span className="lilita text-base sm:text-lg text-[#ffcc00] [text-stroke:1px_black] tracking-wider lg:text-[2.5vh] lg:tracking-[0.05vw]">Total Wallet:</span>
+                    <span className="lilita text-base sm:text-lg text-white lg:text-[2.5vh]">₹{remainingBalance}</span>
                   </div>
                 </div>
-                <div className="w-48 h-16 lg:w-[12vw] lg:h-[8vh]">
+
+                <div className="w-36 h-14 sm:w-48 sm:h-16 lg:w-[12vw] lg:h-[8vh]">
                   <button className="relative w-full h-full cursor-pointer" onClick={showFeedback ? handleNextQuestion : handleSubmit} disabled={!isButtonEnabled}>
                     <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
-                    <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-xl text-white [text-shadow:0_3px_0_#000] lg:text-[2.5vh] ${!isButtonEnabled && "opacity-50"}`}>{buttonText}</span>
+                    <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-lg sm:text-xl text-white [text-shadow:0_3px_0_#000] lg:text-[2.5vh] ${!isButtonEnabled && "opacity-50"}`}>{buttonText}</span>
                   </button>
                 </div>
+
               </div>
             </>
           )}
@@ -454,7 +463,7 @@ export default function GreenBudgetGame() {
             } else {
               return (
                 <LosingScreen
-                  accuracyScore={accuracyScore} // FIX: Added missing accuracyScore prop
+                  accuracyScore={accuracyScore}
                   insight={insightText}
                   onPlayAgain={handlePlayAgain}
                   onViewFeedback={handleReviewAnswers}
