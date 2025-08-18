@@ -34,8 +34,8 @@ const InstructionsScreen = ({ onStartGame }) => {
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 ">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
               <p className="mb-2">You have ₹500 and 3 minutes for each scenario!</p>
-              <p className="mb-4">Select 3 items that best support sustainability in school.</p>
-              <p className="font-bold">Scoring:</p>
+              <p className="mb-4">Select 3 items that best support sustainability .</p>
+              <p>Scoring:</p>
               <ul className="list-none ml-0">
                 <li>+5 = All 3 eco-wise</li>
                 <li>+2 = 2 sustainable</li>

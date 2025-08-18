@@ -33,10 +33,10 @@ const InstructionsScreen = ({ onStartGame }) => {
           </div>
           <div className="w-auto flex flex-col items-center lg:items-start text-center lg:text-left order-2  mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You will be given a situation based </p>
-              <p className="mb-2">You have to measure and compare </p>
-              <p className="mb-2">its good and bad effects and choose</p>
-              <p className="mb-2">the final effect among the four options</p>
+              <p className="mb-2">Compare two infrastructure options.</p>
+              <p className="mb-2">Pick the one that supports long-term sustainability.</p>
+              <p className="mb-2">Each choice shapes greener, smarter cities.</p>
+              <p className="mb-2">Each pick reveals an amazing fact.</p>
             </div>
             
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
@@ -44,7 +44,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Students experience the trade-offs and unexpected costs of real life.
+                Learn to recognize which infrastructure choices enhance sustainability and resilience.
               </span>
             </div>
           </div>

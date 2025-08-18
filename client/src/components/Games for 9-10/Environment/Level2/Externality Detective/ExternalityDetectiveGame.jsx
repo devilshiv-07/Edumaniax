@@ -1,15 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Confetti from 'react-confetti';
 import { useWindowSize } from 'react-use';
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import { Star } from "lucide-react";
 import GameNav from "./GameNav";
+import axios from "axios"; // 1. ADDED AXIOS IMPORT
 
 // ======================= CHANGE 1: Import new screens =======================
 import IntroScreen from "./IntroScreen";
 import InstructionsScreen from "./InstructionsScreen";
+import { useNavigate } from "react-router-dom";
 // ============================================================================
+
+
+// =============================================================================
+// Gemini API Integration Helpers (Added from previous requests)
+// =============================================================================
+const APIKEY = import.meta.env.VITE_API_KEY;
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
 
 
 // =============================================================================
@@ -143,28 +171,24 @@ function ReviewScreen({ answers, onBackToResults }) {
 
 const ExternalityDetectiveGame = () => {
   const { completeEnvirnomentChallenge } = useEnvirnoment();
+  const navigate = useNavigate();
   
-  // =================== CHANGE 2: Update initial state =======================
-  // 'intro' -> 'instructions' -> 'game' -> 'result'
   const [currentPage, setCurrentPage] = useState("intro"); 
-  // ==========================================================================
-
-  const [resultPage, setResultPage] = useState('victory'); // 'victory', 'loss', 'review'
+  const [resultPage, setResultPage] = useState('victory');
   const [reviewData, setReviewData] = useState([]);
   const [flippedCards, setFlippedCards] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState([]);
   const [moves, setMoves] = useState(0);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(120);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [isWinner, setIsWinner] = useState(false);
+  const [insight, setInsight] = useState(""); // 2. ADDED INSIGHT STATE
   
-  //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
 
-  // Game data - scenarios and their externalities
   const cardPairs = [
     { id: 1, scenario: "🚗 Heavy Traffic Congestion", externality: "🌫️ Air Pollution & Time Loss" },
     { id: 2, scenario: "📦 Cheap Plastic Packaging", externality: "🌍 Environmental Cleanup Cost" },
@@ -173,7 +197,6 @@ const ExternalityDetectiveGame = () => {
     { id: 5, scenario: "🏖️ Tourist Resort Motorboats", externality: "🐠 Coral Damage & Noise" },
   ];
 
-  // Create shuffled cards array
   const createCards = () => {
     const cards = [];
     cardPairs.forEach((pair) => {
@@ -185,13 +208,12 @@ const ExternalityDetectiveGame = () => {
 
   const [cards, setCards] = useState(createCards);
 
-  // Timer effect
   useEffect(() => {
     if (gameStarted && timeLeft > 0 && !gameOver) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !gameOver) {
-      setIsWinner(false); // Explicitly set as not winner
+      setIsWinner(false);
       setGameOver(true);
       setCurrentPage("result");
     }
@@ -218,7 +240,6 @@ const ExternalityDetectiveGame = () => {
     setFlippedCards(newFlippedCards);
     
     if(newFlippedCards.length === 1) {
-        // Auto-close after 3 seconds if no second card is selected
         setTimeout(() => {
             setFlippedCards((current) => current.length === 1 && current[0] === cardId ? [] : current);
         }, 3000);
@@ -230,7 +251,6 @@ const ExternalityDetectiveGame = () => {
       const card2 = cards.find((c) => c.id === newFlippedCards[1]);
 
       if (card1.pairId === card2.pairId) {
-        // Match found!
         setTimeout(() => {
           const newMatchedPairs = [...matchedPairs, ...newFlippedCards];
           setMatchedPairs(newMatchedPairs);
@@ -244,19 +264,16 @@ const ExternalityDetectiveGame = () => {
           }
         }, 1000);
       } else {
-        // No match
         setTimeout(() => setFlippedCards([]), 1500);
       }
     }
   };
 
   const resetGame = () => {
-    // On continue, go back to the very start
     setCurrentPage("intro");
     setGameStarted(false);
   };
 
-  // Handlers for the new end screens
   const handlePlayAgain = () => startGame();
   const handleContinue = () => resetGame();
   const handleViewReview = () => setResultPage("review");
@@ -264,15 +281,17 @@ const ExternalityDetectiveGame = () => {
       setResultPage(isWinner ? "victory" : "loss");
   };
 
+  // 3. ADDED/MODIFIED USEEFFECT FOR GEMINI API CALL AND PERFORMANCE
   useEffect(() => {
     if (!gameOver) return;
 
     if (currentPage === 'result') {
+        const accuracy = matchedPairs.length / cards.length;
+        const accuracyScore = Math.round(accuracy * 100);
+        
+        // This logic now runs for both win/loss conditions
         setResultPage(isWinner ? "victory" : "loss");
-        if(isWinner) {
-            completeEnvirnomentChallenge(1, 1);
-        }
-
+        
         const generatedReviewData = cardPairs.map(pair => {
             const scenarioCardId = `scenario-${pair.id}`;
             const wasFound = matchedPairs.includes(scenarioCardId);
@@ -284,34 +303,74 @@ const ExternalityDetectiveGame = () => {
             };
         });
         setReviewData(generatedReviewData);
+
+        // --- Start Gemini Insight Generation ---
+        const generateInsight = async () => {
+            setInsight("Fetching personalized insight...");
+
+            const prompt = `
+A student played a memory game, 'Externality Detective', matching scenarios to their hidden environmental/social costs.
+
+Performance:
+- Accuracy: ${accuracyScore}%
+- Moves: ${moves}
+- Time Left: ${timeLeft} seconds
+- Outcome: ${isWinner ? "Won (all pairs matched)" : "Lost (time up)"}
+
+### INSTRUCTION ###
+Based on their performance, provide a short, encouraging, and holistic insight (about 20 words) on their ability to identify externalities.
+- If they won, praise their sharp memory and understanding of hidden costs.
+- If they lost, encourage them, noting that spotting these connections under pressure is tricky, and suggest reviewing the pairs to learn.
+
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
+
+            try {
+                const response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                    { contents: [{ parts: [{ text: prompt }] }] }
+                );
+                const aiReply = response.data.candidates[0].content.parts[0].text;
+                const parsed = parsePossiblyStringifiedJSON(aiReply);
+                if (parsed && parsed.insight) {
+                    setInsight(parsed.insight);
+                } else {
+                    throw new Error("Failed to parse insight from AI response.");
+                }
+            } catch (err) {
+                console.error("Error fetching AI insight:", err);
+                const fallbackInsight = isWinner ? "Great detective work! You linked every scenario to its hidden cost." : "Some externalities are tricky. Review them to sharpen your skills!";
+                setInsight(fallbackInsight);
+            }
+        };
+        generateInsight();
+        // --- End Gemini Insight Generation ---
+
+        if(isWinner) {
+            completeEnvirnomentChallenge(1, 1);
+        }
+        
+        const endTime = Date.now();
+        const timeTakenSec = Math.floor((endTime - startTime) / 1000);
+        const studyTimeMin = Math.ceil(timeTakenSec / 60);
+        const finalScore = score + (isWinner ? Math.max(0, timeLeft * 10) : 0);
+        const maxPossibleScore = cardPairs.length * 100 + 60 * 5; 
+        const scaledScore = parseFloat(((finalScore / maxPossibleScore) * 10).toFixed(2));
+
+        updatePerformance({
+          moduleName: "Environment",
+          topicName: "ecoDecisionMaker",
+          score: scaledScore,
+          accuracy: parseFloat((accuracy * 100).toFixed(2)),
+          avgResponseTimeSec: parseFloat((timeTakenSec / (moves || 1)).toFixed(2)),
+          studyTimeMinutes: studyTimeMin,
+          completed: true,
+        });
     }
-    
-    // Logic for performance update
-    const endTime = Date.now();
-    const timeTakenSec = Math.floor((endTime - startTime) / 1000);
-    const studyTimeMin = Math.ceil(timeTakenSec / 60);
-    const accuracy = matchedPairs.length / cards.length;
-    const finalScore = score + (isWinner ? Math.max(0, timeLeft * 10) : 0);
-    const maxPossibleScore = cardPairs.length * 100 + 60 * 5; 
-    const scaledScore = parseFloat(((finalScore / maxPossibleScore) * 10).toFixed(2));
-
-    updatePerformance({
-      moduleName: "Environment",
-      topicName: "ecoDecisionMaker",
-      score: scaledScore,
-      accuracy: parseFloat((accuracy * 100).toFixed(2)),
-      avgResponseTimeSec: parseFloat((timeTakenSec / (moves || 1)).toFixed(2)),
-      studyTimeMinutes: studyTimeMin,
-      completed: true,
-    });
-
   }, [gameOver, currentPage, isWinner]);
-
-  // ================ CHANGE 3: REMOVED the old start screen logic ================
-  // The typing effect has been moved to IntroScreen.js
-  // ============================================================================
   
-  // ================ CHANGE 4: Add new handler and update rendering ============
   const handleShowInstructions = () => {
     setCurrentPage("instructions");
   };
@@ -323,14 +382,13 @@ const ExternalityDetectiveGame = () => {
   if (currentPage === "instructions") {
     return <InstructionsScreen onStartGame={startGame} />;
   }
-  // ============================================================================
 
   if (currentPage === "game") {
     return (
       <div className="min-h-screen w-full bg-[#0A160E]">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <GameNav timeLeft={timeLeft} moves={moves} />
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 mt-12 md:mt-16 lg:mt-35">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4 mt-16 md:mt-24 lg:mt-35">
             {cards.map((card) => {
               const isFlipped = flippedCards.includes(card.id) || matchedPairs.includes(card.id);
               const isMatched = matchedPairs.includes(card.id);
@@ -376,21 +434,31 @@ const ExternalityDetectiveGame = () => {
     );
   }
 
-  // New Result Screen Logic
+  // 4. UPDATED RENDER LOGIC FOR 'RESULT' STATE WITH CORRECTION
   if (currentPage === "result") {
     const pairsFoundCount = matchedPairs.length / 2;
     const totalPairsCount = cardPairs.length;
     const accuracyScore = Math.round((matchedPairs.length / cards.length) * 100);
-    const insight = isWinner ? "Great detective work! You linked every scenario to its hidden cost." : "Some externalities are tricky. Review them to sharpen your skills!";
     
+    // Corrected: Victory is ONLY when the score is 100%.
+    const isStrictVictory = accuracyScore === 100;
+    
+    // The 'insight' is now passed from the state.
+    
+    // The resultPage state is set based on the original isWinner flag, which is correct.
+    // This logic ensures the correct screen is shown.
     switch (resultPage) {
         case 'victory':
-            return <VictoryScreen 
-                accuracyScore={accuracyScore}
-                insight={insight}
-                onContinue={handleContinue}
-                onViewFeedback={handleViewReview}
-            />;
+             // We add a final check here to enforce the 100% rule absolutely.
+            if (isStrictVictory) {
+                return <VictoryScreen 
+                    accuracyScore={accuracyScore}
+                    insight={insight}
+                    onContinue={handleContinue}
+                    onViewFeedback={handleViewReview}
+                />;
+            }
+            // Fallthrough to loss screen if somehow victory was flagged incorrectly
         case 'loss':
             return <LosingScreen 
                 accuracyScore={accuracyScore}
@@ -408,7 +476,7 @@ const ExternalityDetectiveGame = () => {
                 onBackToResults={handleBackToResults}
             />;
         default:
-            return null; // Should not happen
+            return null;
     }
   }
 };
