@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useState } from "react"; // 1. ADDED useState
 import { useNavigate } from "react-router-dom";
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext"; // Assuming this context exists
 import { usePerformance } from "@/contexts/PerformanceContext"; // Assuming this context exists
@@ -8,6 +8,32 @@ import GameNav from "./GameNav"; // Assuming this component exists
 import Confetti from "react-confetti";
 import useWindowSize from "react-use/lib/useWindowSize";
 import Heart from "@/components/icon/GreenBudget/Heart.jsx";
+import axios from "axios"; // 2. ADDED AXIOS IMPORT
+
+// =============================================================================
+// Gemini API Integration Helpers (Added from previous requests)
+// =============================================================================
+const APIKEY = import.meta.env.VITE_API_KEY;
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
 
 // Data for the game
 const causeData = [
@@ -109,75 +135,93 @@ function reducer(state, action) {
 }
 
 // =============================================================================
-// SVG Component for the Timer
+// SVG Component for the Timer (Unchanged)
 // =============================================================================
 const HeartIcon = () => (
-    <svg className="w-full h-full" viewBox="0 0 100 90" fill="#202124" xmlns="http://www.w3.org/2000/svg">
+    <svg className="w-full h-full" viewBox="0 0 100 90" fill="#202124" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
         <path d="M85.4187 14.1354C79.404 -1.37812 65.485 -3.83125 54.0737 7.03906L50.0001 11.5813L45.9264 7.03906C34.515 -3.83125 20.596 -1.37812 14.5814 14.1354C8.41163 29.9839 21.0116 48.3323 46.3329 68.8042L50.0001 71.875L53.6672 68.8042C78.9885 48.3323 91.5885 29.9839 85.4187 14.1354Z" />
     </svg>
 );
 
-
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+`;
 // =============================================================================
-// Victory and Losing Screen Components (Adapted from reference)
+// Victory and Losing Screen Components (Unchanged)
 // =============================================================================
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
-  const { width, height } = useWindowSize();
-  return (
-    <>
-      <Confetti width={width} height={height} recycle={false} numberOfPieces={200} />
-      <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center">
-        <div className="flex flex-col items-center justify-center flex-1 p-6">
-          <div className="relative w-64 h-64 flex items-center justify-center">
-            <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
-            <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
-          </div>
-          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <div className="w-64 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
-              <p className="text-black text-sm font-bold mb-1 mt-2">TOTAL ACCURACY</p>
-              <div className="bg-[#131F24] mt-0 w-63 h-16 rounded-xl flex items-center justify-center py-3 px-5">
-                <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-                <span className="text-[#09BE43] text-xl font-extrabold">{accuracyScore}%</span>
-              </div>
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div className="w-74 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-              <p className="text-black text-sm font-bold mb-1 mt-2">INSIGHT</p>
-              <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center">
-                <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
-              </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
-          </div>
         </div>
-        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
-          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        </div>
-      </div>
-    </>
-  );
+    );
 }
 
-function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight }) {
-  return (
-    <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center">
-      <div className="flex flex-col items-center justify-center flex-1 p-6">
-        <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-64 h-auto mb-6" />
-        <p className="text-yellow-400 lilita-one-regular text-xl sm:text-2xl md:text-3xl lg:text-4xl font-semibold text-center">Oops! That was close! Wanna Retry?</p>
-        <div className="mt-6 w-74 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-          <p className="text-black text-sm font-bold mb-1 mt-2">INSIGHT</p>
-          <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center">
-            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
-          </div>
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
         </div>
-      </div>
-      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
-        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200" />
-      </div>
-    </div>
-  );
+    );
 }
 
 function ReviewScreen({ answers, onBackToResults }) {
@@ -215,6 +259,7 @@ const CauseScanner = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { completeEnvirnomentChallenge } = useEnvirnoment();
   const { updatePerformance } = usePerformance();
+  const [insight, setInsight] = useState(""); // 3. ADDED INSIGHT STATE
 
   // Effect for the per-question timer
   useEffect(() => {
@@ -275,6 +320,68 @@ const CauseScanner = () => {
       runPerformanceUpdate();
     }
   }, [state.gameState, state.score, state.answers, completeEnvirnomentChallenge, updatePerformance]);
+  
+  // 4. ADDED USEEFFECT FOR GEMINI API CALL
+  useEffect(() => {
+    if (state.gameState === 'finished') {
+        const generateInsight = async () => {
+            setInsight("Fetching personalized insight...");
+            const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
+
+            const answersSummary = state.answers.map(ans =>
+                `- For the action "${ans.action}", the user chose "${ans.selected}", which was ${ans.isCorrect ? 'correct' : 'incorrect'}.`
+            ).join('\n');
+
+            const prompt = `
+A student played a game identifying if actions 'Help Prevent' or 'Contribute To' climate change. Here is their performance summary:
+
+Overall Score: ${state.score} out of ${PERFECT_SCORE} (${accuracyScore}%)
+
+Their Answers:
+${answersSummary}
+
+### INSTRUCTION ###
+Based on their performance, provide a short, encouraging, and holistic insight (about 20 words).
+If the score is perfect, congratulate them as a "climate champion".
+If they did well (>80%), praise their solid understanding. 
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. 
+basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
+
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
+
+            try {
+                const response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                    { contents: [{ parts: [{ text: prompt }] }] }
+                );
+                const aiReply = response.data.candidates[0].content.parts[0].text;
+                const parsed = parsePossiblyStringifiedJSON(aiReply);
+                if (parsed && parsed.insight) {
+                    setInsight(parsed.insight);
+                } else {
+                    throw new Error("Failed to parse insight from AI response.");
+                }
+            } catch (err) {
+                console.error("Error fetching AI insight:", err);
+                // Fallback to original hardcoded insights
+                let fallbackInsight = "";
+                if (state.isVictory) {
+                    fallbackInsight = "Perfect score! You're a true climate champion!";
+                } else if (accuracyScore >= 75) {
+                    fallbackInsight = "Great job! You have a strong grasp of climate actions.";
+                } else {
+                    fallbackInsight = "Good effort! Review the answers to become a climate expert.";
+                }
+                setInsight(fallbackInsight);
+            }
+        };
+        generateInsight();
+    }
+}, [state.gameState, state.answers, state.score, state.isVictory]);
+
 
   const handleSelectAnswer = (answerId) => {
     if (!state.answerSubmitted) {
@@ -296,22 +403,14 @@ const CauseScanner = () => {
     }
   }
 
-  // Render Finished Screens (Victory/Losing)
+  // 5. UPDATED RENDER LOGIC FOR 'FINISHED' STATE
   if (state.gameState === "finished") {
     const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
-    let insightText = "";
-    if (state.isVictory) {
-      insightText = "Perfect score! You're a true climate champion!";
-    } else if (accuracyScore >= 75) {
-      insightText = "Great job! You have a strong grasp of climate actions.";
-    } else {
-      insightText = "Good effort! Review the answers to become a climate expert.";
-    }
-
+    // The hardcoded 'insightText' is removed. We now use the 'insight' state variable from the useEffect hook.
     return state.isVictory ? (
-      <VictoryScreen accuracyScore={accuracyScore} insight={insightText} onViewFeedback={handleViewFeedback} onContinue={handleContinue} />
+      <VictoryScreen accuracyScore={accuracyScore} insight={insight} onViewFeedback={handleViewFeedback} onContinue={handleContinue} />
     ) : (
-      <LosingScreen onPlayAgain={handlePlayAgain} onViewFeedback={handleViewFeedback} onContinue={handleContinue} insight={insightText} />
+      <LosingScreen onPlayAgain={handlePlayAgain} onViewFeedback={handleViewFeedback} onContinue={handleContinue} insight={insight} />
     );
   }
   

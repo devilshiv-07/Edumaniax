@@ -17,7 +17,7 @@ const InstructionsScreen = ({ onStartGame }) => {
         
         {/* MODIFIED: Title is now absolutely positioned on large screens for precise placement */}
         <h2 className="lilita text-3xl md:text-4xl text-white mb-6 text-center z-10 
-                   absolute top-[4vh] md:top-[2.5vh] lg:top-[1vh] lg:left-1/2 lg:-translate-x-1/2 lg:transform lg:mb-0">
+                   absolute top-[6vh] md:top-[2.5vh] lg:top-[1vh] lg:left-1/2 lg:-translate-x-1/2 lg:transform lg:mb-0">
           How to Play?
         </h2>
         
@@ -28,23 +28,25 @@ const InstructionsScreen = ({ onStartGame }) => {
           
 
           {/* Right Column: ScenarioContent Demo */}
-          <div className="w-full lg:w-3/5 flex justify-center order-1  mt-11 lg:mt-0">
+          <div className="w-full lg:w-3/5 flex justify-center order-1  mt-14 md:mt-11 lg:mt-0">
             <ScenarioContent />
           </div>
           <div className="w-auto flex flex-col items-center lg:items-start text-center lg:text-left order-2  mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-<p className="mb-2">You will be given a real-life dilemma scenario</p>
-<p className="mb-2">Choose one action from three possible responses</p>
-<p className="mb-2">See the real-world consequence of your decision</p>
-<p className="mb-2">Score +3 for sustainable action, +1 for partial awareness</p>
+              <p className="mb-2">There will be given 3 games as follows - </p>
+              <p className="mb-2">Game 1: Fix the Sequence </p>
+              <p className="mb-2">Game 2: Disruption Diagnosis </p>
+              <p className="mb-2">Game 3: System Repair</p>
+              <p className="mb-2">There's clue scenario below every challenge name</p>
+              <p className="mb-2">Read the challenge and follow the given clue</p>
             </div>
             
-            <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
+            <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-md">
               <span className="lilita text-lg md:text-xl font-normal text-white tracking-wide">
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Understand trade-offs and practice making sustainable choices
+                Understand how natural processes and human actions affect the carbon cycle and climate balance.
               </span>
             </div>
           </div>

@@ -33,10 +33,10 @@ const InstructionsScreen = ({ onStartGame }) => {
           </div>
           <div className="w-auto flex flex-col items-center lg:items-start text-center lg:text-left order-2  mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You will be given a situation based </p>
-              <p className="mb-2">You have to measure and compare </p>
-              <p className="mb-2">its good and bad effects and choose</p>
-              <p className="mb-2">the final effect among the four options</p>
+<p className="mb-2">You will be shown everyday actions one by one</p>
+<p className="mb-2">Decide if each action helps prevent or contributes to climate change</p>
+<p className="mb-2">Answer quickly with Yes/No style choices</p>
+<p className="mb-2">Score +1 for every correct response within 10 seconds</p>
             </div>
             
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
@@ -44,7 +44,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Students experience the trade-offs and unexpected costs of real life.
+                Recognize daily habits and learn whether they harm or help the climate
               </span>
             </div>
           </div>

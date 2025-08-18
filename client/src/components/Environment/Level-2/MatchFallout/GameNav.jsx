@@ -51,20 +51,20 @@ const GameNav = ({ timeLeft }) => { // Now receives timeLeft as a prop
     <div className="w-full h-[10.5vh] bg-[#28343A] flex items-center justify-between px-[2vw] absolute top-0 left-0 z-20">
       <audio ref={audioRef} loop src={bgMusic} />
       <Link to="/environmental/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100 ">
-        <BackButton className="w-16 md:w-40"/>
+        <BackButton className="w-16 md:w-28"/>
       </Link>
       <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-xl md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
         Match the Fallout
       </span>
       <div className="flex items-center space-x-[1vw]">
         <div className="relative h-[100px] flex items-center justify-center">
-          <Heart className="w-16 md:w-40"/>
-          <span className="absolute text-white font-bold text-base sm:text-base md:text-3xl lg:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2">
+          <Heart className="w-16 md:w-28"/>
+          <span className="absolute text-white font-bold text-base md:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2">
             {formatTime(timeLeft)}
           </span>
         </div>
         <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
-          <Vol isPlaying={isPlaying} className="w-16 md:w-40"/>
+          <Vol isPlaying={isPlaying} className="w-16 md:w-28"/>
         </button>
       </div>
     </div>

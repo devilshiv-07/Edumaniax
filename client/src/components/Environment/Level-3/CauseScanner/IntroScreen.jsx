@@ -69,8 +69,8 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Exit Button */}
       <Link
         to="/environmental/games"
-        className="absolute top-4 left-4 w-[7vw] h-[7vh] w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
-          md:w-[202px] md:h-[82px] mt-11 ml-7 transition transform active:scale-95"
+        className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+         md:w-[120px] md:h-[50px] lg:w-[150px] lg:h-[60px] mt-11 md:ml-7 transition transform active:scale-95"
       >
         <img
           src={btnExit}
@@ -82,27 +82,27 @@ const IntroScreen = ({ onShowInstructions }) => {
       {/* Audio Toggle Button */}
       <button
         onClick={toggleAudio}
-        className="absolute top-15 right-11 transition-transform active:scale-95"
+        className="absolute top-15 right-5 md:right-11 transition-transform active:scale-95"
       >
-        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
-          md:w-[202px] md:h-[82px]"/>
+        <Vol isPlaying={isPlaying && !isMuted} className="w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
+          md:w-[120px] md:h-[50px] lg:w-[150px] lg:h-[60px]"/>
       </button>
 
       {/* Center Content */}
       <div className="text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:-mt-100 z-10">
         {/* Heading: The Budgeter */}
-        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[7vh] md:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
+        <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-4xl lg:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
           Cause Scanner
         </span>
 
         {/* Subheading: Challenge 1 */}
-        <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl text-white -mt-2 mb-6 sm:mb-10">
+        <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl md:text-3xl lg:text-4xl text-white mb-6 sm:mb-10">
           Challenge 1
         </h2>
       </div>
 
-      {/* Add the loader at the bottom */}
-      <BottomProgressLoader onComplete={onShowInstructions} />
+      {/* Add the loader at the bottom*/}
+      <BottomProgressLoader onComplete={onShowInstructions} /> 
     </div>
   );
 };

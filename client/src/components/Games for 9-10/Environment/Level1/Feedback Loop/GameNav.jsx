@@ -52,7 +52,7 @@ const GameNav = () => {
       </Link>
       
       <span className="lilita [text-shadow:0_6px_0_#000] text-xl md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
-        Cause & Effect
+        Feedback Loop
       </span>
       
       <div className="flex items-center space-x-[1vw] md:space-x-0">

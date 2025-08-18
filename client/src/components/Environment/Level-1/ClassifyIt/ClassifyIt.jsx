@@ -1,6 +1,6 @@
 // src/pages/ClassifyIt.jsx
 
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useState } from "react"; // Added useState
 import { useNavigate } from "react-router-dom";
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
@@ -10,12 +10,38 @@ import GameNav from "./GameNav";
 import Checknow from "@/components/icon/GreenBudget/Checknow";
 import Confetti from "react-confetti";
 import useWindowSize from "react-use/lib/useWindowSize";
+import axios from "axios";
 
 // Image imports...
 import NaturalBioticImg from "/environmentGameInfo/ClassifyIt/biotic.png";
 import NaturalAbioticImg from "/environmentGameInfo/ClassifyIt/abiotic.png";
 import HumanMadeImg from "/environmentGameInfo/ClassifyIt/human_made.png";
 import SocialImg from "/environmentGameInfo/ClassifyIt/social.png";
+
+// =============================================================================
+// Gemini API Integration Helpers
+// =============================================================================
+const APIKEY = import.meta.env.VITE_API_KEY;
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
 
 // Data and constants...
 const data = [
@@ -153,7 +179,7 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
                     <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
                         </div>
                     </div>
                 </div>
@@ -174,7 +200,7 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                 <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
                 <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
                 <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
-                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
                     <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
@@ -185,7 +211,7 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                     <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
                         </div>
                     </div>
                 </div>
@@ -259,6 +285,7 @@ const ClassifyIt = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { completeEnvirnomentChallenge } = useEnvirnoment();
   const { updatePerformance } = usePerformance();
+  const [insight, setInsight] = useState("");
 
   useEffect(() => {
     let timer;
@@ -273,6 +300,7 @@ const ClassifyIt = () => {
     return () => clearTimeout(timer);
   }, [state.gameState, state.timerActive, state.timeLeft]);
   
+  // *** FIXED: COMBINED USEEFFECT HOOKS ***
   useEffect(() => {
     if (state.gameState === "finished") {
       const runPerformanceUpdate = async () => {
@@ -302,9 +330,65 @@ const ClassifyIt = () => {
           console.error("Error updating environment performance:", error);
         }
       };
-      runPerformanceUpdate();
+
+      const generateInsight = async () => {
+            setInsight("Fetching personalized insight...");
+            const accuracyScore = PERFECT_SCORE > 0 ? Math.round((state.score / PERFECT_SCORE) * 100) : 0;
+            const isVictory = state.score === PERFECT_SCORE;
+
+            const answersSummary = state.answers.map(ans => 
+              `For "${ans.word}", user chose "${ans.selected || 'No answer'}" which was ${ans.isCorrect ? 'correct' : 'incorrect'}. Correct answer was "${ans.correctAnswer}".`
+            ).join('\n');
+
+            const prompt = `
+A student played a "Classify It" game about environmental components. Here is their performance:
+
+Overall Accuracy: ${accuracyScore}%
+Score: ${state.score} out of ${PERFECT_SCORE}
+
+Detailed Answers:
+${answersSummary}
+
+### INSTRUCTION ###
+Based on their performance, provide a short, encouraging, and educational insight (about 20-25 words) about their understanding of environmental components. If they got a perfect score, praise them as an expert. If they did well (>=75%), praise their strong understanding. 
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
+
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
+
+            try {
+                const response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                    { contents: [{ parts: [{ text: prompt }] }] }
+                );
+                const aiReply = response.data.candidates[0].content.parts[0].text;
+                const parsed = parsePossiblyStringifiedJSON(aiReply);
+                if (parsed && parsed.insight) {
+                    setInsight(parsed.insight);
+                } else {
+                    throw new Error("Failed to parse insight from AI response.");
+                }
+            } catch (err) {
+                console.error("Error fetching AI insight:", err);
+                let fallbackInsight = "";
+                if (isVictory) {
+                    fallbackInsight = "Perfect score! You're an expert at identifying environmental components.";
+                } else if (accuracyScore >= 75) {
+                    fallbackInsight = "Great job! You have a strong understanding of our environment.";
+                } else {
+                    fallbackInsight = "Good effort! Review the answers to master these concepts.";
+                }
+                setInsight(fallbackInsight);
+            }
+        };
+
+        runPerformanceUpdate();
+        generateInsight();
     }
   }, [state.gameState, state.score, state.answers, state.timeLeft, completeEnvirnomentChallenge, updatePerformance]);
+
 
   const handleSubmit = () => {
     if (state.selected === null) return;
@@ -349,22 +433,13 @@ const ClassifyIt = () => {
     const totalScore = state.score;
     const totalPossibleScore = PERFECT_SCORE;
     const accuracyScore = totalPossibleScore > 0 ? Math.round((totalScore / totalPossibleScore) * 100) : 0;
-    const isVictory = state.isVictory;
-
-    let insightText = "";
-    if (isVictory) {
-      insightText = "Perfect score! You're an expert at identifying environmental components.";
-    } else if (accuracyScore >= 75) {
-      insightText = "Great job! You have a strong understanding of our environment."
-    } else {
-      insightText = "Good effort! Review the answers to master these concepts.";
-    }
+    const isVictory = state.score === PERFECT_SCORE;
 
     if (isVictory) {
       return (
         <VictoryScreen
           accuracyScore={accuracyScore}
-          insight={insightText}
+          insight={insight}
           onViewFeedback={handleViewFeedback}
           onContinue={handleContinue}
         />
@@ -375,7 +450,7 @@ const ClassifyIt = () => {
           onPlayAgain={handlePlayAgain}
           onViewFeedback={handleViewFeedback}
           onContinue={handleContinue}
-          insight={insightText}
+          insight={insight}
           accuracyScore={accuracyScore}
         />
       );
@@ -392,13 +467,10 @@ const ClassifyIt = () => {
   }
 
   return (
-    // CHANGE 1: The main container is now just a flex column. `items-center` is removed.
     <div className="min-h-screen bg-black flex flex-col">
       <GameNav timeLeft={state.timeLeft} />
       
-      {/* CHANGE 2: This wrapper now grows (`flex-1`) to fill available space. */}
       <div className="w-full flex-1 flex flex-col items-center pt-2">
-        {/* Word Section */}
         <div className="w-full max-w-5xl flex items-center justify-center mt-12 mb-16">
           <div className="flex items-center space-x-4">
             <h2 className=" text-2xl md:text-4xl text-white font-['Lilita_One']">Word:</h2>
@@ -406,7 +478,6 @@ const ClassifyIt = () => {
           </div>
         </div>
 
-        {/* Cards Section */}
         <div className="w-full max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 px-4 sm:px-6 md:px-8 mb-8">
           {categories.map((cat) => {
             const isSelected = state.selected === cat.name;
@@ -452,7 +523,6 @@ const ClassifyIt = () => {
           })}
         </div>
 
-        {/* CHANGE 3: Bottom Bar now uses `mt-auto` to push itself to the bottom of the flex container. */}
         <div className="w-full bg-[#28343A] flex justify-center items-center px-4 mt-auto py-5">
           <div className="w-full max-w-xs h-14">  
             <button
