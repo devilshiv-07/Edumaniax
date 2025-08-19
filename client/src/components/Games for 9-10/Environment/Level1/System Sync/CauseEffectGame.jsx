@@ -8,6 +8,7 @@ import {
   Wind,
   TreePine,
 } from "lucide-react";
+import axios from "axios"; // 1. ADDED AXIOS IMPORT
 
 // Import custom hooks & other components
 import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
@@ -15,85 +16,113 @@ import { usePerformance } from "@/contexts/PerformanceContext";
 import IntroScreen from "./IntroScreen";
 import InstructionsScreen from "./InstructionsScreen";
 import GameNav from "./GameNav";
-import Checknow from "@/components/icon/GreenBudget/Checknow"; // Assuming you have this component
+import Checknow from "@/components/icon/GreenBudget/Checknow";
 
-// CSS to hide scrollbars
+// =============================================================================
+// Gemini API Integration Helpers (Added from previous requests)
+// =============================================================================
+const APIKEY = import.meta.env.VITE_API_KEY;
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
+
+
 const scrollbarHideStyle = `
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 `;
 
-// =============================================================================
-// Reusable End-Screen Components (No Changes)
-// =============================================================================
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
-  const { width, height } = useWindowSize();
-  return (
-    <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
-      <style>{scrollbarHideStyle}</style>
-      <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
-        <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
-          <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
-          <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
-        </div>
-        <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
-        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
-          <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
-            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
-              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-              <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
-            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-              <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
-          </div>
         </div>
-      </div>
-      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-      </div>
-    </div>
-  );
+    );
 }
 
 function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
-  return (
-    <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
-      <style>{scrollbarHideStyle}</style>
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
-        <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
-        <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
-        <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
-        <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
-          <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
-            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
-              <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
-              <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
-            <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
-            <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-              <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
-          </div>
         </div>
-      </div>
-      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-      </div>
-    </div>
-  );
+    );
 }
+
 
 function ReviewScreen({ answers, onBackToResults }) {
   return (
@@ -128,7 +157,7 @@ function ReviewScreen({ answers, onBackToResults }) {
 
 
 // =============================================================================
-// GamePage Component (MODIFIED)
+// GamePage Component (No Changes)
 // =============================================================================
 const GamePage = ({
   questions,
@@ -170,11 +199,9 @@ const GamePage = ({
                 ))}
               </div>
             </div>
-            {/* INTEGRATED YOUR CODE BLOCK AS REQUESTED */}
             <div className="flex items-center gap-2 sm:gap-4">
               <img src={currentQ.causeIcon} alt={currentQ.cause} className="w-20 h-20 sm:w-28 sm:h-28 object-contain" />
               <div className="relative">
-                {/* This is your code block, wrapped and rotated to point left */}
                 <div className="absolute top-1/2 -translate-y-1/2 -left-[13px] transform z-50">
                   <div className="relative inline-block">
                     <div className="absolute -top-0.5 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[18px] border-r-[#37464F] border-b-0 border-l-0"></div>
@@ -192,22 +219,20 @@ const GamePage = ({
             <div className="w-full max-w-sm md:max-w-3xl bg-[rgba(32,47,54,0.3)] rounded-xl p-6 sm:p-10 border border-gray-700 text-center flex flex-col items-center justify-center min-h-[300px]">
               {userAnswers[currentQuestion]?.isCorrect ? ( <> <h2 className="text-4xl sm:text-5xl text-[#6CFF00] mb-6 font-bold">Amazing Fact</h2> <p className="text-base sm:text-xl text-gray-200 leading-relaxed lg:px-4 font-medium">{currentQ.trivia}</p> </> ) : ( <> <h2 className="text-4xl sm:text-5xl text-red-400 mb-6 font-bold">System Shock!</h2> <p className="text-base sm:text-xl text-gray-200 leading-relaxed lg:px-4 font-medium">{currentQ.systemShock}</p> </> )}
             </div>
-             {/* INTEGRATED YOUR CODE BLOCK AS REQUESTED */}
-            <div className="flex items-center gap-2 sm:gap-4">
-              <img src={currentQ.causeIcon} alt={currentQ.cause} className="w-20 h-20 sm:w-28 sm:h-28 object-contain" />
-              <div className="relative">
-                {/* This is your code block, wrapped and rotated to point left */}
-                <div className="absolute top-1/2 -translate-y-1/2 -left-[13px] transform z-51">
-                  <div className="relative inline-block">
-                    <div className="absolute -top-0.5 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[18px] border-r-[#37464F] border-b-0 border-l-0"></div>
-                    <div className="relative w-0 h-0 border-t-[10px] border-t-transparent border-r-[15px] border-r-[#131F24] border-b-0 border-l-0"></div>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <img src={currentQ.causeIcon} alt={currentQ.cause} className="w-20 h-20 sm:w-28 sm:h-28 object-contain" />
+                <div className="relative">
+                  <div className="absolute top-1/2 -translate-y-1/2 -left-[13px] transform z-51">
+                    <div className="relative inline-block">
+                      <div className="absolute -top-0.5 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[18px] border-r-[#37464F] border-b-0 border-l-0"></div>
+                      <div className="relative w-0 h-0 border-t-[10px] border-t-transparent border-r-[15px] border-r-[#131F24] border-b-0 border-l-0"></div>
+                    </div>
+                  </div>
+                  <div className="relative bg-[#131F24] border border-[#37464F] rounded-lg px-4 sm:px-6 py-3">
+                    <span className="text-lg sm:text-2xl font-bold text-gray-200">{currentQ.cause}</span>
                   </div>
                 </div>
-                <div className="relative bg-[#131F24] border border-[#37464F] rounded-lg px-4 sm:px-6 py-3">
-                  <span className="text-lg sm:text-2xl font-bold text-gray-200">{currentQ.cause}</span>
-                </div>
               </div>
-            </div>
           </div>
         )}
       </main>
@@ -251,6 +276,7 @@ const CauseEffectGame = () => {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [userAnswers, setUserAnswers] = useState([]);
+  const [insight, setInsight] = useState(""); // 2. ADDED INSIGHT STATE
 
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
@@ -262,6 +288,58 @@ const CauseEffectGame = () => {
     { id: 4, cause: "Agriculture", causeIcon: "/environmentGameInfo/Cause&Effect/urbanization.png", correctEffect: "Methane and nitrous oxide release", correctSphere: "Atmosphere", effects: ["Cleaner air production", "Methane and nitrous oxide release", "Ocean cooling", "Mountain formation"], spheres: ["Atmosphere", "Geosphere", "Biosphere", "Hydrosphere"], trivia: "Cows burp methane, and fertilizers release nitrous oxide - both are potent greenhouse gases that trap heat in our atmosphere!", systemShock: "Agricultural emissions contribute significantly to climate change, affecting weather patterns worldwide!" },
     { id: 5, cause: "Wildfires", causeIcon: "/environmentGameInfo/Cause&Effect/urbanization.png", correctEffect: "Ash contamination", correctSphere: "Hydrosphere", effects: ["Improved air quality", "Ash contamination", "Stronger tree roots", "More snow formation"], spheres: ["Hydrosphere", "Atmosphere", "Geosphere", "Biosphere"], trivia: "Wildfire ash washes into rivers and lakes, making water unsafe to drink and harming aquatic life!", systemShock: "Massive wildfires can contaminate water supplies for entire cities, creating long-term environmental damage!" },
   ];
+  
+  // 3. ADDED USEEFFECT FOR GEMINI API CALL
+  useEffect(() => {
+    if (currentPage === 'finished') {
+        const generateInsight = async () => {
+            setInsight("Fetching personalized insight...");
+            const accuracyScore = Math.round((score / questions.length) * 100);
+
+            const answersSummary = userAnswers.map(ans =>
+                `- For "${ans.cause}", user chose effect "${ans.userSequence[0]}" and sphere "${ans.userSequence[1]}", which was ${ans.isCorrect ? 'correct' : 'incorrect'}.`
+            ).join('\n');
+
+            const prompt = `
+A student played a game matching environmental causes to their 'effect' and the affected 'Earth system'. Here is their performance:
+
+Overall Score: ${score} out of ${questions.length} (${accuracyScore}%)
+
+Their Answers:
+${answersSummary}
+
+### INSTRUCTION ###
+Based on their performance, provide a short, encouraging, and holistic insight (about 20 words) on their understanding of interconnected Earth systems.
+If they achieved a perfect score, praise them as a master. 
+If they did well (>80%), praise their solid understanding and tell where they can improve to reach mastery.
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. 
+basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
+
+            try {
+                const response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                    { contents: [{ parts: [{ text: prompt }] }] }
+                );
+                const aiReply = response.data.candidates[0].content.parts[0].text;
+                const parsed = parsePossiblyStringifiedJSON(aiReply);
+                if (parsed && parsed.insight) {
+                    setInsight(parsed.insight);
+                } else {
+                    throw new Error("Failed to parse insight from AI response.");
+                }
+            } catch (err) {
+                console.error("Error fetching AI insight:", err);
+                const fallbackInsight = accuracyScore >= 80 ? "You're an Earth Systems Expert!" : "Great effort! Knowledge helps protect our planet.";
+                setInsight(fallbackInsight);
+            }
+        };
+        generateInsight();
+    }
+  }, [currentPage, score, questions.length, userAnswers]);
 
   const checkAnswer = () => {
     const currentQ = questions[currentQuestion];
@@ -321,14 +399,16 @@ const CauseEffectGame = () => {
       />
     );
   }
+  
+  // 4. UPDATED RENDER LOGIC FOR 'FINISHED' STATE
   if (currentPage === "finished") {
     const accuracyScore = Math.round((score / questions.length) * 100);
-    const isVictory = accuracyScore >= 70;
-    const insightText = accuracyScore >= 80 ? "You're an Earth Systems Expert!" : "Great effort! Knowledge helps protect our planet.";
+    const isVictory = accuracyScore >80;
+    // The hardcoded 'insightText' is removed. We now use the 'insight' state.
     return isVictory ? (
-      <VictoryScreen accuracyScore={accuracyScore} insight={insightText} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
+      <VictoryScreen accuracyScore={accuracyScore} insight={insight} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
     ) : (
-      <LosingScreen accuracyScore={accuracyScore} insight={insightText} onPlayAgain={resetGame} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
+      <LosingScreen accuracyScore={accuracyScore} insight={insight} onPlayAgain={resetGame} onViewFeedback={() => setCurrentPage("review")} onContinue={() => navigate("/")} />
     );
   }
   if (currentPage === "review") { return <ReviewScreen answers={userAnswers} onBackToResults={() => setCurrentPage("finished")} />; }

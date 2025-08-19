@@ -33,18 +33,18 @@ const InstructionsScreen = ({ onStartGame }) => {
           </div>
           <div className="w-auto flex flex-col items-center lg:items-start text-center lg:text-left order-2  mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You will be given a situation based </p>
-              <p className="mb-2">You have to measure and compare </p>
-              <p className="mb-2">its good and bad effects and choose</p>
-              <p className="mb-2">the final effect among the four options</p>
-            </div>
-            
+              <p className="mb-2">Pick a “Cause Card” like deforestation or farming.</p>
+              <p className="mb-2">Match it with the correct “Effect Tile".</p>
+              <p className="mb-2">Link effects to the right Earth sphere.</p>
+              <p className="mb-2">Build Cause → Effect → Sphere chain to win.</p>
+              <p className="mb-2">Wrong links trigger a “System Shock” consequence.</p>
+            </div>         
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
               <span className="lilita text-lg md:text-xl font-normal text-white tracking-wide">
                 LEARNING OUTCOME:
               </span>
-              <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Students experience the trade-offs and unexpected costs of real life.
+              <span className="block mt-1 text-sm md:text-base leading-snug">
+                Understand how one human activity creates ripple effects across Earth’s spheres.
               </span>
             </div>
           </div>

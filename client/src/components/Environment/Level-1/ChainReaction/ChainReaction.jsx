@@ -15,6 +15,7 @@ import {
     useDraggable,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import axios from "axios"; // 1. ADDED AXIOS IMPORT
 
 import IntroScreen from "./IntroScreen";
 import InstructionsScreen from "./InstructionsScreen";
@@ -36,6 +37,32 @@ const scrollbarHideStyle = `
 `;
 
 // =============================================================================
+// Gemini API Integration Helpers
+// =============================================================================
+const APIKEY = import.meta.env.VITE_API_KEY;
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
+
+
+// =============================================================================
 // Game Data & Config (No Changes)
 // =============================================================================
 const puzzles = [
@@ -52,14 +79,13 @@ const TIME_PER_PUZZLE = 60;
 // =============================================================================
 // Reusable End-Screen Components (Responsive - No Changes)
 // =============================================================================
+
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
     const { width, height } = useWindowSize();
     return (
-        // FIX: Changed to h-screen to lock the container height and prevent page scroll.
         <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
             <style>{scrollbarHideStyle}</style>
             <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
-            {/* FIX: Added overflow-y-auto and no-scrollbar to allow content to scroll internally if needed. */}
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
                 <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
                     <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
@@ -77,29 +103,28 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
                     <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
                         </div>
                     </div>
                 </div>
             </div>
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
 }
+
 function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
     return (
-        // FIX: Changed to h-screen to lock the container height and prevent page scroll.
         <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
             <style>{scrollbarHideStyle}</style>
-            {/* FIX: Added overflow-y-auto and no-scrollbar to allow content to scroll internally if needed. */}
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
                 <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
                 <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
                 <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
-                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
                     <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
@@ -110,20 +135,19 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
                     <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
                         <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
                         <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
-                            <span className="text-[#FFCC00] lilita-one-regular text-sm font-medium italic">{insight}</span>
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
                         </div>
                     </div>
                 </div>
             </div>
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
-                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
-                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-12 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
     );
 }
-
 function ReviewScreen({ answers, onBackToResults }) {
     return (
         <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center no-scrollbar">
@@ -148,8 +172,8 @@ function ReviewScreen({ answers, onBackToResults }) {
                     </div>
                 ))}
             </div>
-            <button 
-                onClick={onBackToResults} 
+            <button
+                onClick={onBackToResults}
                 className="
                     mt-6 px-8 py-3 
                     bg-yellow-600 
@@ -208,7 +232,7 @@ const DroppableSequenceSlot = React.memo(({ id, content, text }) => {
         <div ref={combinedRef} style={style} {...attributes} {...listeners} className="flex h-14 md:h-20 w-full items-center justify-center rounded-lg relative">
             {content ? (
                 <div className="flex h-full w-full items-center justify-center p-2 rounded-lg relative cursor-grab bg-[#131f24] border border-[#37464f] shadow-md">
-                  <span className="font-['Inter'] text-sm md:text-base font-medium text-[#f1f7fb] text-center">{content}</span>
+                    <span className="font-['Inter'] text-sm md:text-base font-medium text-[#f1f7fb] text-center">{content}</span>
                 </div>
             ) : (
                 <div className={`flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed ${isOver ? 'border-yellow-400 bg-yellow-400/10' : 'border-[#37464f]'} transition-colors`}>
@@ -268,11 +292,12 @@ function gameReducer(state, action) {
 const ChainReaction = () => {
     const navigate = useNavigate();
     const [state, dispatch] = useReducer(gameReducer, initialState);
-    
+
     const [availableCards, setAvailableCards] = useState([]);
     const [sequenceSlotsContent, setSequenceSlotsContent] = useState([]);
     const [activeId, setActiveId] = useState(null);
-    
+    const [insight, setInsight] = useState(""); // 2. ADDED INSIGHT STATE
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -303,7 +328,58 @@ const ChainReaction = () => {
         const timerId = setInterval(() => { dispatch({ type: "TICK" }); }, 1000);
         return () => clearInterval(timerId);
     }, [state.gameState, state.timeLeft, handleSubmit]);
-    
+
+    // 3. ADDED USEEFFECT FOR GEMINI API CALL
+    useEffect(() => {
+        if (state.gameState === "finished") {
+            const generateInsight = async () => {
+                setInsight("Fetching personalized insight...");
+                const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
+
+                const answersSummary = state.answers.map(ans =>
+                    `For the cause "${ans.cause}", the user answered "${ans.userSequence.join(' -> ')}" and it was ${ans.isCorrect ? 'correct' : 'incorrect'}.`
+                ).join('\n');
+
+                const prompt = `
+A student played a 'Chain Reaction' game about environmental cause and effect. Here is their performance summary:
+
+Overall Accuracy: ${accuracyScore}%
+Total Score: ${state.score} out of ${PERFECT_SCORE}
+
+Detailed Answers:
+${answersSummary}
+
+### INSTRUCTION ###
+Based on their performance, provide a short, encouraging, and educational insight (about 20-25 words) into their understanding of environmental chain reactions. If they did well, praise their logical thinking. 
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
+
+                try {
+                    const response = await axios.post(
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                        { contents: [{ parts: [{ text: prompt }] }] }
+                    );
+                    const aiReply = response.data.candidates[0].content.parts[0].text;
+                    const parsed = parsePossiblyStringifiedJSON(aiReply);
+                    if (parsed && parsed.insight) {
+                        setInsight(parsed.insight);
+                    } else {
+                        throw new Error("Failed to parse insight from AI response.");
+                    }
+                } catch (err) {
+                    console.error("Error fetching AI insight:", err);
+                    const fallbackInsight = accuracyScore >= 80 ? "Excellent grasp of cause and effect!" : "Good effort! Reviewing helps!";
+                    setInsight(fallbackInsight);
+                }
+            };
+            generateInsight();
+        }
+    }, [state.gameState, state.answers, state.score]);
+
+
     const handleDragStart = (event) => {
         setActiveId(event.active.id);
     };
@@ -315,14 +391,14 @@ const ChainReaction = () => {
 
         const { id: activeId } = active;
         const { id: overId } = over;
-        
+
         const newAvailableCards = [...availableCards];
         const newSequenceSlotsContent = JSON.parse(JSON.stringify(sequenceSlotsContent));
 
         const isDraggingFromAvailable = newAvailableCards.includes(activeId);
         const activeSequenceSlotIndex = newSequenceSlotsContent.findIndex(slot => slot.slotId === activeId);
         const isDraggingFromSequence = activeSequenceSlotIndex !== -1;
-        
+
         const overSequenceSlotIndex = newSequenceSlotsContent.findIndex(slot => slot.slotId === overId);
         const isDroppingOnSequence = overSequenceSlotIndex !== -1;
         const isDroppingOnAvailable = overId.toString().startsWith('available-cards-placeholder');
@@ -352,24 +428,28 @@ const ChainReaction = () => {
 
     if (state.gameState === "intro") return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
     if (state.gameState === "instructions") return <InstructionsScreen onStartGame={() => dispatch({ type: "START_GAME" })} />;
+    
+    // 4. UPDATED RENDER LOGIC FOR 'FINISHED' STATE
     if (state.gameState === "finished") {
         const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
         const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
-        let insightText = accuracyScore >= 80 ? "Excellent grasp of cause and effect!" : "Good effort! Reviewing helps!";
+        
+        // The insight is now taken from the state, not hardcoded here.
         return isVictory
-            ? <VictoryScreen accuracyScore={accuracyScore} insight={insightText} onViewFeedback={() => dispatch({type: 'REVIEW_GAME'})} onContinue={() => navigate('/environmental/games')} />
-            : <LosingScreen accuracyScore={accuracyScore} insight={insightText} onPlayAgain={() => dispatch({ type: 'RESET_GAME'})} onViewFeedback={() => dispatch({type: 'REVIEW_GAME'})} onContinue={() => navigate('/environmental/games')} />;
+            ? <VictoryScreen accuracyScore={accuracyScore} insight={insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={() => navigate('/environmental/games')} />
+            : <LosingScreen accuracyScore={accuracyScore} insight={insight} onPlayAgain={() => dispatch({ type: 'RESET_GAME' })} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={() => navigate('/environmental/games')} />;
     }
+    
     if (state.gameState === "review") return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
 
     const currentPuzzle = puzzles[state.currentPuzzleIndex];
     if (state.gameState === 'playing' && !currentPuzzle) return <div className="text-white bg-[#202f36] flex items-center justify-center h-screen">Loading...</div>;
 
     const isSubmitEnabled = sequenceSlotsContent.every(item => item.id !== null);
-    
+
     let activeDragItemContent = null;
-    if(activeId) {
-        if(availableCards.includes(activeId)) {
+    if (activeId) {
+        if (availableCards.includes(activeId)) {
             activeDragItemContent = activeId;
         } else {
             const activeSlot = sequenceSlotsContent.find(s => s.slotId === activeId);
@@ -396,8 +476,8 @@ const ChainReaction = () => {
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center justify-center md:gap-4 md:mt-4">
-                         <img src={currentPuzzle.image} alt="Cause" className="w-24 h-24 object-contain" />
-                         <div className="relative flex items-center">
+                        <img src={currentPuzzle.image} alt="Cause" className="w-24 h-24 object-contain" />
+                        <div className="relative flex items-center">
                             <div className="flex h-16 justify-center items-center bg-[#131f24] rounded-lg border border-[#37464f] px-6 shadow-md">
                                 <span className="font-['Inter'] text-base md:text-lg font-medium text-[#f1f7fb] text-center">
                                     {currentPuzzle.cause}
