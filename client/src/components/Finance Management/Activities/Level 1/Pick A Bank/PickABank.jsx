@@ -628,9 +628,9 @@ export default function PickABank() {
                         <p className="text-black text-sm font-extrabold mb-1 mt-2">
                           INSIGHT
                         </p>
-                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center overflow-hidden">
+                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 py-1 text-center overflow-hidden">
                           <span
-                            className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
+                            className="text-[#FFCC00] font-bold leading-tight"
                             style={{
                               fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
                               lineHeight: "1.1",
