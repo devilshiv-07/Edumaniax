@@ -406,7 +406,7 @@ Constraints -
 
   // Next Challenge Handler
   const handleNextChallenge = () => {
-    navigate("/budget-activity"); // ensure `useNavigate()` is defined
+    navigate("/pick-a-bank"); // ensure `useNavigate()` is defined
   };
 
   if (isGameOver) {
@@ -772,40 +772,39 @@ Constraints -
                 </h2>
 
                 {/* Accuracy + Insight Boxes */}
-                <div className="mt-6 flex flex-col items-center sm:flex-row sm:items-start sm:gap-4">
+                <div className="mt-6 flex flex-col items-center justify-center sm:flex-row sm:items-stretch sm:gap-4">
                   {/* Accuracy Box */}
-                  <div className="bg-[#09BE43] rounded-xl p-1 flex flex-col items-center w-64">
+                  <div className="bg-[#09BE43] rounded-xl p-1 flex flex-col items-center w-64 flex-1">
                     <p className="text-black text-sm font-bold mb-1 mt-2">
                       TOTAL ACCURACY
                     </p>
-                    <div className="bg-[#131F24] mt-0 w-63 h-16 rounded-xl flex items-center justify-center py-3 px-5">
+                    <div className="bg-[#131F24] mt-0 flex-1 rounded-xl flex items-center justify-center py-3 px-5 w-full">
                       <img
                         src="/financeGames6to8/accImg.svg"
                         alt="Target Icon"
-                        className="w-6 h-6 mr-2"
+                        className="w-8 h-8 mr-2"
                       />
-                      <span className="text-[#09BE43] text-xl font-extrabold">
+                      <span className="text-[#09BE43] text-3xl font-extrabold">
                         {parseInt(result?.spendingScore?.split("/")[0]) * 10}%
                       </span>
                     </div>
                   </div>
 
                   {/* Insight Box */}
-                  <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
+                  <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74 flex-1">
                     <p className="text-black text-sm font-bold mb-1 mt-2">
                       INSIGHT
                     </p>
-                    <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center overflow-hidden">
-                      <span
-                        className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
+                    <div className="bg-[#131F24] mt-0 flex-1 rounded-xl flex items-center justify-center px-4 text-center py-0.8 w-full">
+                      <p
+                        className="text-[#FFCC00] font-bold leading-relaxed"
                         style={{
                           fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
-                          lineHeight: "1.1",
                           whiteSpace: "normal",
                         }}
                       >
                         {result?.tip || "Analyzing your results..."}
-                      </span>
+                      </p>
                     </div>
                   </div>
                 </div>
