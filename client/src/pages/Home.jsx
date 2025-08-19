@@ -2153,7 +2153,7 @@ const Home = () => {
                   src="/heroIMG.png"
                   alt="Full"
                   className={`absolute inset-0 w-full h-full object-cover ${
-                    isZoomed ? "scale-80 mt-14" : "scale-100 mt-0"}`}
+                    isZoomed ? "scale-80 mt-12" : "scale-100 mt-0"}`}
                 />
               </div>
             </div>
