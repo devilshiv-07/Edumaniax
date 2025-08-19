@@ -14,7 +14,6 @@ import PickABank from "./components/Finance Management/Activities/Level 1/Pick A
 import OverspendTrap from "./components/Finance Management/Activities/Level 1/OverspendTrap/OverspendTrap.jsx";
 import BudgetActivity from "./components/Finance Management/Activities/Level 1/BudgetActivity/BudgetActivity.jsx";
 import BudgetBuilder from "./components/Finance Management/Activities/Level 1/Budeget Builder/BudgetBuilder.jsx";
-import CreditCardSimulator from "./components/Finance Management/Activities/Level 2/CreditCardSimulator.jsx";
 import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSimulator.jsx";
 import Adaptive_Learning_Quiz from "./components/assessment_tools/Adaptive_Learning_Quiz.jsx";
 import Finance from "./pages/Finance.jsx";
@@ -316,7 +315,7 @@ import SingleBlog from "./pages/SingleBlog";
 import CreateBlog from "./pages/CreateBlog";
 import Pricing from "./pages/Pricing";
 import Register from "./pages/Register";
-
+import CreditCardSimulator from "./components/Finance Management/Activities/Level 2/CreditCardSimulator/CreditCardSimulator";
 
 const INTRO_EXPIRY_HOURS = 0.5; // Change this to 1 for 1 hour, 0.1 for 6 minutes, etc.
 
@@ -567,7 +566,6 @@ function AppContent() {
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/sales" element={<SalesLogin />} />
           <Route path="/sales/dashboard" element={<SalesDashboard />} />
-         
 
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/payment" element={<Payment />} />
@@ -835,7 +833,10 @@ function AppContent() {
           {/* level 2*/}
           <Route path="/communication-lab" element={<CommunicationLab />} />
           <Route path="/empathy-radar" element={<EmpathyRadarGame />} />
-          <Route path="/kind-words-challenge" element={<KindWordsChallenge />} />
+          <Route
+            path="/kind-words-challenge"
+            element={<KindWordsChallenge />}
+          />
 
           {/* level 3*/}
           <Route path="/decision-room" element={<DecisionRoom />} />
