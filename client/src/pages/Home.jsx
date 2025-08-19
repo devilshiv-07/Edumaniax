@@ -2128,7 +2128,7 @@ const Home = () => {
                 {user ? (
                   <button
                     onClick={() => navigate("/dashboard?section=modules")}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-8 py- sm:py-3 rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
+                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-2 sm:py- lg:px-5 lg:py-3 xl:px-8  rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
                   >
                     Continue Reading
                   </button>
