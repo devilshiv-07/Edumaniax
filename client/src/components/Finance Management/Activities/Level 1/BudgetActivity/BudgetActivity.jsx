@@ -371,9 +371,9 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
                 <p className="text-black text-sm font-extrabold mb-1 mt-2">
                   INSIGHT
                 </p>
-                <div className="bg-[#131F24] w-73 rounded-xl flex items-center justify-center px-4 py-3 text-center">
+                <div className="bg-[#131F24] w-73 rounded-xl flex items-center justify-center px-4 py-1 text-center">
                   <span
-                    className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
+                    className="text-[#FFCC00] font-bold leading-tight"
                     style={{
                       fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
                       lineHeight: "1.1",
