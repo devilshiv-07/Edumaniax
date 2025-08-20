@@ -1,5 +1,5 @@
 // CreditCardSimulator.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
 import {
@@ -18,6 +18,8 @@ import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
 import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import InstructionOverlay from "./InstructionOverlay";
 
 const items = [
   { name: "📱 Smartphone", cost: 9000 },
@@ -53,6 +55,9 @@ export default function CreditCardSimulator() {
   const { updatePerformance } = usePerformance(); // for performance
   const [startTime, setStartTime] = useState(Date.now()); // for performance
   const [showIntro, setShowIntro] = useState(true);
+  const navigate = useNavigate(); // ensure `useNavigate()` is defined
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   const handlePurchase = (item) => {
     setSelectedItem(item);
@@ -162,6 +167,15 @@ export default function CreditCardSimulator() {
     return <IntroScreen />;
   }
 
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/emi-vs-lumpsum"); // ensure `useNavigate()` is defined
+  };
+
   return (
     <>
       <GameNav />
@@ -258,58 +272,123 @@ export default function CreditCardSimulator() {
               </>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-center text-green-600 lilita-one-regular mb-4">
-                  🎉 Payment Complete!
-                </h2>
-                <div className="bg-gradient-to-r from-indigo-100 to-blue-100 p-4 rounded-xl">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" stroke="#333" />
-                      <YAxis stroke="#333" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar
-                        dataKey="amount"
-                        fill="#6366f1"
-                        radius={[10, 10, 0, 0]}
+                <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col">
+                  {/* Scrollable center content */}
+                  <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+                    {/* Trophy GIFs (unchanged size) */}
+                    <div className="relative w-64 h-64 flex items-center justify-center">
+                      <img
+                        src="/financeGames6to8/trophy-rotating.gif"
+                        alt="Rotating Trophy"
+                        className="absolute w-full h-full object-contain"
                       />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                      <img
+                        src="/financeGames6to8/trophy-celebration.gif"
+                        alt="Celebration Effects"
+                        className="absolute w-full h-full object-contain"
+                      />
+                    </div>
 
-                <div className="mt-4 text-center">
-                  <p className="font-semibold text-white lilita-one-regular">
-                    Total Paid: ₹{totalPaid.toLocaleString()}
-                  </p>
-                  <p className="text-red-500 lili">
-                    Extra Paid: ₹
-                    {(totalPaid - selectedItem.cost).toLocaleString()}
-                  </p>
-                </div>
+                    {/* Challenge Complete Text */}
+                    <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                      🎉 Payment Complete!
+                    </h2>
 
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={() => {
-                      setSelectedItem(null);
-                      setUserPayments([]);
-                      setDebt(0);
-                      setMonth(1);
-                      setEmiDone(false);
-                      setMinDone(false);
-                      setPaymentMethod(null);
-                      setRemainingPrincipal(0);
-                      setStartTime(Date.now());
-                    }}
-                    className="bg-purple-600 text-white px-6 py-2 rounded-full hover:bg-purple-700"
-                  >
-                    🔁 Try Again
-                  </button>
+                    {/* Chart Section (slightly smaller height) */}
+                    <div className="bg-gradient-to-r from-indigo-100 to-blue-100 p-4 rounded-xl mt-6 w-full max-w-2xl">
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" stroke="#333" />
+                          <YAxis stroke="#333" />
+                          <Tooltip />
+                          <Legend />
+                          <Bar
+                            dataKey="amount"
+                            fill="#6366f1"
+                            radius={[10, 10, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Payment Summary */}
+                    <div className="mt-4 text-center">
+                      <p className="font-semibold text-white lilita-one-regular">
+                        Total Paid: ₹{totalPaid.toLocaleString()}
+                      </p>
+                      <p className="text-red-500 lili">
+                        Extra Paid: ₹
+                        {(totalPaid - selectedItem.cost).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Insight Box */}
+                    <div className="mt-6 flex flex-col items-center sm:flex-row sm:items-start sm:gap-4">
+                      <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
+                        <p className="text-black text-sm font-extrabold mb-1 mt-2">
+                          INSIGHT
+                        </p>
+                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 py-1 text-center overflow-hidden">
+                          <span
+                            className="text-[#FFCC00] font-bold leading-tight"
+                            style={{
+                              fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
+                              lineHeight: "1.1",
+                              whiteSpace: "normal",
+                            }}
+                          >
+                            Smart choice! Paying extra reduced your debt faster
+                            🚀
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Buttons */}
+                  <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                    <img
+                      src="/financeGames6to8/feedback.svg"
+                      alt="Feedback"
+                      onClick={handleViewFeedback}
+                      className="cursor-pointer w-34 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/next-challenge.svg"
+                      alt="Next Challenge"
+                      onClick={handleNextChallenge}
+                      className="cursor-pointer w-34 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/retry.svg"
+                      alt="Retry"
+                      onClick={() => {
+                        setSelectedItem(null);
+                        setUserPayments([]);
+                        setDebt(0);
+                        setMonth(1);
+                        setEmiDone(false);
+                        setMinDone(false);
+                        setPaymentMethod(null);
+                        setRemainingPrincipal(0);
+                        setStartTime(Date.now());
+                      }}
+                      className="cursor-pointer w-34 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
                 </div>
               </>
             )}
           </div>
         </div>
+
+        {/* Instructions overlay */}
+        {showInstructions && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+            <InstructionOverlay onClose={() => setShowInstructions(false)} />
+          </div>
+        )}
       </div>
     </>
   );

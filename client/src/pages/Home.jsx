@@ -1479,6 +1479,7 @@ const Home = () => {
   const [userPlan, setUserPlan] = useState(null);
   const { user } = useAuth();
   const [showScroll, setShowScroll] = useState(false);
+  
   useEffect(() => {
     const fetchUserSubscriptions = async () => {
       if (!user?.id) return;
@@ -1970,6 +1971,7 @@ const Home = () => {
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, testimonials.length]);
+  
 
   // Mobile autoplay for Feature 2
   useEffect(() => {
@@ -2067,12 +2069,12 @@ const Home = () => {
         />
 
         {/* Hero Section */}
-        <section className="relative h-[100vh] sm:h-[100vh] lg:h-[100vh] w-full p-0 ">
-          <div className="w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover  bg-center bg-no-repeat">
+        <section className="relative h-[80vh] sm:min-h-[100vh] w-full p-0 ">
+          <div className={`w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover  bg-center bg-no-repeat `}>
             <Navbar />
             <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap  sm:mt-6 xl:mt-6  flex-col items-center text-center px-4 sm:px-6">
               {/* Trust Badge */}
-              <div className="mb-3 sm:mb-5 pt-3 sm:pt-0 mt-3 sm:mt-0 md:mt- md:mb-2">
+              <div className="mb-6 sm:mb-5 pt-3 sm:pt-0 mt-7 sm:mt-0 md:mb-2">
                 <div className="bg-black backdrop-blur-sm rounded-full px-2 sm:px-3 py-1  sm:mt- border border-white/20">
                   <span className="text-white text-xs sm:text-sm flex items-center gap-2">
                     ⭐ Loved by 1K+ users worldwide
@@ -2081,15 +2083,15 @@ const Home = () => {
               </div>
 
               {/* Main Heading */}
-              <div className="mb-2 sm:mb-0 md:-mb-0 lg:-mb-3 xl:-mb-0">
+              <div className="mb-5 sm:mb-0 md:-mb-0 lg:-mb-3 xl:-mb-0">
                 <h1
-                  className="text-white text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-tight"
+                  className="text-white text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed sm:leading-tight"
                   style={{ fontFamily: '"Sigmar", sans-serif' }}
                 >
                   Master AI, Finance, Law
                 </h1>
                 <h1
-                  className="text-white flex text-2xl ml-8 sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl  leading-tight"
+                  className="text-white flex text-2xl ml-8 sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed  sm:leading-tight"
                   style={{ fontFamily: '"Sigmar", sans-serif' }}
                 >
                   With a Twist of Fun{" "}
@@ -2104,14 +2106,14 @@ const Home = () => {
               </div>
 
               {/* Subtitle */}
-              <p className="text-white/90 text-sm sm:text-base md:text-base max-w-4xl mx-4 sm:mx-20 lg:mt- xl:mt-3 xl:mb-3 lg:mx-60 mb-4 sm:mb- leading-tight">
+              <p className="text-white/90 tracking-wide text-sm sm:text-base md:text-base max-w-4xl mx-4 sm:mx-20 lg:mt- xl:mt-3 xl:mb-3 lg:mx-60 mb-10 sm:mb- leading-relaxed sm:leading-tight">
                 Explore Artificial Intelligence, Machine Learning,
                 Communication, Coding, and more through interactive games,
                 real-world challenges, and bite-sized notes
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0">
+              <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8  sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0 `}>
                 <button
                   onClick={() => navigate(user ? "/pricing" : "/courses")}
                   className="bg-white text-black font-semibold px-4 sm:px-5 py-2 sm:py- lg:px-5 lg:py-3 xl:px-8 rounded-md transition duration-300 cursor-pointer text-sm sm:text-sm hover:bg-gray-100"
@@ -2150,7 +2152,8 @@ const Home = () => {
                 <img
                   src="/heroIMG.png"
                   alt="Full"
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className={`absolute inset-0 w-full h-full object-cover ${
+                    isZoomed ? "scale-80 mt-12" : "scale-100 mt-0"}`}
                 />
               </div>
             </div>
