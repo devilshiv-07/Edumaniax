@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -8,9 +8,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useFinance } from "../../../../contexts/FinanceContext";
+import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
-
+import IntroScreen from "./IntroScreen";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -55,7 +55,19 @@ const EmiVsLumpSum = () => {
 
   // for performance
   const { updatePerformance } = usePerformance();
- const [startTime,setStartTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const data = [
     { name: "Lump Sum", cost: lumpSumTotal, extra: 0 },
@@ -114,11 +126,9 @@ feedback : "Your feedback"
           completed: true,
           avgResponseTimeSec: totalTimeSec / 2,
           studyTimeMinutes: Math.ceil(totalTimeSec / 60),
-         
         });
         setStartTime(Date.now());
       }
-
     } catch (err) {
       setError("Error fetching feedback. Try again later");
       console.log(err);
@@ -156,10 +166,11 @@ feedback : "Your feedback"
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
               <button
                 aria-pressed={selectedOption === "A"}
-                className={`p-5 rounded-lg shadow-md transition-all ${selectedOption === "A"
-                  ? "bg-green-100 border-2 border-green-600"
-                  : "bg-white hover:bg-green-50"
-                  }`}
+                className={`p-5 rounded-lg shadow-md transition-all ${
+                  selectedOption === "A"
+                    ? "bg-green-100 border-2 border-green-600"
+                    : "bg-white hover:bg-green-50"
+                }`}
                 onClick={() => setSelectedOption("A")}
               >
                 <h2 className="text-lg font-semibold text-green-800 mb-2">
@@ -176,10 +187,11 @@ feedback : "Your feedback"
 
               <button
                 aria-pressed={selectedOption === "B"}
-                className={`p-5 rounded-lg shadow-md transition-all ${selectedOption === "B"
-                  ? "bg-blue-100 border-2 border-blue-600"
-                  : "bg-white hover:bg-blue-50"
-                  }`}
+                className={`p-5 rounded-lg shadow-md transition-all ${
+                  selectedOption === "B"
+                    ? "bg-blue-100 border-2 border-blue-600"
+                    : "bg-white hover:bg-blue-50"
+                }`}
                 onClick={() => setSelectedOption("B")}
               >
                 <h2 className="text-lg font-semibold text-blue-800 mb-2">
@@ -211,10 +223,11 @@ feedback : "Your feedback"
               />
               <button
                 disabled={notAllowed()}
-                className={`mt-4 ${notAllowed()
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer"
-                  } bg-yellow-400 text-yellow-900 px-4 py-2 rounded shadow hover:bg-yellow-500 transition-all`}
+                className={`mt-4 ${
+                  notAllowed()
+                    ? "cursor-not-allowed opacity-50"
+                    : "cursor-pointer"
+                } bg-yellow-400 text-yellow-900 px-4 py-2 rounded shadow hover:bg-yellow-500 transition-all`}
                 onClick={handleSubmit}
               >
                 Submit

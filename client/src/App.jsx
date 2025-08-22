@@ -17,7 +17,7 @@ import BudgetBuilder from "./components/Finance Management/Activities/Level 1/Bu
 import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSimulator.jsx";
 import Adaptive_Learning_Quiz from "./components/assessment_tools/Adaptive_Learning_Quiz.jsx";
 import Finance from "./pages/Finance.jsx";
-import EmiVsLumpSum from "./components/Finance Management/Activities/Level 2/EmiVsLumpSum.jsx";
+import EmiVsLumpSum from "./components/Finance Management/Activities/Level 2/EmiVsLumpSum/EmiVsLumpSum.jsx";
 import NewsFlash from "./components/Finance Management/Activities/Level 3/NewsFlash.jsx";
 import RiskOMeter from "./components/Finance Management/Activities/Level 3/RiskOMeter.jsx";
 import Challenge3 from "./components/Finance Management/Activities/Level 2/Challenge3.jsx";
