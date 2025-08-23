@@ -100,7 +100,7 @@ const GameNav = () => {
 
       {/* ===== TITLE ===== */}
       <h1 className="text-yellow-400 py-1 sm:py-2 lilita-one-regular text-xl sm:text-3xl md:text-4xl font-extrabold text-center leading-tight sm:leading-normal">
-        Credit Card Simulator
+        EMI vs Lump Sum
       </h1>
 
       {/* ===== RIGHT SECTION ===== */}
