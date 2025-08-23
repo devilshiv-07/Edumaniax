@@ -326,9 +326,10 @@ ${answersSummary}
 
 ### INSTRUCTION ###
 Provide a short, holistic insight (about 20 words) on their overall understanding of the Carbon Cycle.
-- If they scored 100%, praise them as a "Carbon Cycle expert".
-- If they scored well (>=70%), acknowledge their solid knowledge.
-- If they struggled, encourage them, noting the topic's complexity, and suggest reviewing the answers to connect the concepts.
+If they achieved a perfect score, praise them as "Carbon Cycle Expert" for their knowledge. 
+If they did well (>80%), praise their solid understanding and tell where they can improve to reach mastery.
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. 
+basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
 
 Return ONLY a raw JSON object in the following format (no backticks, no markdown):
 {

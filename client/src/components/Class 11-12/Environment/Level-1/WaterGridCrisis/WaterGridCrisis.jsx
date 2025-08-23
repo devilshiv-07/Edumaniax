@@ -1,415 +1,566 @@
-import React, { useState } from "react";
-import confetti from "canvas-confetti";
-import { useEnvirnoment } from "@/contexts/EnvirnomentContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import React, { useState, useEffect, useMemo } from "react";
+import Confetti from "react-confetti";
+import useWindowSize from "react-use/lib/useWindowSize";
+import GameNav from "./GameNav";
+import Checknow from "@/components/icon/GreenBudget/Checknow";
+import IntroScreen from "./IntroScreen";
+import InstructionsScreen from "./InstructionsScreen";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-// Reuse your GIFs:
-const introGif =
-  "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmxwY2didGF4ZTZpZnByYmVkNXo5ZmZjM3lmMjVhbmx6eXJlYmYyMiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/jOmQmJkjcvB3Bc8CRb/200.webp";
+const useEnvirnoment = () => ({
+  completeEnvirnomentChallenge: (challengeId, taskId) => {
+    console.log(
+      `(Mock) Environment Challenge ${challengeId}, Task ${taskId} completed!`
+    );
+  },
+});
 
-const successGif =
-  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmNsN3Qyb3ZvaDhhemRteDBtMzhwcDEwZTJlbGl0MWJ3eDF4OGg0eCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/IUZtGhVO8hZ6w/200.webp";
+const usePerformance = () => ({
+  updateEnvirnomentPerformance: (data) => {
+    console.log("(Mock) Performance updated:", data);
+  },
+});
 
-const failGif =
-  "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjMzYTB4bWw1OGtjZW1icHVxb3Y0OHVtc24zYjMwaTVtdHh5M2tsbiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/VL48WGMDjD64umCEkv/200.webp";
+const APIKEY = import.meta.env.VITE_API_KEY;
 
-const correctGif =
-  "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExODBlaDZlejVqMHByZzhoaHM2Z2RtemYxZ2M0bG1iZ3Y5azFuZHVvayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/LRNxdA0soqs09YWa4F/giphy.webp";
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text
+            .replace(/^```(json)?/, "")
+            .replace(/```$/, "")
+            .trim();
+    }
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
 
-const wrongGif =
-  "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZXplbml5ejhiMjNieHBnNHdkYXZ4czVkeDVnNWJ6OHlzbjAwbnJwNSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3s298sv3aevOC4fktQ/200.webp";
+const gameData = {
+  q1: {
+    id: 1,
+    type: "single",
+    title: "🌫️ Q1: Missing Flowchart Step",
+    prompt: "Flow: Evaporation → ? → Precipitation → Infiltration",
+    options: ["Condensation", "Runoff", "Transpiration"],
+    correctAnswer: "Condensation",
+  },
+  q2: {
+    id: 2,
+    type: "multi-select-2",
+    title: "🌆 Q2: Urban Scenario",
+    prompt:
+      "A city replaced wetlands, leading to heavy flooding and groundwater loss. Which 2 steps of the water cycle are most disrupted?",
+    options: ["Transpiration", "Infiltration", "Runoff", "Ocean absorption"],
+    correctAnswers: ["Infiltration", "Runoff"],
+  },
+  q3: {
+    id: 3,
+    type: "multi-select-2",
+    title: "💦 Q3: Action Time",
+    prompt: "Pick 2 urgent fixes for the city’s water crisis:",
+    options: [
+      "Build more dams",
+      "Ban borewells",
+      "Restore green recharge zones",
+      "Introduce rainwater harvesting",
+    ],
+    correctAnswers: [
+      "Restore green recharge zones",
+      "Introduce rainwater harvesting",
+    ],
+  },
+  q4: {
+    id: 4,
+    type: "single",
+    title: "🎉 Q4: FINAL ESCAPE PUZZLE",
+    prompt: `“I move through plants but don't have leaves,
+I cycle through rocks but never grieves,
+You broke my flow but made amends —
+Now Earth can breathe and life extends.”`,
+    options: ["Photosynthesis", "Biogeochemical Cycle", "Hydraulic Pump"],
+    correctAnswer: "Biogeochemical Cycle",
+  },
+};
 
-const WaterGridCrisis = () => {
+const gameSteps = ["q1", "q2", "q3", "q4"];
+
+// =============================================================================
+// Child Components (CORRECTED)
+// =============================================================================
+
+function SingleChoiceQuestion({ question, selectedAnswer, setSelectedAnswer }) {
+  return (
+    <div className="w-full max-w-3xl bg-gray-800/30 rounded-xl p-6 md:p-10 inter-font">
+      <div className="flex flex-col justify-center items-start gap-10">
+        <div className="px-1 flex flex-col justify-center items-start gap-2">
+          <h2 className="text-slate-100 text-xl md:text-2xl font-medium leading-9 whitespace-pre-wrap">
+            {question.title}
+          </h2>
+          <p className="text-slate-100 text-xs md:text-base font-semibold leading-relaxed whitespace-pre-wrap">
+            {question.prompt}
+          </p>
+        </div>
+        <div className="self-stretch flex flex-col justify-start items-start gap-4">
+          {question.options.map((option) => {
+            const isSelected = selectedAnswer === option;
+            return (
+              <div
+                key={option}
+                onClick={() => setSelectedAnswer(option)}
+                className={`self-stretch lg:min-h-[60px] px-6 py-3 lg:py-0 rounded-xl shadow-[0px_2px_0px_0px_rgba(55,70,79,1.00)] border flex items-center cursor-pointer transition-all
+                  ${
+                    isSelected
+                      ? "bg-[#202f36] border-[#5f8428] shadow-[0_2px_0_0_#5f8428]"
+                      : "bg-gray-900 border-gray-700 hover:bg-gray-800"
+                  }`}
+              >
+                <span
+                  className={`text-sm lg:text-base font-medium leading-relaxed ${
+                    isSelected ? "text-[#79b933]" : "text-slate-100"
+                  }`}
+                >
+                  {option}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MultiSelectQuestion({ question, selectedAnswers, setSelectedAnswers }) {
+    const handleSelect = (option) => {
+        let newAnswers;
+        // Check if the option is already selected
+        if (selectedAnswers.includes(option)) {
+            // If so, create a new array without that option
+            newAnswers = selectedAnswers.filter(item => item !== option);
+        } else if (selectedAnswers.length < 2) {
+            // If not selected and less than 2 are selected, add it
+            newAnswers = [...selectedAnswers, option];
+        } else {
+            // Otherwise (2 items already selected), do nothing
+            newAnswers = selectedAnswers;
+        }
+        // Call the parent's update function with the final, calculated array
+        setSelectedAnswers(newAnswers);
+    };
+
+  return (
+    <div className="w-full max-w-3xl bg-gray-800/30 rounded-xl p-6 md:p-10 inter-font">
+      <div className="flex flex-col justify-center items-start gap-10">
+        <div className="px-1 flex flex-col justify-center items-start gap-2">
+          <h2 className="text-slate-100 text-xl md:text-2xl font-medium leading-9">
+            {question.title}
+          </h2>
+          <p className="text-slate-100 text-xs md:text-base font-semibold leading-relaxed">
+            {question.prompt}
+          </p>
+        </div>
+        <div className="self-stretch flex flex-col justify-start items-start gap-4">
+          {question.options.map((option) => {
+            const isSelected = selectedAnswers.includes(option);
+            return (
+              <div
+                key={option}
+                onClick={() => handleSelect(option)}
+                className={`self-stretch lg:min-h-[60px] px-6 py-3 lg:py-0 rounded-xl shadow-[0px_2px_0px_0px_rgba(55,70,79,1.00)] border flex items-center cursor-pointer transition-all
+                  ${
+                    isSelected
+                      ? "bg-[#202f36] border-[#5f8428] shadow-[0_2px_0_0_#5f8428]"
+                      : "bg-gray-900 border-gray-700 hover:bg-gray-800"
+                  }`}
+              >
+                <span
+                  className={`text-sm lg:text-base font-medium leading-relaxed ${
+                    isSelected ? "text-[#79b933]" : "text-slate-100"
+                  }`}
+                >
+                  {option}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+`;
+
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accuracyScore }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-xs font-semibold tracking-wide">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ reviewData, onBackToResults }) {
+    return (
+      <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center inter-font">
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}</style>
+        <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 shrink-0">Review Your Answers</h1>
+        <div className="flex-grow w-full overflow-y-auto no-scrollbar">
+            <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-2">
+                {gameSteps.map(questionKey => {
+                    const question = gameData[questionKey];
+                    const result = reviewData[questionKey];
+                    const userAnswer = Array.isArray(result.userAnswer) 
+                        ? result.userAnswer.join(', ') 
+                        : result.userAnswer;
+                    const correctAnswer = Array.isArray(question.correctAnswer || question.correctAnswers)
+                        ? (question.correctAnswer || question.correctAnswers).join(', ')
+                        : question.correctAnswer;
+
+                    return (
+                        <div key={question.id} className={`p-4 rounded-xl flex flex-col ${result.isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+                            {/* Title */}
+                            <p className="text-gray-200 text-lg mb-1 font-bold">{question.title}</p>
+                            
+                            {/* Prompt/Scenario (Newly Added) */}
+                            <p className="text-gray-400 text-xs mb-4 font-medium whitespace-pre-wrap border-l-2 border-gray-600 pl-2">
+                                {question.prompt}
+                            </p>
+                            
+                            {/* Answer Section (pushed to the bottom) */}
+                            <div className="text-sm space-y-1 ">
+                                <p className="font-semibold">Your Answer:</p>
+                                <p className={`break-words ${result.isCorrect ? 'text-green-300' : 'text-red-300'}`}>{userAnswer || "Not Answered"}</p>
+                                    <>
+                                        <p className="font-semibold pt-2">Correct Answer:</p>
+                                        <p className="text-green-300 break-words">{correctAnswer}</p>
+                                    </>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+        <button onClick={onBackToResults} className="mt-6 px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-b-0 shadow-lg">
+          Back to Results
+        </button>
+      </div>
+    );
+}
+// =============================================================================
+// Main Game Component (Unchanged)
+// =============================================================================
+
+export default function WaterGridCrisis() { // Renamed component
   const { completeEnvirnomentChallenge } = useEnvirnoment();
-  const [page, setPage] = useState("intro");
-  const [step, setStep] = useState(1);
+  const { updateEnvirnomentPerformance } = usePerformance();
+  const navigate = useNavigate();
 
-  // Q1
-  const [q1, setQ1] = useState("");
-  const [q1Correct, setQ1Correct] = useState(null);
+  const [gameState, setGameState] = useState("intro");
+  const [introStep, setIntroStep] = useState("first"); 
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [insight, setInsight] = useState("");
+  
+  const [answers, setAnswers] = useState({
+    q1: null,
+    q2: [],
+    q3: [],
+    q4: null,
+  });
+  const [finalResults, setFinalResults] = useState(null);
 
-  // Q2
-  const [q2, setQ2] = useState([]);
-  const [q2Correct, setQ2Correct] = useState(null);
+  // Gemini API Call useEffect
+  useEffect(() => {
+    if (gameState === 'end' && finalResults) {
+        const generateInsight = async () => {
+            setInsight("Fetching personalized insight...");
+            
+            const answersSummary = gameSteps.map(key => 
+                `- ${gameData[key].title}: ${finalResults.review[key].isCorrect ? 'Correct' : 'Incorrect'}`
+            ).join('\n');
 
-  // Q3
-  const [q3, setQ3] = useState([]);
-  const [q3Correct, setQ3Correct] = useState(null);
+            const prompt = `
+A student completed a 4-part quiz on the Water Cycle and environmental problem-solving. Here is their performance:
 
-  // Final Riddle
-  const [riddle, setRiddle] = useState("");
-  const [riddleCorrect, setRiddleCorrect] = useState(null);
+- Overall Accuracy: ${finalResults.accuracy}%
+- Part-by-part results:
+${answersSummary}
 
-  const [final, setFinal] = useState(null);
-  //for performance
-  const { updatePerformance } = usePerformance();
-  const [startTime,setStartTime] = useState(Date.now());
+### INSTRUCTION ###
+Provide a short, holistic insight (about 20 words) on their overall understanding of human impact on the water cycle.
+If they achieved a perfect score, praise them as "Hydrology Hero" for mastering the concepts. 
+If they did well (>80%), praise their solid understanding and tell where they can improve to reach mastery.
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. 
+basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
 
+Return ONLY a raw JSON object in the following format (no backticks, no markdown):
+{
+  "insight": "Your insightful and encouraging feedback here."
+}`;
 
-  const resetGame = () => {
-    setStep(1);
-    setQ1("");
-    setQ1Correct(null);
-    setQ2([]);
-    setQ2Correct(null);
-    setQ3([]);
-    setQ3Correct(null);
-    setRiddle("");
-    setRiddleCorrect(null);
-    setFinal(null);
-    setPage("intro");
-    setStartTime(Date.now());
+            try {
+                const response = await axios.post(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                    { contents: [{ parts: [{ text: prompt }] }] }
+                );
+                const aiReply = response.data.candidates[0].content.parts[0].text;
+                const parsed = parsePossiblyStringifiedJSON(aiReply);
+                if (parsed && parsed.insight) {
+                    setInsight(parsed.insight);
+                } else {
+                    throw new Error("Failed to parse insight from AI response.");
+                }
+            } catch (err) {
+                console.error("Error fetching AI insight:", err);
+                // Fallback to hardcoded insights
+                let fallbackInsight = "";
+                if (finalResults.accuracy === 100) {
+                    fallbackInsight = "Perfect score! You're a true Hydrology Hero!";
+                } else if (finalResults.accuracy >= 75) {
+                    fallbackInsight = "Great job! You have a strong grasp of the water cycle's challenges.";
+                } else {
+                    fallbackInsight = "Good effort! This is a tricky topic. Review your answers to master the details.";
+                }
+                setInsight(fallbackInsight);
+            }
+        };
+        generateInsight();
+    }
+  }, [gameState, finalResults]);
 
+  const startGame = () => {
+    setGameState("playing");
+    setCurrentStepIndex(0);
+    setIntroStep("first");
+    setAnswers({ q1: null, q2: [], q3: [], q4: null });
+    setFinalResults(null);
+    setInsight("");
+  };
+  
+  const calculateResults = () => {
+      let score = 0;
+      const totalQuestions = gameSteps.length;
+      const review = {};
+
+      gameSteps.forEach(key => {
+          const question = gameData[key];
+          const userAnswer = answers[key];
+          let isCorrect = false;
+
+          if (question.type === 'single') {
+              isCorrect = userAnswer === question.correctAnswer;
+          } else if (question.type === 'multi-select-2') {
+              // Sort both arrays to compare them regardless of selection order
+              const sortedUserAnswers = [...userAnswer].sort();
+              const sortedCorrectAnswers = [...question.correctAnswers].sort();
+              isCorrect = JSON.stringify(sortedUserAnswers) === JSON.stringify(sortedCorrectAnswers);
+          }
+          
+          if(isCorrect) score++;
+          review[key] = { isCorrect, userAnswer };
+      });
+
+      const accuracy = Math.round((score / totalQuestions) * 100);
+
+      setFinalResults({
+          score,
+          accuracy,
+          review
+      });
+      setGameState("end");
+  };
+
+  const handleNextStep = () => {
+    if (currentStepIndex < gameSteps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+    } else {
+      calculateResults();
+    }
+  };
+  
+  const { isButtonEnabled, buttonText } = useMemo(() => {
+    const currentQuestionKey = gameSteps[currentStepIndex];
+    const currentQuestion = gameData[currentQuestionKey];
+    const currentAnswer = answers[currentQuestionKey];
+
+    if (!currentAnswer) { // Handles both null and undefined
+        return { isButtonEnabled: false, buttonText: "Continue" };
+    }
+
+    if (currentQuestion.type === 'single') {
+        return { isButtonEnabled: !!currentAnswer, buttonText: "Continue" };
+    }
+    if (currentQuestion.type === 'multi-select-2') {
+        return { isButtonEnabled: currentAnswer.length === 2, buttonText: "Continue" };
+    }
+    
+    // Fallback for the last button text
+    const buttonTxt = currentStepIndex === gameSteps.length - 1 ? 'Submit' : 'Continue';
+    return { isButtonEnabled: false, buttonText: buttonTxt };
+
+  }, [currentStepIndex, answers]);
+
+  const handleShowInstructions = () => setIntroStep("instructions");
+  const handlePlayAgain = () => startGame();
+  const handleReviewAnswers = () => setGameState("review");
+  const handleBackToResults = () => setGameState("end");
+  const handleContinue = () => navigate("/environmental/games");
+
+  const renderCurrentQuestion = () => {
+      const currentQuestionKey = gameSteps[currentStepIndex];
+      const question = gameData[currentQuestionKey];
+      
+      if (question.type === 'single') {
+          return <SingleChoiceQuestion 
+              question={question} 
+              selectedAnswer={answers[currentQuestionKey]} 
+              setSelectedAnswer={(answer) => setAnswers(prev => ({...prev, [currentQuestionKey]: answer}))} 
+          />;
+      }
+      
+      if (question.type === 'multi-select-2') {
+          return <MultiSelectQuestion 
+              question={question}
+              selectedAnswers={answers[currentQuestionKey]}
+              setSelectedAnswers={(answer) => setAnswers(prev => ({...prev, [currentQuestionKey]: answer}))}
+          />;
+      }
+      return null;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-100 flex flex-col items-center justify-center p-6">
-      {page === "intro" && (
-        <div className="text-center space-y-6">
-          <h1 className="text-4xl md:text-5xl font-bold text-blue-700">
-            The Water Grid Crisis 🌊
-          </h1>
-          <p className="text-lg max-w-xl mx-auto text-gray-700">
-            Solve the crisis. Fix the flow. Escape as the HydroHacker!
-          </p>
-          <img
-            src={introGif}
-            alt="Intro Gif"
-            className="w-52 mx-auto rounded-xl shadow-md"
-          />
-          <button
-            onClick={() => setPage("game")}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full font-bold shadow hover:bg-blue-700 transition"
-          >
-            Start Game
-          </button>
+    <div>
+      {gameState === "intro" && introStep === "first" && (<IntroScreen onShowInstructions={handleShowInstructions} />)}
+      {gameState === "intro" && introStep === "instructions" && (<InstructionsScreen onStartGame={startGame} />)}
+      
+      {gameState === "playing" && (
+        <div className="main-container w-full h-screen bg-[#0A160E] relative overflow-hidden flex flex-col justify-between inter-font">
+          <GameNav />
+          <div className="flex-1 flex flex-col items-center justify-start lg:justify-center overflow-y-auto no-scrollbar p-4 pt-8 md:pt-4">
+            {renderCurrentQuestion()}
+          </div>
+          <div className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 z-10 shrink-0">
+            <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+              <button className="relative w-full h-full cursor-pointer" onClick={handleNextStep} disabled={!isButtonEnabled}>
+                <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] ${!isButtonEnabled && "opacity-50"}`}>
+                  {currentStepIndex === gameSteps.length - 1 ? 'Submit' : 'Continue'}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {page === "game" && (
-        <div className="w-full max-w-3xl space-y-10">
-          {/* Q1 */}
-          {step === 1 && (
-            <div className="bg-white p-6 rounded-xl shadow text-center">
-              <h2 className="text-2xl font-bold mb-4">
-                🌫️ Q1: Missing Flowchart Step
-              </h2>
-              <p className="mb-4 text-gray-700">
-                Flow: Evaporation → ? → Precipitation → Infiltration
-              </p>
+      {gameState === "end" && finalResults && (() => {
+        const isVictory = finalResults.accuracy === 100;
+        
+        if (isVictory) {
+          return (
+            <VictoryScreen
+              accuracyScore={finalResults.accuracy}
+              insight={insight}
+              onViewFeedback={handleReviewAnswers}
+              onContinue={handleContinue}
+            />
+          );
+        } else {
+          return (
+            <LosingScreen
+              accuracyScore={finalResults.accuracy}
+              insight={insight}
+              onPlayAgain={handlePlayAgain}
+              onViewFeedback={handleReviewAnswers}
+              onContinue={handleContinue}
+            />
+          );
+        }
+      })()}
 
-              {/* ✅ Only options in this block */}
-              <div className="space-y-4">
-                {["Condensation", "Runoff", "Transpiration"].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setQ1(opt);
-                      setQ1Correct(null);
-                    }}
-                    className={`block w-full border px-4 py-2 rounded-full ${q1 === opt
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
-              {/* ✅ Submit button with top margin */}
-              {q1 && q1Correct === null && (
-                <button
-                  onClick={() => setQ1Correct(q1 === "Condensation")}
-                  className="mt-6 bg-green-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-green-700 transition"
-                >
-                  Submit
-                </button>
-              )}
-
-              {/* ✅ Feedback in its own block with top margin */}
-              {q1Correct !== null && (
-                <div className="mt-8 space-y-4">
-                  <img
-                    src={q1Correct ? correctGif : wrongGif}
-                    alt={q1Correct ? "Correct GIF" : "Wrong GIF"}
-                    className="w-52 mx-auto rounded-xl shadow-md"
-                  />
-                  <p className="font-semibold text-lg">
-                    {q1Correct ? "✅ Correct!" : "❌ Incorrect!"}
-                  </p>
-                  <button
-                    onClick={() => setStep(2)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-blue-700 transition"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Q2 */}
-          {step === 2 && (
-            <div className="bg-white p-6 rounded-xl shadow text-center">
-              <h2 className="text-2xl font-bold mb-4">🌆 Q2: Urban Scenario</h2>
-              <p className="mb-4 text-gray-700">
-                City replaced wetlands → heavy flooding + groundwater loss.
-                Which 2 steps are disrupted?
-              </p>
-              <div className="space-y-2">
-                {[
-                  "Transpiration",
-                  "Infiltration",
-                  "Runoff",
-                  "Ocean absorption",
-                ].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      if (q2.includes(opt)) {
-                        setQ2(q2.filter((o) => o !== opt));
-                      } else if (q2.length < 2) {
-                        setQ2([...q2, opt]);
-                      }
-                      setQ2Correct(null);
-                    }}
-                    className={`block w-full border px-4 py-2 rounded-full ${q2.includes(opt)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
-              {q2.length === 2 && q2Correct === null && (
-                <button
-                  onClick={() =>
-                    setQ2Correct(
-                      q2.includes("Infiltration") && q2.includes("Runoff")
-                    )
-                  }
-                  className="mt-6 bg-green-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-green-700 transition"
-                >
-                  Submit
-                </button>
-              )}
-
-              {q2Correct !== null && (
-                <div className="mt-8 space-y-4">
-                  <img
-                    src={q2Correct ? correctGif : wrongGif}
-                    alt={q2Correct ? "Correct GIF" : "Wrong GIF"}
-                    className="w-52 mx-auto rounded-xl shadow-md"
-                  />
-                  <p className="font-semibold text-lg">
-                    {q2Correct ? "✅ Correct!" : "❌ Incorrect!"}
-                  </p>
-                  <button
-                    onClick={() => setStep(3)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-blue-700 transition"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Q3 */}
-          {step === 3 && (
-            <div className="bg-white p-6 rounded-xl shadow text-center">
-              <h2 className="text-2xl font-bold mb-4">💦 Q3: Action Time</h2>
-              <p className="mb-4 text-gray-700">
-                Pick 2 urgent fixes for the city’s water crisis:
-              </p>
-              <div className="space-y-2">
-                {[
-                  "Build more dams",
-                  "Ban borewells",
-                  "Restore green recharge zones",
-                  "Introduce rainwater harvesting",
-                ].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      if (q3.includes(opt)) {
-                        setQ3(q3.filter((o) => o !== opt));
-                      } else if (q3.length < 2) {
-                        setQ3([...q3, opt]);
-                      }
-                      setQ3Correct(null);
-                    }}
-                    className={`block w-full border px-4 py-2 rounded-full ${q3.includes(opt)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
-              {q3.length === 2 && q3Correct === null && (
-                <button
-                  onClick={() => {
-                    const correct =
-                      q3.includes("Restore green recharge zones") &&
-                      q3.includes("Introduce rainwater harvesting");
-                    setQ3Correct(correct);
-                  }}
-                  className="mt-6 bg-green-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-green-700 transition"
-                >
-                  Submit
-                </button>
-              )}
-
-              {q3Correct !== null && (
-                <div className="mt-8 space-y-4">
-                  <img
-                    src={q3Correct ? correctGif : wrongGif}
-                    alt={q3Correct ? "Correct GIF" : "Wrong GIF"}
-                    className="w-52 mx-auto rounded-xl shadow-md"
-                  />
-                  <p className="font-semibold text-lg">
-                    {q3Correct ? "✅ Correct!" : "❌ Incorrect!"}
-                  </p>
-                  <button
-                    onClick={() => setStep(4)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-blue-700 transition"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Final Riddle */}
-          {step === 4 && (
-            <div className="bg-white p-6 rounded-xl shadow text-center">
-              <h2 className="text-2xl font-bold mb-4">
-                🎉 FINAL ESCAPE PUZZLE
-              </h2>
-              <p className="mb-4 text-gray-700">
-                “I move through plants but don't have leaves, <br />
-                I cycle through rocks but never grieves, <br />
-                You broke my flow but made amends — <br />
-                Now Earth can breathe and life extends.”
-              </p>
-
-              <img
-                src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExb2UzZmdoYnF1Nzdpc29idG0xaWkwdDIzZWM4NmY5YjltY2NuMWRvaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/16DyNkohj3sh99MVVH/200.webp"
-                alt="Hint Gif"
-                className="w-52 mx-auto rounded-xl shadow-md mb-4"
-              />
-
-              <p className="text-sm mb-2 text-gray-500">
-                Hint: It describes Earth’s natural nutrient flows!
-              </p>
-
-              <div className="space-y-2">
-                {[
-                  "Photosynthesis",
-                  "Biogeochemical Cycle",
-                  "Hydraulic Pump",
-                ].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setRiddle(opt);
-                      setRiddleCorrect(null);
-                    }}
-                    className={`block w-full border px-4 py-2 rounded-full ${riddle === opt
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-
-              {riddle && riddleCorrect === null && (
-                <button
-                  onClick={() => {
-                    const correct = riddle === "Biogeochemical Cycle";
-                    setRiddleCorrect(correct);
-
-                    const correctCount =
-                      (q1Correct ? 1 : 0) +
-                      (q2Correct ? 1 : 0) +
-                      (q3Correct ? 1 : 0) +
-                      (correct ? 1 : 0);
-
-                    const allCorrect = correctCount === 4;
-                    setFinal(allCorrect);
-
-                    if (allCorrect) {
-                      confetti();
-                      completeEnvirnomentChallenge(0, 3);
-                    }
-                    const totalTimeMs = Date.now() - startTime;
-                    updatePerformance({
-                      moduleName: "Environment",
-                      topicName: "ecoDecisionMaker",
-                      score: Math.round((correctCount / 4) * 10), // scaled out of 10
-                      accuracy: parseFloat(((correctCount / 4) * 100).toFixed(2)), // %
-                      avgResponseTimeSec: parseFloat((totalTimeMs / 4000).toFixed(2)), // 4 questions
-                      studyTimeMinutes: parseFloat((totalTimeMs / 60000).toFixed(2)),
-                      completed: allCorrect,
-                     
-                    });
-                    setStartTime(Date.now());
-                  }}
-                  className="mt-6 bg-green-600 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-green-700 transition"
-                >
-                  Submit
-                </button>
-              )}
-
-              {riddleCorrect !== null && (
-                <div className="mt-8 space-y-4">
-                  <img
-                    src={riddleCorrect ? correctGif : wrongGif}
-                    alt={riddleCorrect ? "Correct GIF" : "Wrong GIF"}
-                    className="w-52 mx-auto rounded-xl shadow-md"
-                  />
-                  <p className="font-semibold text-lg">
-                    {riddleCorrect ? "✅ Correct!" : "❌ Incorrect!"}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Final Result */}
-          {final !== null && (
-            <div className="text-center space-y-4">
-              <img
-                src={final ? successGif : failGif}
-                alt="Result GIF"
-                className="w-52 mx-auto rounded-xl shadow-md"
-              />
-              <h2 className="text-3xl font-bold text-blue-700">
-                {final
-                  ? "🎉 HydroHacker Badge Unlocked!"
-                  : "❌ Some answers were wrong. Try again!"}
-              </h2>
-              <button
-                onClick={resetGame}
-                className="mt-4 bg-blue-600 text-white px-6 py-3 rounded-full font-bold shadow hover:bg-blue-700 transition"
-              >
-                Play Again
-              </button>
-            </div>
-          )}
-        </div>
+      {gameState === "review" && finalResults && (
+        <ReviewScreen reviewData={finalResults.review} onBackToResults={handleBackToResults} />
       )}
     </div>
   );
-};
-
-export default WaterGridCrisis;
+}
