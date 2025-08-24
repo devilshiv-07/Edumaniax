@@ -2069,7 +2069,7 @@ const Home = () => {
         />
 
         {/* Hero Section */}
-        <section className="relative h-[80vh] sm:min-h-[100vh] w-full p-0 ">
+        <section className="relative h-[84vh] sm:min-h-[100vh] w-full p-0 ">
           <div className={`w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover  bg-center bg-no-repeat `}>
             <Navbar />
             <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap  sm:mt-6 xl:mt-6  flex-col items-center text-center px-4 sm:px-6">
@@ -2116,7 +2116,7 @@ const Home = () => {
               <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8  sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0 `}>
                 <button
                   onClick={() => navigate(user ? "/pricing" : "/courses")}
-                  className="bg-white text-black font-semibold px-4 sm:px-5 py-2 sm:py- lg:px-5 lg:py-3 xl:px-8 rounded-md transition duration-300 cursor-pointer text-sm sm:text-sm hover:bg-gray-100"
+                  className="bg-white text-black font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md transition duration-300 cursor-pointer text-sm sm:text-sm hover:bg-gray-100"
                 >
                   {user
                     ? hasActiveSubscription &&
@@ -2130,14 +2130,14 @@ const Home = () => {
                 {user ? (
                   <button
                     onClick={() => navigate("/dashboard?section=modules")}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-2 sm:py- lg:px-5 lg:py-3 xl:px-8  rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
+                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8  rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
                   >
                     Continue Reading
                   </button>
                 ) : (
                   <button
                     onClick={() => setIsTrialModalOpen(true)}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-8 py-2 sm:py- rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
+                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
                   >
                     Book a trial
                   </button>
@@ -2153,7 +2153,7 @@ const Home = () => {
                   src="/heroIMG.png"
                   alt="Full"
                   className={`absolute inset-0 w-full h-full object-cover ${
-                    isZoomed ? "scale-80 mt-12" : "scale-100 mt-0"}`}
+                    isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"}`}
                 />
               </div>
             </div>

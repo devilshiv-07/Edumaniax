@@ -404,9 +404,10 @@ ${answersSummary}
 
 ### INSTRUCTION ###
 Provide a short, holistic insight (about 20 words) on their overall understanding of the Phosphorus Cycle.
-- If they scored 100%, praise them as an expert on this essential, non-renewable nutrient cycle.
-- If they scored well (>=67%), acknowledge their solid knowledge of its flow and impacts.
-- If they struggled, encourage them, noting that this cycle is unique, and suggest reviewing the answers to learn more.
+If they achieved a perfect score, praise them as an expert on phosphorous cycle. 
+If they did well (>80%), praise their solid understanding and tell where they can improve to reach mastery.
+If they struggled, see where they went wrong and provide them with some actionable feedback like what should they do or which concepts they should review or focus on or a technique that might help them improve. 
+basically give an actionable insight that they can use to improve their understanding of topics where they lag by analyzing them.
 
 Return ONLY a raw JSON object in the following format (no backticks, no markdown):
 {

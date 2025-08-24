@@ -425,7 +425,7 @@ const DigitalMarketingFullNotes = () => {
               <ul className="space-y-3">
                 {notesSidebar11to12.map((section) => (
                   <li
-                    key={section.id}
+                    key={section.id} 
                     data-scroll-id={section.id}
                     className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20 ${activeId === section.id
                         ? "bg-green-100 text-[#09be43] font-semibold border-l-4 border-[#09be43]"
