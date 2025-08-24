@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Lottie from "lottie-react";
-import { useFinance } from "../../../../contexts/FinanceContext";
+import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 
 // Lottie animations
-import superheroAnimation from "../../../../lotties/superhero.json";
-import thinkingAnimation from "../../../../lotties/thinking.json";
+import superheroAnimation from "../../../../../lotties/superhero.json";
+import thinkingAnimation from "../../../../../lotties/thinking.json";
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
 
 const items = [
   { name: "School bag", price: 1200 },
@@ -69,6 +71,7 @@ const Challenge3 = () => {
 
   // Track winner state
   const [parsedWinner, setParsedWinner] = useState(null);
+  const [showIntro, setShowIntro] = useState(true);
 
   const getTotalSpent = () =>
     [...sortedItems.needNow].reduce((sum, item) => sum + item.price, 0);
@@ -122,33 +125,54 @@ const Challenge3 = () => {
     }
   }, [step, expenseLimit]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
   if (!expenseLimit) {
     return (
-      <motion.div
-        className="max-w-md mx-auto mt-6 px-4 py-6 bg-white rounded-xl shadow-xl sm:max-w-lg"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        <h2 className="text-2xl font-bold text-center text-blue-600 mb-2">
-          🎮 Budget Challenge
-        </h2>
-        <p className="text-center text-sm text-gray-600 mb-4">
-          Enter your monthly budget to begin:
-        </p>
-        <input
-          type="number"
-          placeholder="e.g. 5000"
-          className="w-full border-2 p-2 rounded text-center mb-4"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-        />
-        <button
-          onClick={handleStartGame}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          🚀 Start Game
-        </button>
-      </motion.div>
+      <>
+        <GameNav />
+        <div className="min-h-screen bg-[#0A160E] flex items-center justify-center">
+          <motion.div
+            className="max-w-md border border-gray-100 mx-auto px-4 py-6 bg-[#202F364D] rounded-xl shadow-xl sm:max-w-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {" "}
+            <h2 className="text-2xl lilita-one-regular font-bold text-center text-white mb-2">
+              {" "}
+              🎮 Budget Challenge{" "}
+            </h2>{" "}
+            <p className="text-center text-sm text-white mb-4">
+              {" "}
+              Enter your monthly budget to begin:{" "}
+            </p>{" "}
+            <input
+              type="number"
+              placeholder="e.g. 5000"
+              className="w-full border-2 p-2 text-white rounded text-center mb-4 
+             [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+            />{" "}
+            <button
+              onClick={handleStartGame}
+              className="w-full bg-blue-600 text-white lilita-one-regular py-2 rounded hover:bg-blue-700"
+            >
+              {" "}
+              🚀 Start Game{" "}
+            </button>{" "}
+          </motion.div>
+        </div>
+      </>
     );
   }
 
@@ -231,69 +255,76 @@ const Challenge3 = () => {
   const currentLottie = getLottieAnimation(currentAction);
 
   return (
-    <motion.div
-      className="max-w-full sm:max-w-5xl mx-auto mt-6 px-4 py-6 bg-white rounded-xl shadow-xl"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <div className="flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-full md:w-1/2">
-          <h2 className="text-2xl font-bold text-center text-blue-600 mb-4">
-            🛍️ Budget Choice
-          </h2>
-          <p className="text-center text-sm mb-2 text-gray-600">
-            Budget: ₹{expenseLimit}
-          </p>
+    <>
+      <GameNav />
+      <div className="min-h-screen pt-20 md:pt-50 bg-[#0A160E]">
+        <motion.div
+          className="max-w-lg border border-gray-100 md:max-w-2xl mx-auto mt-6 px-4 sm:px-6 py-6 bg-[#202F364D] rounded-xl shadow-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="flex flex-col items-center">
+            <div className="w-full max-w-sm md:max-w-md">
+              <h2 className="text-2xl font-bold text-center text-white lilita-one-regular mb-4">
+                🛍️ Budget Choice
+              </h2>
+              <p className="text-center text-sm mb-2 text-white">
+                Budget: ₹{expenseLimit}
+              </p>
 
-          <div className="flex justify-center mb-4 h-40">
-            {currentLottie && (
-              <Lottie animationData={currentLottie} loop={true} />
-            )}
+              <div className="flex justify-center mb-4 h-40">
+                {currentLottie && (
+                  <Lottie animationData={currentLottie} loop={true} />
+                )}
+              </div>
+
+              <div className="mb-4 bg-gray-100 p-4 rounded shadow text-center">
+                <p className="text-lg lilita-one-regular">
+                  🛒 Item: {currentItem.name}
+                </p>
+                <p className="text-sm text-gray-700 lilita-one-regular">
+                  💰 Price: ₹{currentItem.price}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                <button
+                  onClick={() => handleSort("needNow")}
+                  className="bg-green-600 lilita-one-regular text-outline text-white py-2 rounded hover:bg-green-700 flex-1"
+                >
+                  ✅ Need Now
+                </button>
+                <button
+                  onClick={() => handleSort("wantLater")}
+                  className="bg-blue-600 lilita-one-regular text-outline text-white py-2 rounded hover:bg-blue-700 flex-1"
+                >
+                  ⏳ Want Later
+                </button>
+                <button
+                  onClick={() => handleSort("skipIt")}
+                  className="bg-gray-600 lilita-one-regular text-outline text-white py-2 rounded hover:bg-gray-700 flex-1"
+                >
+                  ❌ Skip It
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {lastFeedback && (
+                  <motion.div
+                    className="bg-yellow-100 lilita-one-regular text-yellow-800 p-3 rounded shadow text-sm text-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {lastFeedback}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-
-          <div className="mb-4 bg-gray-100 p-4 rounded shadow text-center">
-            <p className="text-lg font-semibold">🛒 Item: {currentItem.name}</p>
-            <p className="text-sm text-gray-700">
-              💰 Price: ₹{currentItem.price}
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <button
-              onClick={() => handleSort("needNow")}
-              className="bg-green-600 text-white py-2 rounded hover:bg-green-700 flex-1"
-            >
-              ✅ Need Now
-            </button>
-            <button
-              onClick={() => handleSort("wantLater")}
-              className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex-1"
-            >
-              ⏳ Want Later
-            </button>
-            <button
-              onClick={() => handleSort("skipIt")}
-              className="bg-gray-600 text-white py-2 rounded hover:bg-gray-700 flex-1"
-            >
-              ❌ Skip It
-            </button>
-          </div>
-
-          <AnimatePresence>
-            {lastFeedback && (
-              <motion.div
-                className="bg-yellow-100 text-yellow-800 p-3 rounded shadow text-sm text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {lastFeedback}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
-    </motion.div>
+    </>
   );
 };
 

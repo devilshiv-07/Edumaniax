@@ -20,7 +20,7 @@ import Finance from "./pages/Finance.jsx";
 import EmiVsLumpSum from "./components/Finance Management/Activities/Level 2/EmiVsLumpSum/EmiVsLumpSum.jsx";
 import NewsFlash from "./components/Finance Management/Activities/Level 3/NewsFlash.jsx";
 import RiskOMeter from "./components/Finance Management/Activities/Level 3/RiskOMeter.jsx";
-import Challenge3 from "./components/Finance Management/Activities/Level 2/Challenge3.jsx";
+import Challenge3 from "./components/Finance Management/Activities/Level 2/Challenge3/Challenge3.jsx";
 import My_Purchase_Plan from "./components/Finance Management/Activities/Level 2/My_Purchase_Plan.jsx";
 import FinanceNotes from "./pages/FinanceNotes.jsx";
 import FAQ from "./FinanceDesign/FAQ.jsx";
