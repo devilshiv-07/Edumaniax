@@ -12,6 +12,8 @@ import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
 import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import InstructionOverlay from "./InstructionOverlay";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -50,6 +52,7 @@ const EmiVsLumpSum = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const lumpSumTotal = 4000 * 3; // ₹12,000
   const emiTotal = 4500 + 3000 * 3; // ₹13,500
@@ -59,6 +62,8 @@ const EmiVsLumpSum = () => {
   const [startTime, setStartTime] = useState(Date.now());
   const [showIntro, setShowIntro] = useState(true);
   const [showGif, setShowGif] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -165,6 +170,15 @@ feedback : "Your feedback"
     }, 3000);
   };
 
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/challenge3"); // ensure `useNavigate()` is defined
+  };
+
   return (
     <>
       <GameNav />
@@ -246,42 +260,127 @@ feedback : "Your feedback"
             )}
 
             {showResult && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-bold text-purple-700 mb-4">
-                    📊 Cost Comparison Chart
-                  </h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={data}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar
-                        dataKey="cost"
-                        fill="#a855f7"
-                        radius={[4, 4, 0, 0]}
+              <>
+                {selectedOption === "A" ? (
+                  // ✅ WIN PAGE
+                  <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                    {/* Center Content */}
+                    <div className="flex flex-col items-center justify-center flex-1 p-6">
+                      {/* Trophy GIFs */}
+                      <div className="relative w-64 h-64 flex items-center justify-center">
+                        <img
+                          src="/financeGames6to8/trophy-rotating.gif"
+                          alt="Rotating Trophy"
+                          className="absolute w-full h-full object-contain"
+                        />
+                        <img
+                          src="/financeGames6to8/trophy-celebration.gif"
+                          alt="Celebration Effects"
+                          className="absolute w-full h-full object-contain"
+                        />
+                      </div>
+
+                      {/* Challenge Complete Text */}
+                      <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                        Challenge Complete!
+                      </h2>
+
+                      {/* Insight Box */}
+                      <div className="mt-6 flex flex-col items-center sm:flex-row sm:items-start sm:gap-4">
+                        <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
+                          <p className="text-black text-sm font-extrabold mb-1 mt-2">
+                            INSIGHT
+                          </p>
+                          <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 py-1 text-center overflow-hidden">
+                            <span
+                              className="text-[#FFCC00] font-bold leading-tight"
+                              style={{
+                                fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
+                                lineHeight: "1.1",
+                                whiteSpace: "normal",
+                              }}
+                            >
+                              {feedback || "Analyzing your results..."}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Buttons */}
+                    <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                      <img
+                        src="/financeGames6to8/feedback.svg"
+                        alt="Feedback"
+                        onClick={handleViewFeedback}
+                        className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
                       />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                      <img
+                        src="/financeGames6to8/next-challenge.svg"
+                        alt="Next Challenge"
+                        onClick={handleNextChallenge}
+                        className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  // ❌ GAME OVER PAGE
+                  <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                    {/* Game Over Content */}
+                    <div className="flex flex-col items-center justify-center flex-1 p-4">
+                      <img
+                        src="/financeGames6to8/game-over-game.gif"
+                        alt="Game Over"
+                        className="w-48 sm:w-64 h-auto mb-4"
+                      />
+                      <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+                        Oops! That was close! Wanna Retry?
+                      </p>
 
-                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded shadow">
-                  <h4 className="font-semibold text-green-800 mb-2">
-                    {loading ? "Loading feedback..." : "Your feedback"}
-                  </h4>
-                  {error && <p className="text-red-600">{error}</p>}
-                  {feedback && <p>{feedback}</p>}
-                </div>
+                      {/* What Went Wrong Box */}
+                      <div className="mt-4 sm:mt-8 lg:mt-12 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
+                        <p className="text-black text-sm font-extrabold mb-1 mt-2">
+                          WHAT WENT WRONG?
+                        </p>
+                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center overflow-hidden">
+                          <span
+                            className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
+                            style={{
+                              fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
+                              lineHeight: "1.1",
+                              whiteSpace: "normal",
+                            }}
+                          >
+                            {feedback || "Analyzing your results..."}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="text-center">
-                  <button
-                    className="bg-red-500 text-white px-5 py-2 rounded shadow hover:bg-red-600 transition-all"
-                    onClick={handleRestart}
-                  >
-                    🔁 Restart
-                  </button>
-                </div>
-              </div>
+                    {/* Footer Buttons */}
+                    <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+                      <img
+                        src="/financeGames6to8/feedback.svg"
+                        alt="Feedback"
+                        onClick={handleViewFeedback}
+                        className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                      />
+                      <img
+                        src="/financeGames6to8/retry.svg"
+                        alt="Retry"
+                        onClick={handleRestart}
+                        className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                      />
+                      <img
+                        src="/financeGames6to8/next-challenge.svg"
+                        alt="Next Challenge"
+                        onClick={handleNextChallenge}
+                        className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -324,6 +423,13 @@ feedback : "Your feedback"
           </button>
         </div>
       </div>
+
+      {/* Instructions overlay */}
+      {showInstructions && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <InstructionOverlay onClose={() => setShowInstructions(false)} />
+        </div>
+      )}
     </>
   );
 };
