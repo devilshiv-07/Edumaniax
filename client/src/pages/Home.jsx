@@ -1772,7 +1772,7 @@ const Home = () => {
       duration: "6 weeks",
       students: "2,847",
       category: "Finance",
-      image:
+      image: 
         "https://images.unsplash.com/photo-1605792657660-596af9009e82?auto=format&fit=crop&w=800&q=80",
     },
     {
