@@ -1,49 +1,38 @@
-
-
-
-
-
-
-
-
 import { useEffect, useRef, useState } from "react";
-import { Menu, ChevronDown, BookOpen, TrendingUp, Target } from "lucide-react";
+import { useSearchParams } from "react-router-dom"; // NEW IMPORT
+import { Menu, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 
+// Assuming your section components are correctly named and imported
 import Section1dm from "./environmentalNotes/6-8Section1";
 import Section2dm from "./environmentalNotes/6-8Section2";
 import Section3dm from "./environmentalNotes/6-8Section3";
 import Section4dm from "./environmentalNotes/6-8Section4";
 import Section5dm from "./environmentalNotes/6-8Section5";
-
-
 import Module1 from "./environmentalNotes/9-10Section1";
 import Module2 from "./environmentalNotes/9-10Section2";
 import Module3 from "./environmentalNotes/9-10Section3";
 import Module4 from "./environmentalNotes/9-10Section4";
 import Module5 from "./environmentalNotes/9-10Section5";
-
 import Senior1 from "./environmentalNotes/11-12Section1";
 import Senior2 from "./environmentalNotes/11-12Section2";
 import Senior3 from "./environmentalNotes/11-12Section3";
 import Senior4 from "./environmentalNotes/11-12Section4";
 import Senior5 from "./environmentalNotes/11-12Section5";
 
-
-
 const gradeOptions = [
-  { value: "6-8", label: "8th and Below" },
-  { value: "9-10", label: "9th to 10th Grade" },
-  { value: "11-12", label: "11th and above" },
+    { value: "6-8", label: "8th and Below" },
+    { value: "9-10", label: "9th to 10th Grade" },
+    { value: "11-12", label: "11th and above" },
 ];
 
 const notesSidebar6to8 = [
-  { id: "1", title: "Section 1: Introduction" },
-  { id: "2", title: "Section 2: Sustainability " },
-  { id: "3", title: "Section 3: Human Impact " },
-  { id: "4", title: "Section 4: Climate Change " },
-  { id: "5", title: "Section 5: Key Terms " },
+    { id: "1", title: "Section 1: Introduction" },
+    { id: "2", title: "Section 2: Sustainability " },
+    { id: "3", title: "Section 3: Human Impact " },
+    { id: "4", title: "Section 4: Climate Change " },
+    { id: "5", title: "Section 5: Key Terms " },
 ];
 
 const notesSidebar9to10 = [
@@ -67,15 +56,32 @@ const notesSidebar11to12 = [
 
 
 
-const DigitalMarketingFullNotes = () => {
-  const [selectedGrade, setSelectedGrade] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [activeId, setActiveId] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [notesVisible, setNotesVisible] = useState(false);
+const EnvironmentFullNotes = () => {
+    const [searchParams] = useSearchParams(); // NEW HOOK
+    const [selectedGrade, setSelectedGrade] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [activeId, setActiveId] = useState(null);
+    const [showSidebar, setShowSidebar] = useState(false);
+    const [notesVisible, setNotesVisible] = useState(false);
 
-  const topicRefs = useRef({});
-  const visibleTopics = useRef(new Set());
+    const topicRefs = useRef({});
+    const visibleTopics = useRef(new Set());
+
+    // NEW LOGIC TO HANDLE INCOMING LINKS FROM GAMES
+    useEffect(() => {
+        const gradeFromURL = searchParams.get('grade');
+        const sectionFromURL = searchParams.get('section');
+
+        if (gradeFromURL) {
+            setSelectedGrade(gradeFromURL);
+            
+            if (sectionFromURL) {
+                setTimeout(() => {
+                    scrollTo(sectionFromURL);
+                }, 500); // Delay to ensure content is rendered
+            }
+        }
+    }, [searchParams]);
 
   useEffect(() => {
     topicRefs.current = {};
@@ -456,4 +462,4 @@ const DigitalMarketingFullNotes = () => {
   );
 };
 
-export default DigitalMarketingFullNotes;
+export default EnvironmentFullNotes;
