@@ -233,7 +233,7 @@ function LevelCompletePopup({ isOpen, onConfirm, onCancel, onClose }) {
                     Yayy! You completed Level 2.
                 </h2>
                 <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
-                    Would you like to move to Level Two?
+                    Would you like to move to Level Three?
                 </p>
                 <div className="flex justify-center items-center gap-4">
                     <button

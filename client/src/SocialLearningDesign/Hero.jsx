@@ -9,19 +9,19 @@ const Hero = () => {
         background: "linear-gradient(to bottom, #3F9400 0%, #2C6601 100%)",
       }}
     >
-      {/* Vector background on the right side - now visible on all screens */}
-      <div className="absolute top-0 right-0 w-1/2 h-full">
+      {/* Vector background on the right side */}
+      <div className="absolute top-0 right-0 w-full md:w-1/2 h-full opacity-20 md:opacity-100">
         <img
           src="/imageForDesign/Vector.png"
           alt="Vector background"
-          className="absolute inset-0 w-full h-full object-cover object-left"
+          className="absolute inset-0 w-full h-full object-cover object-center md:object-left"
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between relative z-10">
-        {/* Left Section */}
-        <div className="max-w-xl space-y-4 mb-10 md:mb-0">
-          <nav className="text-sm mt-10 -ml-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between relative z-10">
+        {/* Left Section - Consistently left-aligned */}
+        <div className="max-w-xl w-full space-y-4 mb-10 md:mb-0 text-left">
+          <nav className="text-sm mt-10">
             <div className="bg-black/20 mb-10 text-white px-4 py-2 rounded-lg inline-flex items-center space-x-2">
               <Link
                 to="/"
@@ -37,69 +37,67 @@ const Hero = () => {
 
               <span className="text-white/60">&gt;</span>
               <Link to="/courses">
-                <span className="text-white">Courses</span>
+                <span className="text-white hover:underline">Courses</span>
               </Link>
 
               <span className="text-white/60">&gt;</span>
               <span className="text-white">Social and Emotional Learning</span>
 
               <span className="text-white/60">&gt;</span>
-              <span className="font-semibold text-white whitespace-nowrap">
-                Gaming Lessons
-              </span>
+              <span className="font-semibold text-white">Gaming Lessons</span>
             </div>
           </nav>
 
-          <p className="uppercase tracking-wider text-sm font-semibold text-white flex items-center gap-1 flex-wrap whitespace-nowrap">
-            Social and Emotional Fundamentals: Levels
-            <img
-              src="/imageForDesign/1image.png"
-              alt="Level 1"
-              className="h-4 w-auto shrink-0"
-            />
-            <img
-              src="/imageForDesign/2image.png"
-              alt="Level 2"
-              className="h-4 w-auto shrink-0"
-            />
-            <img
-              src="/imageForDesign/3image.png"
-              alt="Level 3"
-              className="h-4 w-auto shrink-0"
-            />
-          </p>
-
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
-            <span className="block md:inline sigmar-font">Master Your</span>{" "}
-            <span className="sigmar-font inline-flex items-center gap-0 whitespace-nowrap">
-              SEL Future
+          {/* UPDATED: Text on left, icons on right */}
+          <p className="uppercase tracking-wider text-sm font-semibold text-white flex items-center justify-between">
+            {/* Text Group */}
+            <span>Social and Emotional Fundamentals: Levels</span>
+            {/* Icon Group */}
+            <span className="flex items-center gap-1">
               <img
-                src="/imageForDesign/Levelup-2-unscreen.gif"
-                alt="Level up animation"
-                className="h-[1.5em] sm:h-[1.7em] w-auto align-middle m-0 p-0"
+                src="/imageForDesign/1image.png"
+                alt="Level 1"
+                className="h-4 w-auto shrink-0"
+              />
+              <img
+                src="/imageForDesign/2image.png"
+                alt="Level 2"
+                className="h-4 w-auto shrink-0"
+              />
+              <img
+                src="/imageForDesign/3image.png"
+                alt="Level 3"
+                className="h-4 w-auto shrink-0"
               />
             </span>
+          </p>
+
+          {/* UPDATED: Text on left, animation on right */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight flex items-center justify-between">
+            {/* Text part */}
+            <span className="sigmar-font">Master Your SEL Future</span>
+            {/* Image part */}
+            <img
+              src="/imageForDesign/Levelup-2-unscreen.gif"
+              alt="Level up animation"
+              className="h-[1.5em] sm:h-[1.7em] w-auto shrink-0"
+            />
           </h1>
 
           <p className="text-white text-base md:text-lg mt-2 leading-relaxed">
-            <span>
-              Comprehensive SEL education built for real-life impact. Learn to
-              connect deeply, manage emotions wisely, and lead with empathy and
-              resilience.
-            </span>
+            Comprehensive SEL education built for real-life impact. Learn to
+            connect deeply, manage emotions wisely, and lead with empathy and
+            resilience.
           </p>
         </div>
 
         {/* Right Section with glow behind children image */}
-        <div className="relative w-full max-w-sm md:max-w-md mt-10 md:mt-0 z-20 md:ml-8 md:self-end self-end mx-auto md:mx-0">
-          {/* Soft white glow behind image */}
+        <div className="relative w-full max-w-sm md:max-w-md mt-10 md:mt-0 z-20 md:ml-8 md:self-end self-center mx-auto md:mx-0">
           <div className="absolute inset-0 z-0 blur-2xl opacity-30 scale-110 bg-white rounded-full pointer-events-none" />
-          {/* Children Image */}
           <img
             src="/imageForDesign/chidrenImage.png"
             alt="Kids playing financial game"
-            className="w-full relative z-10 transform translate-y-0 md:translate-y-12"
-            style={{ marginTop: "1rem" }} // or use Tailwind: mt-4
+            className="w-full relative z-10 md:translate-y-12"
           />
         </div>
       </div>
