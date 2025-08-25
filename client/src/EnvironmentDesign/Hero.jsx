@@ -9,19 +9,20 @@ const Hero = () => {
         background: "linear-gradient(to bottom, #3F9400 0%, #2C6601 100%)",
       }}
     >
-      {/* Vector background on the right side - now visible on all screens */}
-      <div className="absolute top-0 right-0 w-1/2 h-full">
+      {/* Vector background on the right side */}
+      <div className="absolute top-0 right-0 w-full md:w-1/2 h-full opacity-20 md:opacity-100">
         <img
           src="/imageForDesign/Vector.png"
           alt="Vector background"
-          className="absolute inset-0 w-full h-full object-cover object-left"
+          className="absolute inset-0 w-full h-full object-cover object-center md:object-left"
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between relative z-10">
-        {/* Left Section */}
-        <div className="max-w-xl space-y-4 mb-10 md:mb-0">
-          <nav className="text-sm mt-10 -ml-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between relative z-10">
+        {/* Left Section - Consistently left-aligned */}
+        <div className="max-w-xl w-full space-y-4 mb-10 md:mb-0 text-left">
+          <nav className="text-sm mt-10">
+            {/* REMOVED flex-wrap and gap-y-2 to force in-place text wrapping */}
             <div className="bg-black/20 mb-10 text-white px-4 py-2 rounded-lg inline-flex items-center space-x-2">
               <Link
                 to="/"
@@ -37,20 +38,21 @@ const Hero = () => {
 
               <span className="text-white/60">&gt;</span>
               <Link to="/courses">
-                <span className="text-white">Courses</span>
+                <span className="text-white hover:underline">Courses</span>
               </Link>
 
               <span className="text-white/60">&gt;</span>
               <span className="text-white">Environment</span>
 
               <span className="text-white/60">&gt;</span>
-              <span className="font-semibold text-white whitespace-nowrap">
+              {/* This text will now wrap in place */}
+              <span className="font-semibold text-white">
                 Gaming Lessons
               </span>
             </div>
           </nav>
 
-          <p className="uppercase tracking-wider text-sm font-semibold text-white flex items-center gap-1">
+          <p className="uppercase tracking-wider text-sm font-semibold text-white flex items-center gap-1 justify-start">
             Environment Fundamentals: Levels
             <img
               src="/imageForDesign/1image.png"
@@ -69,9 +71,9 @@ const Hero = () => {
             />
           </p>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
             <span className="block md:inline sigmar-font">Master Your</span>{" "}
-            <span className="sigmar-font inline-flex items-center gap-0 whitespace-nowrap">
+            <span className="sigmar-font inline-flex items-center gap-0 md:whitespace-nowrap">
               Environment Skills
               <img
                 src="/imageForDesign/Levelup-2-unscreen.gif"
@@ -82,24 +84,19 @@ const Hero = () => {
           </h1>
 
           <p className="text-white text-base md:text-lg mt-2 leading-relaxed">
-            <span>
-              Build the mindset, skills, and courage to launch planet-friendly
-              ventures. From eco-ideas to real-world action — lead the change
-              with innovation and impact.
-            </span>
+            Build the mindset, skills, and courage to launch planet-friendly
+            ventures. From eco-ideas to real-world action — lead the change
+            with innovation and impact.
           </p>
         </div>
 
         {/* Right Section with glow behind children image */}
-        <div className="relative w-full max-w-sm md:max-w-md mt-10 md:mt-0 z-20 md:ml-8 md:self-end self-end mx-auto md:mx-0">
-          {/* Soft white glow behind image */}
+        <div className="relative w-full max-w-sm md:max-w-md mt-10 md:mt-0 z-20 md:ml-8 md:self-end self-center mx-auto md:mx-0">
           <div className="absolute inset-0 z-0 blur-2xl opacity-30 scale-110 bg-white rounded-full pointer-events-none" />
-          {/* Children Image */}
           <img
             src="/imageForDesign/chidrenImage.png"
             alt="Kids playing financial game"
-            className="w-full relative z-10 transform translate-y-0 md:translate-y-12"
-            style={{ marginTop: "1rem" }} // or use Tailwind: mt-4
+            className="w-full relative z-10 md:translate-y-12"
           />
         </div>
       </div>

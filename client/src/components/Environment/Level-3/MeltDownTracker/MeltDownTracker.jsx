@@ -273,7 +273,8 @@ Return ONLY a raw JSON object.
   "insight": "Your personalized and encouraging feedback message here."
 }`;
                 try {
-                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
+                         { contents: [{ parts: [{ text: prompt }] }] });
                     const aiReply = response.data.candidates[0].content.parts[0].text;
                     const parsed = parsePossiblyStringifiedJSON(aiReply);
                     if (parsed && parsed.insight && parsed.detectedTopicId) {
