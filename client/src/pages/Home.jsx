@@ -19,6 +19,43 @@ import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+const getHeroImageForGrade = (userClass) => {
+  if (!userClass) {
+    return "/heroIMG.png";
+  }
+
+  // Extract the number from the userClass string (e.g., "Class 9" becomes 9)
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+
+  if (isNaN(gradeNumber)) {
+    return "/heroIMG.png"; 
+  }
+
+  if (gradeNumber >= 9) {
+    return "/hero.png";
+  }
+
+  return "/heroIMG.png";
+};
+
+const getStatsGifForGrade = (userClass) => {
+  if (!userClass) {
+    return "/5.gif"; 
+  }
+
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+
+  if (isNaN(gradeNumber)) {
+    return "/5.gif"; 
+  }
+
+  if (gradeNumber >= 9) {
+    return "/teddyhero.gif";
+  }
+
+  return "/5.gif";
+};
+
 // Custom hook for mobile detection
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -1479,7 +1516,8 @@ const Home = () => {
   const [userPlan, setUserPlan] = useState(null);
   const { user } = useAuth();
   const [showScroll, setShowScroll] = useState(false);
-  
+  const heroImage = getHeroImageForGrade(user?.userClass);
+  const statsGif = getStatsGifForGrade(user?.userClass);
   useEffect(() => {
     const fetchUserSubscriptions = async () => {
       if (!user?.id) return;
@@ -1958,6 +1996,9 @@ const Home = () => {
     },
   ];
 
+  
+
+
   const toggleFAQ = (index) => {
     setOpenFAQ(openFAQ === index ? null : index);
   };
@@ -2150,7 +2191,7 @@ const Home = () => {
               {/* Main characters illustration */}
               <div className="relative h-[395px] w-[395px] sm:h-[350px] sm:w-[350px] md:h-[300px] md:w-[300px] lg:h-[500px] lg:w-[500px]">
                 <img
-                  src="/heroIMG.png"
+                  src={heroImage}
                   alt="Full"
                   className={`absolute inset-0 w-full h-full object-cover ${
                     isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"}`}
@@ -2440,7 +2481,7 @@ const Home = () => {
                   {/* Character illustration */}
                   <div className="relative w-full pt-5 -mb-10 h-full z-10">
                     <img
-                      src="/5.gif"
+                      src={statsGif}
                       alt="Full"
                       className="absolute inset-0 w-full   object-cover"
                     />
