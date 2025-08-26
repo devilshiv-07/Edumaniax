@@ -15,7 +15,7 @@ const getFooterImageForGrade = (userClass) => {
   }
 
   if (gradeNumber >= 9) {
-    return "/ai.svg";
+    return "/ai.png";
   }
 
   return "/4.gif";

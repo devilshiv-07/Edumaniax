@@ -2477,7 +2477,7 @@ const Home = () => {
 
               {/* Image - order 2 on mobile, spans both rows on desktop */}
               <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
-                <div className="bg-green-500 rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center h-[300px] sm:h-[430px] w-full lg:w-[550px] relative overflow-hidden">
+                <div className="bg-[#00B347] rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center h-[300px] sm:h-[430px] w-full lg:w-[550px] relative overflow-hidden">
                   {/* Character illustration */}
                   <div className="relative w-full pt-5 -mb-10 h-full z-10">
                     <img
