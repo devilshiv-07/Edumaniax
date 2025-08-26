@@ -1,6 +1,25 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Linkedin, Instagram } from "lucide-react";
+
+const getFooterImageForGrade = (userClass) => {
+  if (!userClass) {
+    return "/4.gif"; 
+  }
+
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+
+  if (isNaN(gradeNumber)) {
+    return "/4.gif"; 
+  }
+
+  if (gradeNumber >= 9) {
+    return "/ai.svg";
+  }
+
+  return "/4.gif";
+};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -16,6 +35,8 @@ const fadeUp = {
 };
 
 const Footer = () => {
+  const { user } = useAuth();
+  const footerImage = getFooterImageForGrade(user?.userClass);
   return (
     <div className="w-full mt-30 xl:mt-60 lg:mt-60">
       {/* Wave Section with Teddy */}
@@ -33,7 +54,7 @@ const Footer = () => {
           <div className="absolute -z-20 bottom-0 left-1/2 transform -translate-x-1/2 translate-y-8 sm:translate-y-10 md:translate-y-12 lg:translate-y-16">
             <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
               <img
-                src="/4.gif"
+                src={footerImage}
                 alt="Teddy mascot with educational icons"
                 className="w-full h-full object-contain "
               />

@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 // --- NEW DATA based on your request ---
 const scenarioData = {
     id: 1,
-    question: "Which of the following surfaces allows the highest water infiltration?",
+    question: "You must cut water supply by 40%. Which is the least disruptive method?",
     options: [
-            "Concrete road",
-            "Paver blocks with gaps",
-            "Rooftop terrace",
-            "Garden soil",
+            "Turn off taps 3 days/week",
+            "Uniform rationing (per household)",
+            "Tanker supply only to slums",
+            "Cut off industries temporarily",
         ],
 };
 

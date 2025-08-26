@@ -1,7 +1,28 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext"; 
+
+const getHeroChildrenImageForGrade = (userClass) => {
+  if (!userClass) {
+    return "/imageForDesign/chidrenImage.png"; 
+  }
+
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+
+  if (isNaN(gradeNumber)) {
+    return "/imageForDesign/chidrenImage.png";
+  }
+
+  if (gradeNumber >= 9) {
+    return "/imageForDesign/gameschildren.svg";
+  }
+
+  return "/imageForDesign/chidrenImage.png";
+};
 
 const Hero = () => {
+  const { user } = useAuth();
+  const heroChildrenImage = getHeroChildrenImageForGrade(user?.userClass);
   return (
     <section
       className="-mt-10 text-white py-12 md:py-12 pb-0 relative overflow-hidden"
@@ -94,7 +115,7 @@ const Hero = () => {
         <div className="relative w-full max-w-sm md:max-w-md mt-10 md:mt-0 z-20 md:ml-8 md:self-end self-center mx-auto md:mx-0">
           <div className="absolute inset-0 z-0 blur-2xl opacity-30 scale-110 bg-white rounded-full pointer-events-none" />
           <img
-            src="/imageForDesign/chidrenImage.png"
+            src={heroChildrenImage}
             alt="Kids playing financial game"
             className="w-full relative z-10 md:translate-y-12"
           />
