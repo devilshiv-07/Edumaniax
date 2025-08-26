@@ -14,7 +14,7 @@ const getHeroChildrenImageForGrade = (userClass) => {
   }
 
   if (gradeNumber >= 9) {
-    return "/imageForDesign/gameschildren.svg";
+    return "/imageForDesign/gameschildren.png";
   }
 
   return "/imageForDesign/chidrenImage.png";
