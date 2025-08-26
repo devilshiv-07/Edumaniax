@@ -37,6 +37,8 @@ const fadeUp = {
 const Footer = () => {
   const { user } = useAuth();
   const footerImage = getFooterImageForGrade(user?.userClass);
+  const gradeNumber = user?.userClass ? parseInt(String(user.userClass).replace(/\D/g, ""), 10) : NaN;
+  const footerImageMarginClass = (gradeNumber >= 9 && !isNaN(gradeNumber)) ? 'mb-12' : '';
   return (
     <div className="w-full mt-30 xl:mt-60 lg:mt-60">
       {/* Wave Section with Teddy */}
@@ -55,8 +57,8 @@ const Footer = () => {
             <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
               <img
                 src={footerImage}
-                alt="Teddy mascot with educational icons"
-                className="w-full h-full object-contain "
+                alt="Mascot with educational icons"
+                className={`w-full h-full object-contain ${footerImageMarginClass}`}
               />
             </div>
           </div>
