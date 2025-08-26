@@ -1518,10 +1518,6 @@ const Home = () => {
   const [showScroll, setShowScroll] = useState(false);
   const heroImage = getHeroImageForGrade(user?.userClass);
   const statsGif = getStatsGifForGrade(user?.userClass);
-  const gradeNumber = user?.userClass ? parseInt(String(user.userClass).replace(/\D/g, ""), 10) : NaN;
-  const heroImageClasses = isZoomed 
-    ? "scale-75 mt-14" 
-    : (gradeNumber >= 9 && !isNaN(gradeNumber) ? "scale-100 mt-4" : "scale-100 mt-0");
   useEffect(() => {
     const fetchUserSubscriptions = async () => {
       if (!user?.id) return;
@@ -2197,7 +2193,8 @@ const Home = () => {
                 <img
                   src={heroImage}
                   alt="Full"
-                  className={`absolute inset-0 w-full h-full object-cover ${heroImageClasses}`}
+                  className={`absolute inset-0 w-full h-full object-cover ${
+                    isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"}`}
                 />
               </div>
             </div>
