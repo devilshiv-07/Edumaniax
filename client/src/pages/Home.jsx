@@ -2187,7 +2187,7 @@ const Home = () => {
             </div>
 
             {/* Hero Illustration */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-2 max-w-2xl mx-auto">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 max-w-2xl mx-auto">
               {/* Main characters illustration */}
               <div className="relative h-[395px] w-[395px] sm:h-[350px] sm:w-[350px] md:h-[300px] md:w-[300px] lg:h-[500px] lg:w-[500px]">
                 <img
