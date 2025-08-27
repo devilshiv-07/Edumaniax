@@ -1,40 +1,46 @@
 import React from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Linkedin, Instagram } from "lucide-react";
 
 const AnimatedAIImage = ({ src, alt, className }) => {
   const ref = React.useRef(null);
 
-  // Use motion values to track mouse position
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  // Use a single motion value for x and y
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
-  // Use spring to create a smooth, physics-based animation
-  const springConfig = { stiffness: 200, damping: 30, mass: 1 };
-  const smoothX = useSpring(mouseX, springConfig);
-  const smoothY = useSpring(mouseY, springConfig);
+  // Map the motion values directly to a spring for smooth animation
+  const springX = useSpring(x, { stiffness: 200, damping: 30, mass: 1 });
+  const springY = useSpring(y, { stiffness: 200, damping: 30, mass: 1 });
 
-  // Use useTransform to map the smooth motion values to rotation values
-  const rotateX = useTransform(smoothY, [-0.5, 0.5], [15, -15]);
-  const rotateY = useTransform(smoothX, [-0.5, 0.5], [-15, 15]);
+  // Use useTransform to map the spring values to rotation values
+  // Note: The rotation is inverted for a natural "looking at" effect
+  const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
 
   const handleMouseMove = (event) => {
     const rect = ref.current.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
 
-    // Calculate mouse position relative to the center of the element
-    const x = (event.clientX - rect.left) / width - 0.5;
-    const y = (event.clientY - rect.top) / height - 0.5;
+    // Calculate mouse position as a percentage from -0.5 to 0.5
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
 
-    // Set the motion values
-    mouseX.set(x);
-    mouseY.set(y);
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+
+    // Set the base motion values
+    x.set(xPct);
+    y.set(yPct);
   };
 
   const handleMouseLeave = () => {
-    // Reset motion values when the mouse leaves
-    mouseX.set(0);
-    mouseY.set(0);
+    // Reset motion values on mouse leave to smoothly return to the original position
+    x.set(0);
+    y.set(0);
   };
 
   return (
@@ -43,7 +49,7 @@ const AnimatedAIImage = ({ src, alt, className }) => {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        perspective: "1000px", // Use a string value for CSS perspective
+        perspective: "1000px", // Use a string value
       }}
       className="w-full h-full"
     >
