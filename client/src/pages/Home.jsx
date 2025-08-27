@@ -50,7 +50,7 @@ const getStatsGifForGrade = (userClass) => {
   }
 
   if (gradeNumber >= 9) {
-    return "/teddyhero.gif";
+    return "/5.gif";
   }
 
   return "/5.gif";
