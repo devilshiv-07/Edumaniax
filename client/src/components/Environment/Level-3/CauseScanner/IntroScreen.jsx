@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import BottomProgressLoader from "./BottomProgressLoader";
 import Vol from "@/components/icon/GreenBudget/Vol.jsx";
-import bgVid from "/financeGames6to8/bgVid.mp4";
+import bgVid from "/environmentGames6-8/Environmental2.mp4";
 import bgMusic from "/financeGames6to8/bgMusic.mp3";
 import btnExit from "/financeGames6to8/btn-exit.svg";
 import btnAudio from "/financeGames6to8/btnAudio.svg";

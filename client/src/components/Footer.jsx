@@ -1,7 +1,63 @@
-import { motion } from "framer-motion";
+import React from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Linkedin, Instagram } from "lucide-react";
+
+const AnimatedAIImage = ({ src, alt, className }) => {
+  const ref = React.useRef(null);
+
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const springConfig = { stiffness: 200, damping: 30, mass: 1 };
+  const smoothX = useSpring(x, springConfig);
+  const smoothY = useSpring(y, springConfig);
+
+  const rotateX = useTransform(smoothY, [-0.5, 0.5], [-15, 15]);
+  const rotateY = useTransform(smoothX, [-0.5, 0.5], [15, -15]);
+
+  const handleMouseMove = (event) => {
+    const rect = ref.current.getBoundingClientRect();
+
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ perspective: 1000 }}
+      className="w-full h-full"
+    >
+      <motion.img
+        src={src}
+        alt={alt}
+        className={className}
+        style={{
+          rotateX,
+          rotateY,
+          transformStyle: "preserve-3d", 
+        }}
+      />
+    </div>
+  );
+};
 
 const getFooterImageForGrade = (userClass) => {
   if (!userClass) {
@@ -55,11 +111,19 @@ const Footer = () => {
           {/* Teddy positioned to emerge from the wave */}
           <div className="absolute -z-20 bottom-0 left-1/2 transform -translate-x-1/2 translate-y-8 sm:translate-y-10 md:translate-y-12 lg:translate-y-16">
             <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
-              <img
-                src={footerImage}
-                alt="Mascot with educational icons"
-                className={`w-full h-full object-contain ${footerImageMarginClass}`}
-              />
+              {footerImage === "/ai.png" ? (
+                <AnimatedAIImage
+                  src={footerImage}
+                  alt="AI learning mascot"
+                  className={`w-full h-full object-contain ${footerImageMarginClass}`}
+                />
+              ) : (
+                <img
+                  src={footerImage}
+                  alt="Mascot with educational icons"
+                  className={`w-full h-full object-contain ${footerImageMarginClass}`}
+                />
+              )}
             </div>
           </div>
         </div>
