@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion"; 
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -193,13 +194,13 @@ const cancelLogout = () => {
             <>
               <Link
                 to="/login"
-                className="bg-green-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
+                className="border-2 border-green-600 text-green-600 font-medium px-6 py-2 rounded-lg hover:bg-green-600 hover:text-white transition duration-300"
               >
                 Log In
               </Link>
               <Link
                 to="/register"
-                className="bg-green-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-green-700 transition duration-300"
+                className="bg-green-600 border-2 border-green-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-green-700 hover:border-green-700 transition duration-300"
               >
                 Register
               </Link>
@@ -334,32 +335,51 @@ const cancelLogout = () => {
         </div>
       )}
     </nav>
-{showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-300">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
-            <div className="flex items-center">
-              <h2 className="text-xl font-bold text-gray-800">Logout Confirmation</h2>
-            </div>
-            <p className="text-gray-600 mt-4">
-              Are you sure you want to logout?
-            </p>
-            <div className="mt-6 flex justify-end gap-4">
-              <button
-                onClick={cancelLogout}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmLogout}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+<AnimatePresence>
+  {showLogoutConfirm && (
+    <motion.div
+      className="fixed inset-0 z-201 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={cancelLogout}
+      />
+      {/* Modal Panel */}
+      <motion.div
+        className="relative bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", duration: 0.3 }}
+      >
+        <h2 className="text-xl font-bold text-gray-800">
+          Logout Confirmation
+        </h2>
+        <p className="text-gray-600 mt-4">
+          Are you sure you want to logout?
+        </p>
+        <div className="mt-6 flex justify-end gap-4">
+          <button
+            onClick={cancelLogout}
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Logout
+          </button>
         </div>
-      )}
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 </>
   );
 };
