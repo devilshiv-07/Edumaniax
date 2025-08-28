@@ -16,7 +16,6 @@ const AnimatedAIImage = ({ src, alt, className }) => {
   const springY = useSpring(y, { stiffness: 200, damping: 30, mass: 1 });
 
   // Use useTransform to map the spring values to rotation values
-  // Note: The rotation is inverted for a natural "looking at" effect
   const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
   const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
 
@@ -25,20 +24,17 @@ const AnimatedAIImage = ({ src, alt, className }) => {
     const width = rect.width;
     const height = rect.height;
 
-    // Calculate mouse position as a percentage from -0.5 to 0.5
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
 
     const xPct = mouseX / width - 0.5;
     const yPct = mouseY / height - 0.5;
 
-    // Set the base motion values
     x.set(xPct);
     y.set(yPct);
   };
 
   const handleMouseLeave = () => {
-    // Reset motion values on mouse leave to smoothly return to the original position
     x.set(0);
     y.set(0);
   };
@@ -48,9 +44,7 @@ const AnimatedAIImage = ({ src, alt, className }) => {
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{
-        perspective: "1000px", // Use a string value
-      }}
+      style={{ perspective: "1000px" }}
       className="w-full h-full"
     >
       <motion.img
@@ -67,49 +61,33 @@ const AnimatedAIImage = ({ src, alt, className }) => {
   );
 };
 
-export default AnimatedAIImage;
+// Export this as named (not default)
+export { AnimatedAIImage };
 
 const getFooterImageForGrade = (userClass) => {
-  if (!userClass) {
-    return "/4.gif"; 
-  }
+  if (!userClass) return "/4.gif";
 
   const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
 
-  if (isNaN(gradeNumber)) {
-    return "/4.gif"; 
-  }
+  if (isNaN(gradeNumber)) return "/4.gif";
 
-  if (gradeNumber >= 9) {
-    return "/ai.png";
-  }
-
-  return "/4.gif";
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.2,
-      duration: 0.6,
-      ease: "easeOut",
-    },
-  }),
+  return gradeNumber >= 9 ? "/ai.png" : "/4.gif";
 };
 
 const Footer = () => {
   const { user } = useAuth();
   const footerImage = getFooterImageForGrade(user?.userClass);
-  const gradeNumber = user?.userClass ? parseInt(String(user.userClass).replace(/\D/g, ""), 10) : NaN;
-  const footerImageMarginClass = (gradeNumber >= 9 && !isNaN(gradeNumber)) ? 'mb-12' : '';
+  const gradeNumber = user?.userClass
+    ? parseInt(String(user.userClass).replace(/\D/g, ""), 10)
+    : NaN;
+
+  const footerImageMarginClass =
+    gradeNumber >= 9 && !isNaN(gradeNumber) ? "mb-12" : "";
+
   return (
     <div className="w-full mt-30 xl:mt-60 lg:mt-60">
       {/* Wave Section with Teddy */}
       <div className="relative w-full">
-        {/* Wave Background */}
         <div
           className="w-full h-50 p-0 m-0 sm:h-56 md:h-64 lg:h-72 xl:h-90 2xl:h-120 bg-contain bg-center bg-no-repeat relative"
           style={{
@@ -118,7 +96,6 @@ const Footer = () => {
             backgroundPosition: "center bottom",
           }}
         >
-          {/* Teddy positioned to emerge from the wave */}
           <div className="absolute -z-20 bottom-0 left-1/2 transform -translate-x-1/2 translate-y-8 sm:translate-y-10 md:translate-y-12 lg:translate-y-16">
             <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
               {footerImage === "/ai.png" ? (
@@ -139,25 +116,21 @@ const Footer = () => {
         </div>
       </div>
 
-      {/* Footer Content - Green section that continues from wave */}
+      {/* Footer Content */}
       <footer
         className="w-full -mt-5 text-white pt-12 sm:pt-16 md:pt-20 lg:pt-24 xl:pt-28 2xl:pt-32 pb-8 lg:pb-12 relative"
         style={{ backgroundColor: "#068F36" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Main Footer Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 mb-8">
-            {/* Company Info Section - Takes 2 columns on large screens */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Company Name and Social Icons */}
               <div className="flex flex-wrap items-center gap-4 mb-4">
                 <h2 className="text-xl font-bold">
                   Lyfshilp Academy Pvt. Ltd. (Powered by Agility AI Pvt. Ltd.)
                 </h2>
-
                 <div className="flex gap-2">
                   <a
-                    href="https://www.linkedin.com/company/100047077" // replace with your actual link
+                    href="https://www.linkedin.com/company/100047077"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-8 h-8 bg-white rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity"
@@ -165,9 +138,8 @@ const Footer = () => {
                   >
                     <Linkedin className="w-4 h-4 text-[#068F36]" />
                   </a>
-
                   <a
-                    href="https://www.instagram.com/edumaniaxx?igsh=eW5oaGdyb203NWtk&utm_source=qr" // replace with your actual link
+                    href="https://www.instagram.com/edumaniaxx?igsh=eW5oaGdyb203NWtk&utm_source=qr"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-8 h-8 bg-white rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity"
@@ -177,13 +149,10 @@ const Footer = () => {
                   </a>
                 </div>
               </div>
-
               <p className="text-sm leading-relaxed max-w-md opacity-90">
                 Transform your life through learning. Explore expert-led
                 programs designed for growth.
               </p>
-
-              {/* Contact Info */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <svg
@@ -192,9 +161,7 @@ const Footer = () => {
                   >
                     <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                   </svg>
-                  <span className="text-sm">
-                    Edumaniax@lyfshilpacademy.com
-                  </span>
+                  <span className="text-sm">Edumaniax@lyfshilpacademy.com</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <svg
@@ -208,46 +175,34 @@ const Footer = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 gap-8 sm:gap-14 ">
-              {/* Explore Section */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-8 sm:gap-14">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Explore</h3>
                 <ul className="space-y-3">
                   <li>
-                    <Link
-                      to="/about"
-                      className="text-sm hover:opacity-80 transition-opacity"
-                    >
+                    <Link to="/about" className="text-sm hover:opacity-80">
                       About Us
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      to="/courses"
-                      className="text-sm hover:opacity-80 transition-opacity"
-                    >
+                    <Link to="/courses" className="text-sm hover:opacity-80">
                       Courses
                     </Link>
                   </li>
                   <li>
-                    <Link
-                      to="/blogs"
-                      className="text-sm hover:opacity-80 transition-opacity"
-                    >
+                    <Link to="/blogs" className="text-sm hover:opacity-80">
                       Blogs
                     </Link>
                   </li>
                 </ul>
               </div>
-
-              {/* Legal Section */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Legal</h3>
                 <ul className="space-y-3">
                   <li>
                     <Link
                       to="/privacy-policy"
-                      className="text-sm hover:opacity-80 transition-opacity"
+                      className="text-sm hover:opacity-80"
                     >
                       Privacy Policy
                     </Link>
@@ -255,7 +210,7 @@ const Footer = () => {
                   <li>
                     <Link
                       to="/terms-conditions"
-                      className="text-sm hover:opacity-80 transition-opacity"
+                      className="text-sm hover:opacity-80"
                     >
                       Terms & Conditions
                     </Link>
@@ -263,7 +218,7 @@ const Footer = () => {
                   <li>
                     <Link
                       to="/refund-policy"
-                      className="text-sm hover:opacity-80 transition-opacity"
+                      className="text-sm hover:opacity-80"
                     >
                       Refund Policy
                     </Link>
@@ -272,9 +227,8 @@ const Footer = () => {
               </div>
             </div>
           </div>
-
-          {/* Copyright */}
         </div>
+
         <div className="text-center pt-6 border-t border-green-500 border-opacity-50">
           <p className="text-sm opacity-80">
             © 2025 Edumaniax. All rights reserved.
