@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BarChart from "../../../../charts/BarChart";
 import PieChart from "../../../../charts/PieChart";
 import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import InstructionOverlay from "./InstructionOverlay";
 
 const InvestmentSimulator = () => {
   const { completeFinanceChallenge } = useFinance();
@@ -42,6 +45,29 @@ const InvestmentSimulator = () => {
   const [valueAfterInvestmentYears, setValueAfterInvestmentYears] = useState(0);
   const [finalAmount, setFinalAmount] = useState([]);
   const [randomRate, setRandomRate] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showWin, setShowWin] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false); // 👉 new state for feedback modal
+  const [showInstructions, setShowInstructions] = useState(true); // 👉 new state for instructions overlay
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (showWin) {
+      document.body.style.overflow = "hidden"; // disable window scroll
+    } else {
+      document.body.style.overflow = "auto"; // restore when closed
+    }
+  }, [showWin]);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const simulate = (returnRate, years) => {
     const getRandom = (max, min) => Math.random() * (max - min) + min;
@@ -134,211 +160,292 @@ const InvestmentSimulator = () => {
       completed: true,
     });
     setStartTime(Date.now());
+    // 👉 show win section
+    setShowWin(true);
+  };
+
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  const retryGame = () => {
+    setAllocations({
+      fixedDeposits: 0,
+      gold: 0,
+      mutualFunds: 0,
+      stocks: 0,
+      savings: 0,
+    });
+    setReturnRate({
+      fixedDeposits: 0,
+      gold: 0,
+      mutualFunds: 0,
+      stocks: 0,
+      savings: 0,
+    });
+    setRandomReturnRate({
+      fixedDeposits: 0,
+      gold: 0,
+      mutualFunds: 0,
+      stocks: 0,
+      savings: 0,
+    });
+    setResult(null);
+    setValueAfterInvestmentYears(0);
+    setFinalAmount([]);
+    setShowWin(false); // ✅ hide win screen
+    setShowFeedback(false); // ✅ hide feedback modal if open
+    // ⚠️ don't touch setShowIntro (so intro won’t show again)
   };
 
   return (
-    <div className="w-[100%] mx-auto p-3">
-      <div
-        className="w-full bg-gradient-to-br from-yellow-100 to-orange-200 rounded-[30px] p-8 shadow-lg border-4 border-pink-300"
-        style={{ fontFamily: "'Comic Neue', cursive" }}
-      >
-        <div>
-          <h1 className="text-3xl font-extrabold text-center p-4 rounded-full bg-purple-300 text-pink-700 shadow-md hover:scale-105 transition-transform duration-300 inline-block">
-            Investment Simulator
-          </h1>
-        </div>
-
-        <div className="flex flex-col lg:flex-row mt-6 gap-4">
-          <div className="space-x-3 text-xl font-bold p-5 rounded-[20px] bg-yellow-300 shadow-inner hover:bg-yellow-400 transition-all">
-            <span>Total Amount</span>
-            <input
-              type="number"
-              value={total}
-              onChange={(e) => setTotal(e.target.value)}
-              className="border-2 border-pink-400 w-[90%] rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-pink-500"
-              placeholder="Enter the amount"
-            />
-          </div>
-          <div className="space-x-3 text-xl font-bold p-5 rounded-[20px] bg-blue-300 shadow-inner hover:bg-blue-400 transition-all">
-            <span>For Years : </span>
-            <input
-              type="number"
-              value={years}
-              onChange={(e) => setYears(e.target.value)}
-              className="border-2 border-purple-400 w-[90%] rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="Enter the amount"
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 p-3">
-          <h2 className="text-2xl font-extrabold mb-3 text-purple-700">
-            Distributions :{" "}
-          </h2>
-          <ul className="mb-4 bg-gradient-to-r p-4 rounded-3xl from-pink-100 to-purple-200 text-xl list-disc list-inside space-y-2 shadow-md">
-            <li>
-              <strong>Fixed Deposits:</strong> A safe investment option offering
-              fixed interest over a set period.
-            </li>
-            <li>
-              <strong>Gold:</strong> A traditional store of value, often used as
-              a hedge against inflation.
-            </li>
-            <li>
-              <strong>Mutual Funds:</strong> Diversified investments managed by
-              professionals to balance risk and return.
-            </li>
-            <li>
-              <strong>Stocks:</strong> Shares in companies that can yield high
-              returns, but carry market risks.
-            </li>
-            <li>
-              <strong>Savings:</strong> Funds kept in a bank account, offering
-              high liquidity with minimal returns.
-            </li>
-          </ul>
-
-          <div className="flex flex-col md:flex-row">
-            <span className="text-lg text-center font-semibold text-blue-600">
-              Rate of Return :
-            </span>
-            <label className="text-lg text-center font-semibold">
+    <>
+      <GameNav />
+      <div className="pt-20 bg-[#0A160E] md:pt-50 w-[100%] mx-auto p-3">
+        <div
+          className="w-full bg-[#202F364D] rounded-[30px] p-8 shadow-lg border-4 border-gray-300"
+          style={{ fontFamily: "'Comic Neue', cursive" }}
+        >
+          <div className="flex flex-col lg:flex-row mt-6 gap-4">
+            <div className="space-x-3 lilita-one-regular text-xl font-bold p-5 rounded-[20px] bg-yellow-300 shadow-inner hover:bg-yellow-400 transition-all">
+              <span>Total Amount</span>
               <input
-                type="checkbox"
-                checked={randomRate}
-                onChange={(e) => {
-                  setRandomRate(e.target.checked);
-                  console.log(e.target.checked);
-                }}
-                className="mr-1 scale-125 accent-pink-500 ml-2"
+                type="number"
+                value={total}
+                onChange={(e) => setTotal(e.target.value)}
+                className="border-2 border-pink-400 w-[90%] rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="Enter the amount"
               />
-              <span className=" text-blue-600">Random</span>
-            </label>
+            </div>
+            <div className="space-x-3 lilita-one-regular text-xl font-bold p-5 rounded-[20px] bg-blue-300 shadow-inner hover:bg-blue-400 transition-all">
+              <span>For Years : </span>
+              <input
+                type="number"
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+                className="border-2 border-purple-400 w-[90%] rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder="Enter the amount"
+              />
+            </div>
           </div>
 
-          <p className="mt-2 text-center md:text-left text-lg font-semibold text-green-700">
-            Remaining Allocation:{" "}
-            {100 - Object.values(allocations).reduce((a, b) => a + b, 0)}%
-          </p>
+          <div className="mt-6 p-3">
+            <h2 className="text-2xl font-extrabold mb-3 text-white lilita-one-regular">
+              Distributions :{" "}
+            </h2>
+            <ul className="mb-4 lilita-one-regular bg-gradient-to-r p-4 rounded-3xl from-pink-100 to-purple-200 text-xl list-disc list-inside space-y-2 shadow-md">
+              <li>
+                Fixed Deposits: A safe investment option offering fixed interest
+                over a set period.
+              </li>
+              <li>
+                Gold: A traditional store of value, often used as a hedge
+                against inflation.
+              </li>
+              <li>
+                Mutual Funds: Diversified investments managed by professionals
+                to balance risk and return.
+              </li>
+              <li>
+                Stocks: Shares in companies that can yield high returns, but
+                carry market risks.
+              </li>
+              <li>
+                Savings: Funds kept in a bank account, offering high liquidity
+                with minimal returns.
+              </li>
+            </ul>
 
-          <div className="max-w-[450px] mt-4 p-5 bg-gradient-to-br from-pink-200 to-blue-200 rounded-[25px] shadow-xl mx-auto">
-            <div className="max-w-[400px] grid grid-cols-2 gap-4 font-semibold text-center">
-              <span className="text-lg text-pink-600">Asset</span>
-              <span className="text-lg text-blue-600">
-                {randomRate ? "Rate of Return" : "Choose custom rate"}
+            <div className="flex flex-col md:flex-row">
+              <span className="text-lg text-center font-semibold text-white lilita-one-regular">
+                Rate of Return :
               </span>
+              <label className="text-lg text-center font-semibold">
+                <input
+                  type="checkbox"
+                  checked={randomRate}
+                  onChange={(e) => {
+                    setRandomRate(e.target.checked);
+                    console.log(e.target.checked);
+                  }}
+                  className="mr-1 scale-125 accent-pink-500 ml-2"
+                />
+                <span className=" text-white lilita-one-regular">Random</span>
+              </label>
             </div>
 
-            <div className="mt-4 space-y-4">
-              {Object.keys(allocations).map((key, index) => {
-                const totalAllocated = Object.values(allocations).reduce(
-                  (a, b) => a + b,
-                  0
-                );
-                const remaining = 100 - totalAllocated + allocations[key];
-                const safeMax = Math.max(0, Math.min(100, remaining));
+            <p className="mt-2 text-center md:text-left text-lg font-semibold text-green-700">
+              Remaining Allocation:{" "}
+              {100 - Object.values(allocations).reduce((a, b) => a + b, 0)}%
+            </p>
 
-                return (
-                  <div
-                    key={key}
-                    className="max-w-[450px] grid grid-cols-2 gap-10 lg:gap-4 items-center bg-white/70 rounded-xl p-3 hover:scale-[1.01] transition-transform"
-                  >
-                    <div className="space-y-4">
-                      <div className="font-bold text-lg text-purple-700">
-                        {names[index]}
+            <div className="max-w-[450px] mt-4 p-5 bg-gradient-to-br from-pink-200 to-blue-200 rounded-[25px] shadow-xl mx-auto">
+              <div className="max-w-[400px] grid grid-cols-2 gap-4 font-semibold text-center">
+                <span className="text-lg text-pink-600">Asset</span>
+                <span className="text-lg text-blue-600">
+                  {randomRate ? "Rate of Return" : "Choose custom rate"}
+                </span>
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {Object.keys(allocations).map((key, index) => {
+                  const totalAllocated = Object.values(allocations).reduce(
+                    (a, b) => a + b,
+                    0
+                  );
+                  const remaining = 100 - totalAllocated + allocations[key];
+                  const safeMax = Math.max(0, Math.min(100, remaining));
+
+                  return (
+                    <div
+                      key={key}
+                      className="max-w-[450px] grid grid-cols-2 gap-10 lg:gap-4 items-center bg-white/70 rounded-xl p-3 hover:scale-[1.01] transition-transform"
+                    >
+                      <div className="space-y-4">
+                        <div className="font-bold text-lg text-purple-700">
+                          {names[index]}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <input
+                            type="range"
+                            min={0}
+                            max={safeMax}
+                            value={allocations[key]}
+                            onChange={(e) =>
+                              setAllocations((prev) => ({
+                                ...prev,
+                                [key]: Number(e.target.value),
+                              }))
+                            }
+                            className="accent-pink-500"
+                          />
+                          <span className="text-sm text-center font-bold text-blue-600">
+                            {allocations[key]}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <input
-                          type="range"
-                          min={0}
-                          max={safeMax}
-                          value={allocations[key]}
-                          onChange={(e) =>
-                            setAllocations((prev) => ({
-                              ...prev,
-                              [key]: Number(e.target.value),
-                            }))
-                          }
-                          className="accent-pink-500"
-                        />
-                        <span className="text-sm text-center font-bold text-blue-600">
-                          {allocations[key]}%
-                        </span>
-                      </div>
+
+                      {randomRate ? (
+                        <div className="flex h-full justify-center items-start gap-1 text-xl text-green-600 font-bold">
+                          {(randomReturnRate[key] * 100).toFixed(2)}%
+                        </div>
+                      ) : (
+                        <div className="h-full flex justify-center items-start gap-2">
+                          <input
+                            type="number"
+                            value={returnRate[key]}
+                            className="border-2 w-[90%] border-blue-400 rounded-lg px-2 py-1  text-center focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter rate"
+                            onChange={(e) =>
+                              setReturnRate((prev) => ({
+                                ...prev,
+                                [key]: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      )}
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-                    {randomRate ? (
-                      <div className="flex h-full justify-center items-start gap-1 text-xl text-green-600 font-bold">
-                        {(randomReturnRate[key] * 100).toFixed(2)}%
-                      </div>
-                    ) : (
-                      <div className="h-full flex justify-center items-start gap-2">
-                        <input
-                          type="number"
-                          value={returnRate[key]}
-                          className="border-2 w-[90%] border-blue-400 rounded-lg px-2 py-1  text-center focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter rate"
-                          onChange={(e) =>
-                            setReturnRate((prev) => ({
-                              ...prev,
-                              [key]: e.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={handleSimulate}
+              className="bg-gradient-to-r from-pink-400 to-purple-500 text-white lilita-one-regular px-6 py-3 text-xl font-bold rounded-xl shadow-lg hover:scale-110 transition-all duration-300"
+            >
+              🎲 Simulate Returns
+            </button>
+          </div>
+
+          {showWin && result && (
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between overflow-y-auto">
+              {/* Center Content */}
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                {/* Trophy GIFs */}
+                <div className="relative w-64 h-64 flex items-center justify-center">
+                  <img
+                    src="/financeGames6to8/trophy-rotating.gif"
+                    alt="Rotating Trophy"
+                    className="absolute w-full h-full object-contain"
+                  />
+                  <img
+                    src="/financeGames6to8/trophy-celebration.gif"
+                    alt="Celebration Effects"
+                    className="absolute w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* Title */}
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                  Challenge Complete!
+                </h2>
+
+                {/* Final Amount */}
+                <div className="mt-6 text-white lilita-one-regular text-xl">
+                  Final amount after {years} {years > 1 ? "years" : "year"} :
+                  <strong className="ml-2">₹{valueAfterInvestmentYears}</strong>
+                </div>
+
+                {/* Charts Section */}
+                <div className="mx-auto mt-8 flex flex-col xl:flex-row justify-center items-center gap-6">
+                  <div className="p-5 hover:rotate-1 transition-transform">
+                    <BarChart
+                      data={result.map((item) => item.value)}
+                      colors={COLORS}
+                      labels={result.map((item) => item.name)}
+                    />
                   </div>
-                );
-              })}
+                  <div className="p-5 hover:-rotate-1 transition-transform">
+                    <PieChart
+                      values={result.map((item) => item.value)}
+                      colors={COLORS}
+                      labels={result.map((item) => item.name)}
+                    />
+                  </div>
+                  <div className="p-5 hover:rotate-2 transition-transform">
+                    <PieChart
+                      values={finalAmount.map((item) => item.value)}
+                      colors={COLORS}
+                      labels={finalAmount.map((item) => item.name)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                {/* Feedback button */}
+                <img
+                  src="/financeGames6to8/feedback.svg"
+                  alt="Feedback"
+                  onClick={handleViewFeedback} // 👉 make sure this function exists
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+
+                {/* Retry button */}
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={retryGame}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Instructions overlay */}
+          {showInstructions && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+              <InstructionOverlay onClose={() => setShowInstructions(false)} />
+            </div>
+          )}
         </div>
-
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={handleSimulate}
-            className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-6 py-3 text-xl font-bold rounded-full shadow-lg hover:scale-110 transition-all duration-300"
-          >
-            🎲 Simulate Returns
-          </button>
-        </div>
-
-        {result && (
-          <div className="flex justify-center items-center mt-5 text-md md:text-xl font-semibold">
-            <span>
-              Final amount after {years} {`${years > 1 ? "years" : "year"}`} -{" "}
-              <strong>₹{valueAfterInvestmentYears}</strong>
-            </span>
-          </div>
-        )}
-
-        {result && (
-          <div className="mx-auto mt-8 flex flex-col xl:flex-row justify-center items-center gap-3">
-            <div className=" p-5  hover:rotate-1 transition-transform">
-              <BarChart
-                data={result.map((item) => item.value)}
-                colors={COLORS}
-                labels={result.map((item) => item.name)}
-              />
-            </div>
-            <div className=" p-5   hover:-rotate-1 transition-transform">
-              <PieChart
-                values={result.map((item) => item.value)}
-                colors={COLORS}
-                labels={result.map((item) => item.name)}
-              />
-            </div>
-            <div className=" p-5   hover:rotate-2 transition-transform">
-              <PieChart
-                values={finalAmount.map((item) => item.value)}
-                colors={COLORS}
-                labels={finalAmount.map((item) => item.name)}
-              />
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 
