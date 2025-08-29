@@ -1,13 +1,13 @@
 import { useState } from "react";
-import BarChart from "../../../charts/BarChart";
-import PieChart from "../../../charts/PieChart";
-import { useFinance } from "../../../../contexts/FinanceContext";
+import BarChart from "../../../../charts/BarChart";
+import PieChart from "../../../../charts/PieChart";
+import { useFinance } from "../../../../../contexts/FinanceContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; // for performance
 
 const InvestmentSimulator = () => {
   const { completeFinanceChallenge } = useFinance();
   const { updatePerformance } = usePerformance(); // for performance
- const [startTime,setStartTime] = useState(Date.now()); // for performance
+  const [startTime, setStartTime] = useState(Date.now()); // for performance
   const [allocations, setAllocations] = useState({
     fixedDeposits: 0,
     gold: 0,
@@ -67,7 +67,7 @@ const InvestmentSimulator = () => {
         name: "Fixed Deposits",
         value: Math.round(
           amount(allocations.fixedDeposits) *
-          Math.pow(1 + rate.fixedDeposits, years)
+            Math.pow(1 + rate.fixedDeposits, years)
         ),
       },
       {
@@ -80,7 +80,7 @@ const InvestmentSimulator = () => {
         name: "Mutual Funds",
         value: Math.round(
           amount(allocations.mutualFunds) *
-          Math.pow(1 + rate.mutualFunds, years)
+            Math.pow(1 + rate.mutualFunds, years)
         ),
       },
       {
@@ -132,7 +132,6 @@ const InvestmentSimulator = () => {
       avgResponseTimeSec: totalTimeSec, // using full time as it's one-shot
       studyTimeMinutes: Math.ceil(totalTimeSec / 60),
       completed: true,
-     
     });
     setStartTime(Date.now());
   };
@@ -307,7 +306,8 @@ const InvestmentSimulator = () => {
         {result && (
           <div className="flex justify-center items-center mt-5 text-md md:text-xl font-semibold">
             <span>
-              Final amount after {years} {`${years > 1 ? "years" : "year"}`} - <strong>₹{valueAfterInvestmentYears}</strong>
+              Final amount after {years} {`${years > 1 ? "years" : "year"}`} -{" "}
+              <strong>₹{valueAfterInvestmentYears}</strong>
             </span>
           </div>
         )}
