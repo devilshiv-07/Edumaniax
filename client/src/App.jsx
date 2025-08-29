@@ -14,12 +14,11 @@ import PickABank from "./components/Finance Management/Activities/Level 1/Pick A
 import OverspendTrap from "./components/Finance Management/Activities/Level 1/OverspendTrap/OverspendTrap.jsx";
 import BudgetActivity from "./components/Finance Management/Activities/Level 1/BudgetActivity/BudgetActivity.jsx";
 import BudgetBuilder from "./components/Finance Management/Activities/Level 1/Budeget Builder/BudgetBuilder.jsx";
-import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSimulator.jsx";
 import Adaptive_Learning_Quiz from "./components/assessment_tools/Adaptive_Learning_Quiz.jsx";
 import Finance from "./pages/Finance.jsx";
 import EmiVsLumpSum from "./components/Finance Management/Activities/Level 2/EmiVsLumpSum/EmiVsLumpSum.jsx";
 import NewsFlash from "./components/Finance Management/Activities/Level 3/NewsFlash/NewsFlash.jsx";
-import RiskOMeter from "./components/Finance Management/Activities/Level 3/RiskOMeter.jsx";
+import RiskOMeter from "./components/Finance Management/Activities/Level 3/RiskOMeter/RiskOMeter.jsx";
 import Challenge3 from "./components/Finance Management/Activities/Level 2/Challenge3/Challenge3.jsx";
 import My_Purchase_Plan from "./components/Finance Management/Activities/Level 2/My_Purchase_Plan/My_Purchase_Plan.jsx";
 import FinanceNotes from "./pages/FinanceNotes.jsx";
@@ -316,6 +315,7 @@ import CreateBlog from "./pages/CreateBlog";
 import Pricing from "./pages/Pricing";
 import Register from "./pages/Register";
 import CreditCardSimulator from "./components/Finance Management/Activities/Level 2/CreditCardSimulator/CreditCardSimulator";
+import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSim/InvestmentSimulator";
 
 const INTRO_EXPIRY_HOURS = 0.5; // Change this to 1 for 1 hour, 0.1 for 6 minutes, etc.
 
