@@ -1,28 +1,40 @@
-import React, { useState } from 'react';
-import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 import { useComputers } from "@/contexts/ComputersContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
 const aiTypes = [
-  { id: 'rule', label: '📏Rule-based AI' },
-  { id: 'learning', label: '📚Learning AI' },
-  { id: 'smart', label: '🧠Smart AI' },
+  { id: "rule", label: "📏Rule-based AI" },
+  { id: "learning", label: "📚Learning AI" },
+  { id: "smart", label: "🧠Smart AI" },
 ];
 
 const examples = [
-  { id: 'calc', label: 'Calculator', correctType: 'rule' },
-  { id: 'alarm', label: 'Alarm Clock', correctType: 'rule' },
-  { id: 'trafficlight', label: 'Traffic Light Timer', correctType: 'rule' },
+  { id: "calc", label: "Calculator", correctType: "rule" },
+  { id: "alarm", label: "Alarm Clock", correctType: "rule" },
+  { id: "trafficlight", label: "Traffic Light Timer", correctType: "rule" },
 
-  { id: 'yt', label: 'YouTube Recommendations', correctType: 'learning' },
-  { id: 'netflix', label: 'Netflix Suggestions', correctType: 'learning' },
-  { id: 'shopping', label: 'Amazon Product Suggestions', correctType: 'learning' },
-  { id: 'duolingo', label: 'Duolingo Language Practice', correctType: 'learning' },
+  { id: "yt", label: "YouTube Recommendations", correctType: "learning" },
+  { id: "netflix", label: "Netflix Suggestions", correctType: "learning" },
+  {
+    id: "shopping",
+    label: "Amazon Product Suggestions",
+    correctType: "learning",
+  },
+  {
+    id: "duolingo",
+    label: "Duolingo Language Practice",
+    correctType: "learning",
+  },
 
-  { id: 'chess', label: 'Chess-playing Computer', correctType: 'smart' },
-  { id: 'siri', label: 'Alexa', correctType: 'smart' },
-  { id: 'tesla', label: 'Self-Driving Car (Tesla)', correctType: 'smart' },
-  { id: 'drone', label: 'Smart Drone with Obstacle Avoidance', correctType: 'smart' },
+  { id: "chess", label: "Chess-playing Computer", correctType: "smart" },
+  { id: "siri", label: "Alexa", correctType: "smart" },
+  { id: "tesla", label: "Self-Driving Car (Tesla)", correctType: "smart" },
+  {
+    id: "drone",
+    label: "Smart Drone with Obstacle Avoidance",
+    correctType: "smart",
+  },
 ];
 
 export default function MeetAITypeGame() {
@@ -32,20 +44,18 @@ export default function MeetAITypeGame() {
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
 
-
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
 
-
   const handleDrop = (e, typeId) => {
     e.preventDefault();
-    const exampleId = e.dataTransfer.getData('text/plain');
-    setAssignments(prev => ({ ...prev, [exampleId]: typeId }));
+    const exampleId = e.dataTransfer.getData("text/plain");
+    setAssignments((prev) => ({ ...prev, [exampleId]: typeId }));
   };
 
   const handleDragStart = (e, id) => {
-    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.setData("text/plain", id);
   };
 
   const isFormComplete = () =>
@@ -55,7 +65,7 @@ export default function MeetAITypeGame() {
 
   const handleSubmit = () => {
     let correct = 0;
-    examples.forEach(example => {
+    examples.forEach((example) => {
       if (assignments[example.id] === example.correctType) correct++;
     });
     setScore(correct);
@@ -76,15 +86,12 @@ export default function MeetAITypeGame() {
       avgResponseTimeSec,
       studyTimeMinutes,
       completed: correct === examples.length,
-
     });
     setStartTime(Date.now());
     if (correct === examples.length) {
       completeComputersChallenge(0, 1); // Challenge 1, Task 2 complete
     }
   };
-
-
 
   const handleReset = () => {
     setAssignments({});
@@ -106,25 +113,34 @@ export default function MeetAITypeGame() {
       </motion.h1>
 
       <p className="mb-4 text-center text-lg text-gray-700">
-        🕹️ Drag each example to the correct AI type box below. Learn the difference!
+        🕹️ Drag each example to the correct AI type box below. Learn the
+        difference!
       </p>
 
       {/* AI Type Drop Zones */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {aiTypes.map(type => (
+        {aiTypes.map((type) => (
           <div
             key={type.id}
-            onDrop={e => handleDrop(e, type.id)}
-            onDragOver={e => e.preventDefault()}
+            onDrop={(e) => handleDrop(e, type.id)}
+            onDragOver={(e) => e.preventDefault()}
             className="min-h-[200px] bg-white border-4 border-dashed border-blue-400 rounded-lg p-4 shadow-lg"
           >
-            <h2 className="text-xl font-semibold text-center text-blue-700 mb-2">{type.label}</h2>
+            <h2 className="text-xl font-semibold text-center text-blue-700 mb-2">
+              {type.label}
+            </h2>
             <ul>
               {Object.entries(assignments)
                 .filter(([_, val]) => val === type.id)
                 .map(([exampleId]) => {
-                  const label = examples.find(ex => ex.id === exampleId)?.label;
-                  return <li key={exampleId} className="text-center text-green-700">{label}</li>;
+                  const label = examples.find(
+                    (ex) => ex.id === exampleId
+                  )?.label;
+                  return (
+                    <li key={exampleId} className="text-center text-green-700">
+                      {label}
+                    </li>
+                  );
                 })}
             </ul>
           </div>
@@ -134,17 +150,19 @@ export default function MeetAITypeGame() {
       {/* Draggable Examples */}
       {!submitted && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-          {examples.map(example => {
+          {examples.map((example) => {
             const isAssigned = assignments.hasOwnProperty(example.id);
             return (
               <motion.div
                 key={example.id}
                 draggable
-                onDragStart={e => handleDragStart(e, example.id)}
+                onDragStart={(e) => handleDragStart(e, example.id)}
                 className={`p-3 rounded-lg cursor-grab font-semibold text-center shadow-md border-2 hover:scale-105 transition-transform
-                  ${isAssigned
-                    ? 'bg-green-200 text-green-900 border-green-400'
-                    : 'bg-yellow-200 text-yellow-900 border-yellow-400'}
+                  ${
+                    isAssigned
+                      ? "bg-green-200 text-green-900 border-green-400"
+                      : "bg-yellow-200 text-yellow-900 border-yellow-400"
+                  }
                 `}
                 whileHover={{ rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 0.4 }}
@@ -159,18 +177,30 @@ export default function MeetAITypeGame() {
       {/* Reflection Questions */}
       {!submitted && (
         <div className="bg-white p-6 rounded-xl shadow-md mb-6">
-          <h2 className="text-xl font-bold mb-3 text-blue-700">🧠 Reflection Questions</h2>
+          <h2 className="text-xl font-bold mb-3 text-blue-700">
+            🧠 Reflection Questions
+          </h2>
           <div className="space-y-4">
-            {[{ q: `What's the coolest AI type and why?`, name: 'q1' },
-            { q: `Design an AI friend: What would it do? What would it learn?`, name: 'q2' },
+            {[
+              {
+                q: `Design an AI friend: What would it do? What would it learn?`,
+                name: "q2",
+              },
             ].map(({ q, name }) => (
               <div key={name}>
-                <label className="block font-medium text-gray-700 mb-1">{q}</label>
+                <label className="block font-medium text-gray-700 mb-1">
+                  {q}
+                </label>
                 <textarea
                   className="w-full border border-gray-300 rounded p-2"
                   rows={2}
-                  onChange={e => setReflections(prev => ({ ...prev, [name]: e.target.value }))}
-                  value={reflections[name] || ''}
+                  onChange={(e) =>
+                    setReflections((prev) => ({
+                      ...prev,
+                      [name]: e.target.value,
+                    }))
+                  }
+                  value={reflections[name] || ""}
                 />
               </div>
             ))}
@@ -183,10 +213,11 @@ export default function MeetAITypeGame() {
         <motion.button
           disabled={!isFormComplete()}
           onClick={handleSubmit}
-          className={`block mx-auto px-6 py-2 rounded-full font-bold transition ${isFormComplete()
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+          className={`block mx-auto px-6 py-2 rounded-full font-bold transition ${
+            isFormComplete()
+              ? "bg-green-600 text-white hover:bg-green-700"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
           whileTap={{ scale: 0.95 }}
           animate={{ rotate: isFormComplete() ? [0, 1, -1, 0] : 0 }}
           transition={{ duration: 0.4 }}
@@ -210,7 +241,8 @@ export default function MeetAITypeGame() {
             🎯 Your Results
           </motion.h2>
           <p className="text-lg text-gray-800 mb-4">
-            You got <strong>{score}</strong> out of <strong>{examples.length}</strong> correct!
+            You got <strong>{score}</strong> out of{" "}
+            <strong>{examples.length}</strong> correct!
           </p>
           {score === examples.length ? (
             <motion.div
@@ -221,13 +253,21 @@ export default function MeetAITypeGame() {
               🏆 Perfect! You earned the AI Learner Badge!
             </motion.div>
           ) : (
-            <div className="text-red-600 text-xl font-bold mb-4">❌ Some answers were incorrect. Try again!</div>
+            <div className="text-red-600 text-xl font-bold mb-4">
+              ❌ Some answers were incorrect. Try again!
+            </div>
           )}
 
           <div className="bg-white p-6 rounded-xl shadow-md text-left max-w-2xl mx-auto">
-            <h3 className="text-lg font-semibold mb-2 text-blue-700">🧠 Your Reflection Answers:</h3>
-            <p className="mb-2"><strong>Coolest AI Type:</strong> {reflections.q1}</p>
-            <p><strong>AI Friend:</strong> {reflections.q2}</p>
+            <h3 className="text-lg font-semibold mb-2 text-blue-700">
+              🧠 Your Reflection Answers:
+            </h3>
+            <p className="mb-2">
+              <strong>Coolest AI Type:</strong> {reflections.q1}
+            </p>
+            <p>
+              <strong>AI Friend:</strong> {reflections.q2}
+            </p>
           </div>
 
           <motion.button

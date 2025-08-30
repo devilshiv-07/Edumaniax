@@ -28,7 +28,7 @@ const getHeroImageForGrade = (userClass) => {
   const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
 
   if (isNaN(gradeNumber)) {
-    return "/heroIMG.png"; 
+    return "/heroIMG.png";
   }
 
   if (gradeNumber >= 9) {
@@ -40,13 +40,13 @@ const getHeroImageForGrade = (userClass) => {
 
 const getStatsGifForGrade = (userClass) => {
   if (!userClass) {
-    return "/5.gif"; 
+    return "/5.gif";
   }
 
   const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
 
   if (isNaN(gradeNumber)) {
-    return "/5.gif"; 
+    return "/5.gif";
   }
 
   if (gradeNumber >= 9) {
@@ -1810,7 +1810,7 @@ const Home = () => {
       duration: "6 weeks",
       students: "2,847",
       category: "Finance",
-      image: 
+      image:
         "https://images.unsplash.com/photo-1605792657660-596af9009e82?auto=format&fit=crop&w=800&q=80",
     },
     {
@@ -1996,9 +1996,6 @@ const Home = () => {
     },
   ];
 
-  
-
-
   const toggleFAQ = (index) => {
     setOpenFAQ(openFAQ === index ? null : index);
   };
@@ -2012,7 +2009,6 @@ const Home = () => {
 
     return () => clearInterval(interval);
   }, [isAutoPlaying, testimonials.length]);
-  
 
   // Mobile autoplay for Feature 2
   useEffect(() => {
@@ -2109,14 +2105,20 @@ const Home = () => {
           onClose={() => setIsInstitutionalModalOpen(false)}
         />
 
+        {/* Navbar - fixed at top */}
+        <div className="w-full fixed -top-0 left-0 z-50">
+          <Navbar />
+        </div>
+
         {/* Hero Section */}
-        <section className="relative h-[84vh] sm:min-h-[100vh] w-full p-0 ">
-          <div className={`w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover  bg-center bg-no-repeat `}>
-            <Navbar />
-            <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap  sm:mt-6 xl:mt-6  flex-col items-center text-center px-4 sm:px-6">
+        <section className="relative h-[84vh] sm:min-h-[100vh] w-full p-0 pt-6">
+          <div
+            className={`w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover bg-center bg-no-repeat`}
+          >
+            <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap sm:mt-6 xl:mt-6 flex-col items-center text-center px-4 sm:px-6">
               {/* Trust Badge */}
               <div className="mb-6 sm:mb-5 pt-3 sm:pt-0 mt-7 sm:mt-0 md:mb-2">
-                <div className="bg-black backdrop-blur-sm rounded-full px-2 sm:px-3 py-1  sm:mt- border border-white/20">
+                <div className="bg-black mt-15 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 border border-white/20">
                   <span className="text-white text-xs sm:text-sm flex items-center gap-2">
                     ⭐ Loved by 1K+ users worldwide
                   </span>
@@ -2132,13 +2134,13 @@ const Home = () => {
                   Master AI, Finance, Law
                 </h1>
                 <h1
-                  className="text-white flex text-2xl ml-8 sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed  sm:leading-tight"
+                  className="text-white flex text-2xl ml-8 sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed sm:leading-tight"
                   style={{ fontFamily: '"Sigmar", sans-serif' }}
                 >
                   With a Twist of Fun{" "}
-                  <div className=" sm:h-15 sm:w-15 ">
+                  <div className="sm:h-15 sm:w-15">
                     <img
-                      className="w-8 h-7 sm:h-9 sm:w-9 md:h-9 md:w-9 lg:h-10 lg:w-10 xl:h-15 xl:w-15 "
+                      className="w-8 h-7 sm:h-9 sm:w-9 md:h-9 md:w-9 lg:h-10 lg:w-10 xl:h-15 xl:w-15"
                       src="/Fire.gif"
                       alt="fire"
                     />
@@ -2154,7 +2156,9 @@ const Home = () => {
               </p>
 
               {/* CTA Buttons */}
-              <div className={`flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8  sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0 `}>
+              <div
+                className={`flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0`}
+              >
                 <button
                   onClick={() => navigate(user ? "/pricing" : "/courses")}
                   className="bg-white text-black font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md transition duration-300 cursor-pointer text-sm sm:text-sm hover:bg-gray-100"
@@ -2171,7 +2175,7 @@ const Home = () => {
                 {user ? (
                   <button
                     onClick={() => navigate("/dashboard?section=modules")}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8  rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
+                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
                   >
                     Continue Reading
                   </button>
@@ -2188,13 +2192,13 @@ const Home = () => {
 
             {/* Hero Illustration */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 max-w-2xl mx-auto">
-              {/* Main characters illustration */}
               <div className="relative h-[395px] w-[395px] sm:h-[350px] sm:w-[350px] md:h-[300px] md:w-[300px] lg:h-[500px] lg:w-[500px]">
                 <img
                   src={heroImage}
                   alt="Full"
                   className={`absolute inset-0 w-full h-full object-cover ${
-                    isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"}`}
+                    isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"
+                  }`}
                 />
               </div>
             </div>
@@ -2730,7 +2734,11 @@ const Home = () => {
               {plans.map((plan, idx) => (
                 <div
                   key={idx}
-                  className={`bg-white rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between relative border-2 filter hover:border-[#068F36] ${plan.title === "PRO PLAN" ? "border-[#068F36]" : "border-[#D9D9D9]"}`}
+                  className={`bg-white rounded-3xl p-6 border transition-all duration-300 flex flex-col justify-between relative border-2 filter hover:border-[#068F36] ${
+                    plan.title === "PRO PLAN"
+                      ? "border-[#068F36]"
+                      : "border-[#D9D9D9]"
+                  }`}
                   style={{
                     filter: "drop-shadow(1px -1px 5px rgba(0, 0, 0, 0.25))",
                   }}
