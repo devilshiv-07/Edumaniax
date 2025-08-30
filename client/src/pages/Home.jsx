@@ -2118,7 +2118,7 @@ const Home = () => {
             <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap sm:mt-6 xl:mt-6 flex-col items-center text-center px-4 sm:px-6">
               {/* Trust Badge */}
               <div className="mb-6 sm:mb-5 pt-3 sm:pt-0 mt-7 sm:mt-0 md:mb-2">
-                <div className="bg-black mt-9 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 border border-white/20">
+                <div className="bg-black mt-15 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 border border-white/20">
                   <span className="text-white text-xs sm:text-sm flex items-center gap-2">
                     ⭐ Loved by 1K+ users worldwide
                   </span>
