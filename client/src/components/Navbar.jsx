@@ -181,94 +181,80 @@ const Navbar = () => {
               About Us
             </Link>
 
-            <div className="relative" ref={dropdownRef}>
-              {/* Main button */}
-              <button
-                onClick={() => setOpen(!open)}
-                className="flex font-semibold items-center gap-1 px-3 py-2 text-black hover:text-green-600"
-              >
-                Courses
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-              {/* Dropdown */}{" "}
-              {open && (
-                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-[900px] bg-white shadow-lg rounded-xl p-6 z-50">
-                  {" "}
+            <div className="relative group" ref={dropdownRef}>
+              {/* Main button wrapper */}
+              <div className="flex font-semibold items-center gap-1 px-3 py-2 text-black hover:text-green-600 cursor-pointer">
+                {/* Separate link for "Courses" text (click goes to /courses) */}
+                <span onClick={() => navigate("/courses")}>Courses</span>
+                <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
+              </div>
+
+              {/* Dropdown - removed mt-2 and added pt-2 for seamless hover */}
+              <div className="absolute left-1/2 -translate-x-1/2 pt-2 w-[900px] z-50 hidden group-hover:block">
+                <div className="bg-white shadow-lg rounded-xl p-6">
                   <div className="grid grid-cols-3 divide-x divide-gray-200">
-                    {" "}
-                    {/** Column 1 */}{" "}
-                    <div className="flex -ml-3 flex-col gap-y-6 pr-6">
-                      {" "}
+                    {/* Column 1 */}
+                    <div className="flex -ml-5 flex-col gap-y-6 pr-6">
                       {courses.slice(0, 3).map((course) => (
                         <Link
                           key={course.name}
                           to={course.path}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group"
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group/item"
                         >
-                          {" "}
                           <img
                             src={course.icon}
                             alt={course.name}
-                            className="w-5 h-5 group-hover:invert group-hover:brightness-0 group-hover:contrast-200"
-                          />{" "}
-                          <span className="text-sm text-[#4D4C4C] group-hover:text-white whitespace-nowrap">
-                            {" "}
-                            {course.name}{" "}
-                          </span>{" "}
+                            className="w-5 h-5 group-hover/item:invert group-hover/item:brightness-0 group-hover/item:contrast-200"
+                          />
+                          <span className="text-sm font-semibold text-[#4D4C4C] group-hover/item:text-white whitespace-nowrap">
+                            {course.name}
+                          </span>
                         </Link>
-                      ))}{" "}
-                    </div>{" "}
-                    {/** Column 2 */}{" "}
+                      ))}
+                    </div>
+
+                    {/* Column 2 */}
                     <div className="flex flex-col gap-y-6 px-6">
-                      {" "}
                       {courses.slice(3, 6).map((course) => (
                         <Link
                           key={course.name}
                           to={course.path}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group"
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group/item"
                         >
-                          {" "}
                           <img
                             src={course.icon}
                             alt={course.name}
-                            className="w-5 h-5 group-hover:invert group-hover:brightness-0 group-hover:contrast-200"
-                          />{" "}
-                          <span className="text-sm text-[#4D4C4C] group-hover:text-white whitespace-nowrap">
-                            {" "}
-                            {course.name}{" "}
-                          </span>{" "}
+                            className="w-5 h-5 group-hover/item:invert group-hover/item:brightness-0 group-hover/item:contrast-200"
+                          />
+                          <span className="text-sm font-semibold text-[#4D4C4C] group-hover/item:text-white whitespace-nowrap">
+                            {course.name}
+                          </span>
                         </Link>
-                      ))}{" "}
-                    </div>{" "}
-                    {/** Column 3 */}{" "}
+                      ))}
+                    </div>
+
+                    {/* Column 3 */}
                     <div className="flex flex-col gap-y-6 pl-6">
-                      {" "}
                       {courses.slice(6).map((course) => (
                         <Link
                           key={course.name}
                           to={course.path}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group"
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#068F36] rounded-md transition group/item"
                         >
-                          {" "}
                           <img
                             src={course.icon}
                             alt={course.name}
-                            className="w-5 h-5 group-hover:invert group-hover:brightness-0 group-hover:contrast-200"
-                          />{" "}
-                          <span className="text-sm text-[#4D4C4C] group-hover:text-white whitespace-nowrap">
-                            {" "}
-                            {course.name}{" "}
-                          </span>{" "}
+                            className="w-5 h-5 group-hover/item:invert group-hover/item:brightness-0 group-hover/item:contrast-200"
+                          />
+                          <span className="text-sm font-semibold text-[#4D4C4C] group-hover/item:text-white whitespace-nowrap">
+                            {course.name}
+                          </span>
                         </Link>
-                      ))}{" "}
-                    </div>{" "}
-                  </div>{" "}
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
             <Link to="/pricing" className={getNavLinkClasses("/pricing")}>
