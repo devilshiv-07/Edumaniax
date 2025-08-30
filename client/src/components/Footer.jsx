@@ -137,7 +137,6 @@ const Footer = () => {
                 <div className="flex gap-2">
                   <a
                     href="https://www.linkedin.com/company/100047077"
-                    href="https://www.linkedin.com/company/100047077"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-8 h-8 bg-white rounded-lg flex items-center justify-center hover:opacity-80 transition-opacity"
@@ -146,7 +145,6 @@ const Footer = () => {
                     <Linkedin className="w-4 h-4 text-[#068F36]" />
                   </a>
                   <a
-                    href="https://www.instagram.com/edumaniaxx?igsh=eW5oaGdyb203NWtk&utm_source=qr"
                     href="https://www.instagram.com/edumaniaxx?igsh=eW5oaGdyb203NWtk&utm_source=qr"
                     target="_blank"
                     rel="noopener noreferrer"
