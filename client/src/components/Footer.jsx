@@ -5,60 +5,66 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Linkedin, Instagram } from "lucide-react";
 
 const AnimatedAIImage = ({ src, alt, className }) => {
-  const ref = React.useRef(null);
+  const [isLaptop, setIsLaptop] = React.useState(window.innerWidth >= 1024); 
 
-  // Use a single motion value for x and y
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsLaptop(window.innerWidth >= 1024);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // Map the motion values directly to a spring for smooth animation
-  const springX = useSpring(x, { stiffness: 200, damping: 30, mass: 1 });
-  const springY = useSpring(y, { stiffness: 200, damping: 30, mass: 1 });
+  if (isLaptop) {
+    // Laptop/Desktop: Mouse-controlled rotation
+    const x = useMotionValue(0);
+    const springX = useSpring(x, { stiffness: 120, damping: 20 });
+    const rotate = useTransform(springX, [-1, 1], [-15, 15]); 
 
-  // Use useTransform to map the spring values to rotation values
-  const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
-  const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
+    React.useEffect(() => {
+      const handleMouseMove = (event) => {
+        const centerX = window.innerWidth / 2;
+        const xPct = (event.clientX - centerX) / centerX; // -1 to 1
+        x.set(xPct);
+      };
 
-  const handleMouseMove = (event) => {
-    const rect = ref.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
+      const handleMouseLeave = () => {
+        x.set(0);
+      };
 
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseleave", handleMouseLeave);
 
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseleave", handleMouseLeave);
+      };
+    }, [x]);
 
-    x.set(xPct);
-    y.set(yPct);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return (
-    <div
-      ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ perspective: "1000px" }}
-      className="w-full h-full"
-    >
+    return (
       <motion.img
         src={src}
         alt={alt}
         className={className}
-        style={{
-          rotateX,
-          rotateY,
-          transformStyle: "preserve-3d",
+        style={{ rotate }}
+      />
+    );
+  } else {
+    // Mobile/Tablet: Self-playing animation loop
+    return (
+      <motion.img
+        src={src}
+        alt={alt}
+        className={className}
+        animate={{ rotate: [0, 10, -20, 0] }}
+        transition={{
+          duration: 5,
+          repeat: Infinity,
+          ease: "easeInOut",
         }}
       />
-    </div>
-  );
+    );
+  }
 };
 
 // Export this as named (not default)
@@ -97,7 +103,7 @@ const Footer = () => {
           }}
         >
           <div className="absolute -z-20 bottom-0 left-1/2 transform -translate-x-1/2 translate-y-8 sm:translate-y-10 md:translate-y-12 lg:translate-y-16">
-            <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-30 md:h-30 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
+            <div className="w-62 h-62 sm:w-32 sm:h-32 md:w-100 md:h-110 lg:w-147 lg:h-147 xl:w-170 xl:h-170 2xl:w-180 2xl:h-180">
               {footerImage === "/ai.png" ? (
                 <AnimatedAIImage
                   src={footerImage}
@@ -240,3 +246,4 @@ const Footer = () => {
 };
 
 export default Footer;
+
