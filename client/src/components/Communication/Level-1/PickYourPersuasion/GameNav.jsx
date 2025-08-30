@@ -84,7 +84,7 @@ const GameNav = () => {
       
       {/* I've updated the game title to match the component */}
       <span className="lilita [text-shadow:0_5px_0_#000] [text-stroke:1px_black] text-[15px] md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
-        Listen Up
+        Pick your Persuasion
       </span>
       
       <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
