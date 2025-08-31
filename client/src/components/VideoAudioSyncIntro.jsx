@@ -18,7 +18,7 @@ const VideoIntro = (props) => {
   }, []);
 
   useEffect(() => {
-    const hasVisited = false;
+    const hasVisited = false; 
     if (!hasVisited) {
       setShouldShowIntro(true);
     } else {
@@ -31,12 +31,29 @@ const VideoIntro = (props) => {
     try {
       if (videoRef.current) {
         videoRef.current.currentTime = 0;
-        await videoRef.current.play();
-        setIsPlaying(true);
+        const playPromise = videoRef.current.play();
+
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch((error) => {
+              console.warn("Video playback error:", error);
+              skipIntro();
+            });
+        }
       }
     } catch (error) {
-      console.error("Video playback error:", error);
+      console.error("Unexpected video error:", error);
+      skipIntro();
     }
+  };
+
+  const skipIntro = () => {
+    setIsPlaying(false);
+    setShowMainSite(true);
+    props.onIntroComplete?.();
   };
 
   useEffect(() => {
@@ -49,9 +66,7 @@ const VideoIntro = (props) => {
   }, [shouldShowIntro]);
 
   const handleVideoEnd = () => {
-    setIsPlaying(false);
-    setShowMainSite(true);
-    props.onIntroComplete?.();
+    skipIntro();
   };
 
   if (showMainSite || !shouldShowIntro) return null;
@@ -64,7 +79,13 @@ const VideoIntro = (props) => {
             ref={videoRef}
             className="w-full h-full object-cover"
             muted
+            playsInline   
+            autoPlay
             onEnded={handleVideoEnd}
+            onError={(e) => {
+              console.warn("Video element error:", e);
+              skipIntro();
+            }}
             preload="auto"
           >
             <source src={videoSrc} type="video/mp4" />
