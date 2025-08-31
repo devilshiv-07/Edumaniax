@@ -2111,99 +2111,91 @@ const Home = () => {
         </div>
 
         {/* Hero Section */}
-        <section className="relative h-[84vh] sm:min-h-[100vh] w-full p-0 pt-6">
-          <div
-            className={`w-full relative h-full bg-[url('/heroBG.jpg')] bg-cover bg-center bg-no-repeat`}
-          >
-            <div className="relative z-10 max-w-7xl mx-auto flex flex-wrap sm:mt-6 xl:mt-6 flex-col items-center text-center px-4 sm:px-6">
-              {/* Trust Badge */}
-              <div className="mb-6 sm:mb-5 pt-3 sm:pt-0 mt-7 sm:mt-0 md:mb-2">
-                <div className="bg-black mt-15 backdrop-blur-sm rounded-full px-2 sm:px-3 py-1 border border-white/20">
-                  <span className="text-white text-xs sm:text-sm flex items-center gap-2">
-                    ⭐ Loved by 1K+ users worldwide
-                  </span>
-                </div>
-              </div>
+        {/* Hero Section */}
+<section className="flex flex-col w-full bg-[url('/heroBG.jpg')] bg-cover bg-center bg-no-repeat pt-20">
+  {/* Top Container: Text and Buttons */}
+  <div className="flex flex-col items-center text-center px-4 pt-8 sm:pt-12">
+    {/* Trust Badge */}
+    <div className="mb-4">
+      <div className="bg-black backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+        <span className="text-white text-xs sm:text-sm flex items-center gap-2">
+          ⭐ Loved by 1K+ users worldwide
+        </span>
+      </div>
+    </div>
 
-              {/* Main Heading */}
-              <div className="mb-5 sm:mb-0 md:-mb-0 lg:-mb-3 xl:-mb-0">
-                <h1
-                  className="text-white text-2xl sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed sm:leading-tight"
-                  style={{ fontFamily: '"Sigmar", sans-serif' }}
-                >
-                  Master AI, Finance, Law
-                </h1>
-                <h1
-                  className="text-white flex text-2xl ml-8 sm:text-2xl md:text-2xl lg:text-3xl xl:text-5xl leading-relaxed sm:leading-tight"
-                  style={{ fontFamily: '"Sigmar", sans-serif' }}
-                >
-                  With a Twist of Fun{" "}
-                  <div className="sm:h-15 sm:w-15">
-                    <img
-                      className="w-8 h-7 sm:h-9 sm:w-9 md:h-9 md:w-9 lg:h-10 lg:w-10 xl:h-15 xl:w-15"
-                      src="/Fire.gif"
-                      alt="fire"
-                    />
-                  </div>
-                </h1>
-              </div>
+    {/* Main Heading */}
+    <div className="mb-4">
+      <h1
+        className="text-white text-3xl sm:text-4xl lg:text-5xl leading-tight"
+        style={{ fontFamily: '"Sigmar", sans-serif' }}
+      >
+        Master AI, Finance, Law
+      </h1>
+      <h1
+        className="text-white flex items-center justify-center text-3xl sm:text-4xl lg:text-5xl leading-tight"
+        style={{ fontFamily: '"Sigmar", sans-serif' }}
+      >
+        With a Twist of Fun
+        <img
+          className="w-8 h-8 sm:w-10 sm:h-10 ml-2"
+          src="/Fire.gif"
+          alt="fire"
+        />
+      </h1>
+    </div>
 
-              {/* Subtitle */}
-              <p className="text-white/90 tracking-wide text-sm sm:text-base md:text-base max-w-4xl mx-4 sm:mx-20 lg:mt- xl:mt-3 xl:mb-3 lg:mx-60 mb-10 sm:mb- leading-relaxed sm:leading-tight">
-                Explore Artificial Intelligence, Machine Learning,
-                Communication, Coding, and more through interactive games,
-                real-world challenges, and bite-sized notes
-              </p>
+    {/* Subtitle */}
+    <p className="text-white/90 tracking-wide text-sm sm:text-base max-w-2xl mx-auto mb-6">
+      Explore Artificial Intelligence, Machine Learning, Communication,
+      Coding, and more through interactive games, real-world challenges,
+      and bite-sized notes
+    </p>
 
-              {/* CTA Buttons */}
-              <div
-                className={`flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-16 xl:mt-3 w-full sm:w-auto px-4 sm:px-0`}
-              >
-                <button
-                  onClick={() => navigate(user ? "/pricing" : "/courses")}
-                  className="bg-white text-black font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md transition duration-300 cursor-pointer text-sm sm:text-sm hover:bg-gray-100"
-                >
-                  {user
-                    ? hasActiveSubscription &&
-                      (userPlan === "STARTER" || userPlan === "SOLO")
-                      ? "Upgrade Plan"
-                      : "Purchase Plan"
-                    : "Get Started Free"}
-                </button>
+    {/* CTA Buttons */}
+    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
+      <button
+        onClick={() => navigate(user ? "/pricing" : "/courses")}
+        className="bg-white text-black font-semibold px-6 py-3 rounded-md transition duration-300 cursor-pointer text-sm sm:text-base hover:bg-gray-100"
+      >
+        {user
+          ? hasActiveSubscription &&
+            (userPlan === "STARTER" || userPlan === "SOLO")
+            ? "Upgrade Plan"
+            : "Purchase Plan"
+          : "Get Started Free"}
+      </button>
 
-                {/* Conditional second button */}
-                {user ? (
-                  <button
-                    onClick={() => navigate("/dashboard?section=modules")}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
-                  >
-                    Continue Reading
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsTrialModalOpen(true)}
-                    className="border-2 border-white text-white font-semibold px-4 sm:px-5 py-3 sm:py-2 lg:px-5 lg:py-3 xl:px-8 rounded-md hover:bg-white hover:text-green-600 cursor-pointer transition duration-300 text-sm sm:text-sm flex items-center justify-center gap-2"
-                  >
-                    Book a trial
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Conditional second button */}
+      {user ? (
+        <button
+          onClick={() => navigate("/dashboard?section=modules")}
+          className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
+        >
+          Continue Reading
+        </button>
+      ) : (
+        <button
+          onClick={() => setIsTrialModalOpen(true)}
+          className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
+        >
+          Book a trial
+        </button>
+      )}
+    </div>
+  </div>
 
-            {/* Hero Illustration */}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 max-w-2xl mx-auto">
-              <div className="relative h-[395px] w-[395px] sm:h-[350px] sm:w-[350px] md:h-[300px] md:w-[300px] lg:h-[500px] lg:w-[500px]">
-                <img
-                  src={heroImage}
-                  alt="Full"
-                  className={`absolute inset-0 w-full h-full object-cover ${
-                    isZoomed ? "scale-75 mt-14" : "scale-100 mt-0"
-                  }`}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+  {/* Bottom Container: Hero Illustration */}
+  <div className="flex-1 flex items-end justify-center w-full mt-6">
+    <div className="w-full max-w-md lg:max-w-lg">
+      <img
+        src={heroImage}
+        alt="Hero Illustration"
+        className="w-full h-auto object-contain"
+      />
+    </div>
+  </div>
+</section>
 
         {/* Why You'll Love It Section */}
         <section className="py-10 sm:py-20 bg-gray-50">

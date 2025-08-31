@@ -20,9 +20,7 @@ const scrollbarHideStyle = `
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;
 
-// --- UPDATED Game Data ---
-// Using the shorter paths you provided. 
-// PLEASE VERIFY these files exist directly in your project's `/public` folder.
+// --- Game Data ---
 const audioData = [
   {
     src: "/audio1.mp3",
@@ -74,13 +72,13 @@ const audioData = [
   },
 ];
 
-// --- Constants (No changes) ---
+// --- Constants ---
 const PERFECT_SCORE = audioData.length * 5;
 const PASSING_THRESHOLD = 0.7; // 70%
 const APIKEY = import.meta.env.VITE_API_KEY;
 const SESSION_STORAGE_KEY = 'listenUpGameState';
 
-// --- Helper function (No changes) ---
+// --- Helper function ---
 function parsePossiblyStringifiedJSON(text) {
     if (typeof text !== "string") return null;
     text = text.trim();
@@ -98,7 +96,7 @@ function parsePossiblyStringifiedJSON(text) {
     }
 }
 
-// --- Option Component (No changes) ---
+// --- Option Component ---
 const Option = ({ text, isSelected, onClick, isEmoji = false }) => (
     <div
         onClick={onClick}
@@ -113,8 +111,7 @@ const Option = ({ text, isSelected, onClick, isEmoji = false }) => (
     </div>
 );
 
-
-// --- End Game Screens (No changes) ---
+// --- End Game Screens ---
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
     const { width, height } = useWindowSize();
     return (
@@ -196,7 +193,7 @@ function ReviewScreen({ answers, onBackToResults }) {
         <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center no-scrollbar">
             <style>{scrollbarHideStyle}</style>
             <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 flex-shrink-0">Review Your Answers</h1>
-            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 flex-grow overflow-y-auto p-2 no-scrollbar">
+            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-4 overflow-y-auto p-2 no-scrollbar">
                 {answers.map((ans, idx) => (
                     <div key={idx} className={`p-4 rounded-xl flex flex-col ${ans.isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border space-y-3`}>
                         <h3 className="text-lg font-bold text-yellow-300">Scenario {idx + 1}</h3>
@@ -220,7 +217,7 @@ function ReviewScreen({ answers, onBackToResults }) {
             </div>
             <button
                 onClick={onBackToResults}
-                className="mt-6 px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors flex-shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg"
+                className="mt-auto px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors flex-shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg"
             >
                 Back to Results
             </button>
@@ -228,8 +225,7 @@ function ReviewScreen({ answers, onBackToResults }) {
     );
 }
 
-// --- REVISED Audio Player Component ---
-function AudioPlayerCharacter({ audioSrc }) {
+function AudioPlayerCharacter({ audioSrc, onPlaybackStop = () => {} }) {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
@@ -239,21 +235,12 @@ function AudioPlayerCharacter({ audioSrc }) {
             audioElement.pause();
             audioElement.currentTime = 0;
             setIsPlaying(false);
-            window.dispatchEvent(new CustomEvent('play-background-audio'));
         }
     }, [audioSrc]);
-    
-    useEffect(() => {
-        return () => {
-            if (isPlaying) {
-                window.dispatchEvent(new CustomEvent('play-background-audio'));
-            }
-        };
-    }, [isPlaying]);
 
     const handleAudioEnded = () => {
         setIsPlaying(false);
-        window.dispatchEvent(new CustomEvent('play-background-audio'));
+        onPlaybackStop();
     };
 
     const togglePlayPause = async () => {
@@ -263,18 +250,15 @@ function AudioPlayerCharacter({ audioSrc }) {
         if (isPlaying) {
             audioElement.pause();
             setIsPlaying(false);
-            window.dispatchEvent(new CustomEvent('play-background-audio'));
+            onPlaybackStop();
         } else {
             window.dispatchEvent(new CustomEvent('pause-background-audio'));
             try {
-                // The play() method returns a Promise which resolves when playback begins.
                 await audioElement.play();
                 setIsPlaying(true);
             } catch (error) {
-                // Log a more detailed error to help debug file path issues.
                 console.error(`Audio play failed for src: "${audioSrc}". Check if the file exists in the /public folder.`, error);
-                setIsPlaying(false); // Ensure state is correct on failure
-                window.dispatchEvent(new CustomEvent('play-background-audio'));
+                setIsPlaying(false);
             }
         }
     };
@@ -285,7 +269,6 @@ function AudioPlayerCharacter({ audioSrc }) {
                 <source src={audioSrc} type="audio/mpeg" />
                 Your browser does not support the audio element.
             </audio>
-
             <img src="/feedbackcharacter.gif" alt="Character" className="w-[3.5rem] md:w-[4.8rem] h-auto object-contain shrink-0" />
             <div className="relative md:mb-8 md:ml-2">
                 <ThinkingCloud className="w-[220px] h-auto md:w-[260px]" />
@@ -300,7 +283,7 @@ function AudioPlayerCharacter({ audioSrc }) {
     );
 }
 
-// --- Game State Management (No changes) ---
+// --- Game State Management ---
 const initialState = { gameState: "intro", currentPuzzleIndex: 0, score: 0, answers: [], insight: "", recommendedSectionId: null, recommendedSectionTitle: "" };
 function gameReducer(state, action) {
     switch (action.type) {
@@ -324,21 +307,42 @@ function gameReducer(state, action) {
     }
 }
 
-// --- Main Game Component (No major changes) ---
+// --- Main Game Component ---
 const ListenUp = () => {
     const navigate = useNavigate();
     const [state, dispatch] = useReducer(gameReducer, initialState);
     const [selections, setSelections] = useState({ emotion: null, behavior: null, mcq: null });
 
+    // --- FIX 1: Add useEffect to restore state on component mount ---
     useEffect(() => {
+        // Check for saved state when the component mounts (e.g., after navigating back)
         const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
         if (savedStateJSON) {
-            const savedState = JSON.parse(savedStateJSON);
-            dispatch({ type: 'RESTORE_STATE', payload: savedState });
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            try {
+                const savedState = JSON.parse(savedStateJSON);
+                dispatch({ type: 'RESTORE_STATE', payload: savedState });
+                // Clean up sessionStorage so it doesn't persist across fresh visits
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) {
+                console.error("Failed to parse saved game state:", error);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clean up corrupted data
+            }
         }
+    }, []); // Empty dependency array ensures this runs only once on mount
+
+    // --- Audio Logic ---
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('pause-background-audio'));
     }, []);
-    
+
+    useEffect(() => {
+        if (state.gameState === 'finished' || state.gameState === 'review') {
+            window.dispatchEvent(new CustomEvent('pause-background-audio'));
+        }
+    }, [state.gameState]);
+
+
+    // This effect for fetching AI insight remains unchanged.
     useEffect(() => {
         if (state.gameState === "finished" && !state.insight) {
             const generateInsight = async () => {
@@ -365,18 +369,46 @@ const ListenUp = () => {
         }
     }, [state.gameState, state.answers, state.insight]);
     
+    const resumeBackgroundMusic = () => {
+        if (state.gameState === 'playing') {
+            window.dispatchEvent(new CustomEvent('play-background-audio'));
+        }
+    };
+
     const handleSelection = (type, value) => { setSelections(prev => ({ ...prev, [type]: value })); };
     const handleSubmit = () => { dispatch({ type: "SUBMIT_ANSWER", payload: { userAnswers: selections } }); setSelections({ emotion: null, behavior: null, mcq: null }); };
-    const handleNavigateToSection = () => { if (state.recommendedSectionId) { sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state)); navigate(`/communications/notes?grade=6-8&section=${state.recommendedSectionId}`); } };
-    const handlePlayAgain = () => { sessionStorage.removeItem(SESSION_STORAGE_KEY); dispatch({ type: 'RESET_GAME' }); };
-    const handleContinue = () => { sessionStorage.removeItem(SESSION_STORAGE_KEY); navigate('/say-it-like-you-mean-it'); };
+    
+    // This is the function that saves the state before navigating
+    const handleNavigateToSection = () => { 
+        if (state.recommendedSectionId) { 
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state)); 
+            navigate(`/communications/notes?grade=6-8&section=${state.recommendedSectionId}`); 
+        } 
+    };
+    
+    const handleStartGame = () => {
+        window.dispatchEvent(new CustomEvent('play-background-audio'));
+        dispatch({ type: "START_GAME" });
+    };
+
+    const handlePlayAgain = () => {
+        // --- FIX 2: Add cleanup for sessionStorage on reset ---
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        window.dispatchEvent(new CustomEvent('play-background-audio'));
+        dispatch({ type: 'RESET_GAME' });
+    };
+
+    const handleContinue = () => { 
+        sessionStorage.removeItem(SESSION_STORAGE_KEY); 
+        navigate('/say-it-like-you-mean-it'); 
+    };
 
     const isSubmitEnabled = selections.emotion && selections.behavior && selections.mcq;
 
     // --- Render Logic ---
     const renderGameContent = () => {
         if (state.gameState === "intro") return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
-        if (state.gameState === "instructions") return <InstructionsScreen onStartGame={() => dispatch({ type: "START_GAME" })} />;
+        
         if (state.gameState === "finished") {
             const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
             const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
@@ -384,34 +416,34 @@ const ListenUp = () => {
                 ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={handleContinue} />
                 : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={handlePlayAgain} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={handleContinue} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />;
         }
+
         if (state.gameState === "review") return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
+        
         const currentPuzzle = audioData[state.currentPuzzleIndex];
         if (!currentPuzzle) return <div className="text-white">Loading...</div>;
 
-        // --- Game UI Layout (No changes) ---
         return (
             <div className="w-full min-h-screen bg-[#0A160E] flex flex-col font-['Inter'] relative">
                 <style>{scrollbarHideStyle}</style>
                 
+                {state.gameState === "instructions" && <InstructionsScreen onStartGame={handleStartGame} />}
+
                 <GameNav />
                 
                 <main className="flex-1 w-full flex flex-col items-center justify-center  px-2 md:px-4 pb-25">
                     <div className="w-full max-w-2xl bg-[rgba(32,47,54,0.3)] rounded-xl p-4 md:p-6 space-y-3">
-                        {/* Question 1: Emotion */}
                         <div>
                             <p className="text-[#f1f7fb] font-medium text-sm mb-1.5">What is the emotion of the speaker?</p>
                             <div className="flex gap-2 md:gap-3">
                                 {currentPuzzle.emotions.map(emo => <Option key={emo} text={emo} isSelected={selections.emotion === emo} onClick={() => handleSelection('emotion', emo)} isEmoji />)}
                             </div>
                         </div>
-                        {/* Question 2: Behavior */}
                         <div>
                             <p className="text-[#f1f7fb] font-medium text-sm mb-1.5">What is the listener's behavior?</p>
                             <div className="flex flex-col md:flex-row gap-2 md:gap-3">
                                 {currentPuzzle.behaviors.map(b => <Option key={b} text={b} isSelected={selections.behavior === b} onClick={() => handleSelection('behavior', b)} />)}
                             </div>
                         </div>
-                        {/* Question 3: MCQ */}
                         <div>
                             <p className="text-[#f1f7fb] font-medium text-sm mb-1.5">{currentPuzzle.mcq.question}</p>
                             <div className="flex flex-col items-start gap-2 md:gap-3">
@@ -423,7 +455,11 @@ const ListenUp = () => {
 
                 <div className="absolute bottom-[10vh] left-1/2 -translate-x-1/2 w-full flex justify-center pointer-events-none">
                     <div className="pointer-events-auto">
-                         <AudioPlayerCharacter key={currentPuzzle.src} audioSrc={currentPuzzle.src} />
+                         <AudioPlayerCharacter 
+                            key={currentPuzzle.src} 
+                            audioSrc={currentPuzzle.src} 
+                            onPlaybackStop={resumeBackgroundMusic} 
+                         />
                     </div>
                 </div>
 
