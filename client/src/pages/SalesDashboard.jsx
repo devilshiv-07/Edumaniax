@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Search, 
-  Download, 
-  Plus, 
-  Filter, 
-  Mail, 
-  Phone, 
-  Calendar, 
+import {
+  Search,
+  Download,
+  Plus,
+  Filter,
+  Mail,
+  Phone,
+  Calendar,
   Clock,
-  ChevronLeft, 
+  ChevronLeft,
   ChevronRight,
   MessageSquare,
   Briefcase,
@@ -45,7 +45,12 @@ const SalesDashboard = () => {
   const [isEditingInquiry, setIsEditingInquiry] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [selectedInquiry, setSelectedInquiry] = useState(null);
-  
+  const [users, setUsers] = useState([]);
+const [selectedUser, setSelectedUser] = useState(null);
+const [userStats, setUserStats] = useState([]);
+const [roleFilter, setRoleFilter] = useState('ALL');
+const [isEditingUserRole, setIsEditingUserRole] = useState(false);
+
   // Define fetch functions with useCallback first
   // Helper function to handle 401 errors
   const handleAuthError = (error, response) => {
@@ -120,7 +125,7 @@ const SalesDashboard = () => {
       setLoading(false);
     }
   }, [currentPage, statusFilter, searchTerm]);
-  
+
   // Fetch analytics data
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -129,48 +134,109 @@ const SalesDashboard = () => {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           handleAuthError(new Error(data.message), response);
           return;
         }
         throw new Error(data.message || 'Failed to fetch analytics');
-      }      setAnalytics({
-        inquiryStatusCounts: Array.isArray(data.data?.inquiryStatusCounts) 
-          ? data.data.inquiryStatusCounts 
+      } setAnalytics({
+        inquiryStatusCounts: Array.isArray(data.data?.inquiryStatusCounts)
+          ? data.data.inquiryStatusCounts
           : [],
-        revenueByPlan: Array.isArray(data.data?.revenueByPlan) 
-          ? data.data.revenueByPlan 
+        revenueByPlan: Array.isArray(data.data?.revenueByPlan)
+          ? data.data.revenueByPlan
           : []
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
   }, []);
-  
+
+ const fetchUsers = useCallback(async () => {
+  try {
+    setLoading(true);
+    const response = await fetch(
+      // Make sure this is 'users' not 'saleusers'
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/users?page=${currentPage}&limit=10&role=${roleFilter}&search=${searchTerm}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      }
+    );
+
+    if (response.status === 401) {
+      handleAuthError('Unauthorized', response);
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    const data = await response.json();
+    setUsers(data.data || []);
+    setUserStats(data.statistics || []);
+    setTotalPages(data.pagination?.totalPages || 1);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  } finally {
+    setLoading(false);
+  }
+}, [currentPage, roleFilter, searchTerm]);
+
+const updateUserRole = async (userId, newRole) => {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/users/${userId}/role`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ role: newRole })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to update user role');
+    }
+
+    // Refresh users list
+    fetchUsers();
+    setIsEditingUserRole(false);
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    alert('Failed to update user role. Please try again.');
+  }
+};
+
   // Check permissions - only ADMIN and SALES roles can access this page
   useEffect(() => {
     if (user && !['ADMIN', 'SALES'].includes(role)) {
       navigate('/dashboard');
     }
   }, [user, role, navigate]);
-  
+
   // Poll for new notifications
   useEffect(() => {
     // Poll for notifications
     const pollNotifications = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/notifications?page=1&limit=10`, {
+
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           if (response.status === 401) {
             handleAuthError(new Error(data.message), response);
@@ -178,10 +244,10 @@ const SalesDashboard = () => {
           }
           throw new Error(data.message || 'Failed to fetch notifications');
         }
-        
+
         // Process new notifications
-        const newNotifications = data.data || [];
-        
+        const newNotifications = Array.isArray(data.data) ? data.data : [];
+
         // Handle each notification type
         newNotifications.forEach(notification => {
           if (!notification.read) {
@@ -207,7 +273,7 @@ const SalesDashboard = () => {
             }
           }
         });
-        
+
         // Update notifications list
         // setNotifications(newNotifications); // This state was removed
       } catch (error) {
@@ -219,16 +285,16 @@ const SalesDashboard = () => {
     if (user && ['ADMIN', 'SALES'].includes(role)) {
       // Initial poll
       pollNotifications();
-      
+
       // Set up polling interval (every 30 seconds)
       const interval = setInterval(pollNotifications, 30000);
       // setPollingInterval(interval); // This state was removed
-      
+
       // Clean up interval on unmount
       return () => clearInterval(interval);
     }
   }, [user, role, fetchInquiries, selectedInquiry]);
-  
+
   // Set up online/offline detection
   useEffect(() => {
     const handleOnline = () => {
@@ -246,7 +312,7 @@ const SalesDashboard = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-  
+
   // Fetch initial data
   useEffect(() => {
     if (user && ['ADMIN', 'SALES'].includes(role)) {
@@ -255,19 +321,27 @@ const SalesDashboard = () => {
       fetchAnalytics();
     }
   }, [user, role, fetchInquiries, fetchFreeTrialRequests, fetchAnalytics]);
-  
+
+
+  useEffect(() => {
+  if (user && ['ADMIN', 'SALES'].includes(role) && activeTab === 'users') {
+    fetchUsers();
+  }
+}, [user, role, activeTab, fetchUsers]);
+
+
   // Refetch when page or filters change
   useEffect(() => {
     if (user && ['ADMIN', 'SALES'].includes(role)) {
       fetchInquiries();
     }
   }, [currentPage, statusFilter, searchTerm, fetchInquiries, user, role]);
-  
+
   // Handle inquiry selection
   const handleInquiryClick = (inquiry) => {
     setSelectedInquiry(inquiry);
   };
-  
+
   // Update inquiry status
   const updateInquiryStatus = async (id, status) => {
     try {
@@ -393,15 +467,19 @@ const SalesDashboard = () => {
   };
 
   // Handle tab change
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    setCurrentPage(1);
-    if (tab === 'inquiries') {
-      fetchInquiries();
-    } else {
-      fetchFreeTrialRequests();
-    }
-  };
+ const handleTabChange = (tab) => {
+  setActiveTab(tab);
+  setCurrentPage(1);
+  setSelectedInquiry(null); // Clear selection when switching tabs
+  setSelectedUser(null); // Clear user selection
+  if (tab === 'inquiries') {
+    fetchInquiries();
+  } else if (tab === 'freeTrials') {
+    fetchFreeTrialRequests();
+  } else if (tab === 'users') {
+    fetchUsers();
+  }
+};
 
   // Handle search
   const handleSearch = (value) => {
@@ -414,14 +492,14 @@ const SalesDashboard = () => {
     setStatusFilter(status);
     setCurrentPage(1);
   };
-  
+
   // Handle pagination
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
   };
-  
+
   // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -433,7 +511,23 @@ const SalesDashboard = () => {
       minute: '2-digit'
     });
   };
-  
+
+
+  const getRoleBadgeColor = (role) => {
+  switch (role) {
+    case 'ADMIN':
+      return 'bg-red-500 text-white';
+    case 'SALES':
+      return 'bg-blue-500 text-white';
+    case 'MODERATOR':
+      return 'bg-purple-500 text-white';
+    case 'USER':
+    default:
+      return 'bg-gray-500 text-white';
+  }
+};
+
+
   // Calculate percentage for chart
   const calculatePercentage = (count, total) => {
     return total > 0 ? Math.round((count / total) * 100) : 0;
@@ -474,7 +568,7 @@ const SalesDashboard = () => {
         return status;
     }
   };
-  
+
   // Render the status badge
   const renderStatusBadge = (status) => {
     return (
@@ -483,7 +577,7 @@ const SalesDashboard = () => {
       </span>
     );
   };
-  
+
   // Render connection status indicator
   const renderConnectionStatus = () => (
     <div className="flex items-center space-x-2">
@@ -491,7 +585,7 @@ const SalesDashboard = () => {
       <span className="text-sm text-gray-600">Connected</span>
     </div>
   );
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -507,12 +601,12 @@ const SalesDashboard = () => {
                 Edumaniax
               </span>
             </div>
-            
+
             {/* Centered Sales Dashboard Title */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <h1 className="text-2xl font-semibold text-gray-900">Sales Dashboard</h1>
             </div>
-            
+
             {/* Right side controls */}
             <div className="flex items-center space-x-4">
               {renderConnectionStatus()}
@@ -546,8 +640,8 @@ const SalesDashboard = () => {
                 <div className="bg-white/20 backdrop-blur-sm rounded-lg p-2 text-center">
                   <div className="text-white text-xs font-medium">Total Inquiries</div>
                   <div className="text-white text-lg font-bold">
-                    {Array.isArray(analytics.inquiryStatusCounts) 
-                      ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) 
+                    {Array.isArray(analytics.inquiryStatusCounts)
+                      ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0)
                       : 0}
                   </div>
                 </div>
@@ -581,11 +675,10 @@ const SalesDashboard = () => {
             <nav className="-mb-px flex space-x-1">
               <button
                 onClick={() => handleTabChange('inquiries')}
-                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${
-                  activeTab === 'inquiries'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === 'inquiries'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <Briefcase className="h-4 w-4" />
@@ -594,11 +687,10 @@ const SalesDashboard = () => {
               </button>
               <button
                 onClick={() => handleTabChange('freeTrials')}
-                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${
-                  activeTab === 'freeTrials'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === 'freeTrials'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <Briefcase className="h-4 w-4" />
@@ -607,17 +699,29 @@ const SalesDashboard = () => {
               </button>
               <button
                 onClick={() => handleTabChange('analytics')}
-                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${
-                  activeTab === 'analytics'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${activeTab === 'analytics'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 <div className="flex items-center space-x-2">
                   <BarChart4 className="h-4 w-4" />
                   <span>Analytics Dashboard</span>
                 </div>
               </button>
+              <button
+  onClick={() => handleTabChange('users')}
+  className={`py-3 px-4 border-b-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${
+    activeTab === 'users'
+      ? 'border-blue-500 text-blue-600 bg-blue-50'
+      : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+  }`}
+>
+  <div className="flex items-center space-x-2">
+    <Users className="h-4 w-4" />
+    <span>Users Management</span>
+  </div>
+</button>
             </nav>
           </div>
         </div>
@@ -634,7 +738,7 @@ const SalesDashboard = () => {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder={`Search ${activeTab === 'inquiries' ? 'inquiries' : 'free trial requests'}...`}
+                  placeholder={`Search ${activeTab === 'inquiries' ? 'inquiries' : activeTab === 'freeTrials' ? 'free trial requests' : activeTab === 'users' ? 'users' : 'items'}...`}
                   className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
                 />
               </div>
@@ -682,8 +786,8 @@ const SalesDashboard = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {Array.isArray(analytics.inquiryStatusCounts) 
-                    ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) 
+                  {Array.isArray(analytics.inquiryStatusCounts)
+                    ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0)
                     : 0}
                 </div>
                 <div className="text-xs text-gray-600">Total Inquiries</div>
@@ -694,7 +798,7 @@ const SalesDashboard = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {Array.isArray(analytics.inquiryStatusCounts) 
+                  {Array.isArray(analytics.inquiryStatusCounts)
                     ? analytics.inquiryStatusCounts.find(i => i.status === 'FOLLOW_UP')?.count || 0
                     : 0}
                 </div>
@@ -703,8 +807,8 @@ const SalesDashboard = () => {
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
                   {(() => {
-                    const totalInquiries = Array.isArray(analytics.inquiryStatusCounts) 
-                      ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) 
+                    const totalInquiries = Array.isArray(analytics.inquiryStatusCounts)
+                      ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0)
                       : 0;
                     const converted = analytics.inquiryStatusCounts?.find(i => i.status === 'CONVERTED')?.count || 0;
                     return totalInquiries > 0 ? Math.round((converted / totalInquiries) * 100) : 0;
@@ -732,11 +836,10 @@ const SalesDashboard = () => {
                       <li
                         key={inquiry.id}
                         onClick={() => handleInquiryClick(inquiry)}
-                        className={`p-4 hover:bg-blue-50 cursor-pointer transition-all duration-200 rounded-lg border ${
-                          selectedInquiry?.id === inquiry.id 
-                            ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                            : 'bg-white border-gray-100 hover:border-blue-200'
-                        }`}
+                        className={`p-4 hover:bg-blue-50 cursor-pointer transition-all duration-200 rounded-lg border ${selectedInquiry?.id === inquiry.id
+                          ? 'bg-blue-50 border-blue-200 shadow-sm'
+                          : 'bg-white border-gray-100 hover:border-blue-200'
+                          }`}
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -771,22 +874,20 @@ const SalesDashboard = () => {
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                          currentPage === 1
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         Previous
                       </button>
                       <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-                          currentPage === totalPages
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                        }`}
+                        className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
                         Next
                       </button>
@@ -803,16 +904,15 @@ const SalesDashboard = () => {
                           <button
                             onClick={() => handlePageChange(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
-                              currentPage === 1
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${currentPage === 1
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             <span className="sr-only">Previous</span>
                             <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                           </button>
-                          
+
                           {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                             let pageNumber;
                             if (totalPages <= 5) {
@@ -824,30 +924,28 @@ const SalesDashboard = () => {
                             } else {
                               pageNumber = currentPage - 2 + i;
                             }
-                            
+
                             return (
                               <button
                                 key={pageNumber}
                                 onClick={() => handlePageChange(pageNumber)}
-                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                  currentPage === pageNumber
-                                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                }`}
+                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNumber
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                  }`}
                               >
                                 {pageNumber}
                               </button>
                             );
                           })}
-                          
+
                           <button
                             onClick={() => handlePageChange(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
-                              currentPage === totalPages
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${currentPage === totalPages
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             <span className="sr-only">Next</span>
                             <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -881,7 +979,7 @@ const SalesDashboard = () => {
                       </button>
                     </div>
                   </div>
-                  
+
                   {isEditingInquiry ? (
                     <div className="p-4">
                       <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Inquiry</h3>
@@ -890,7 +988,7 @@ const SalesDashboard = () => {
                           <label className="block text-sm font-medium text-gray-700">Status</label>
                           <select
                             value={editFormData.status || selectedInquiry.status}
-                            onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+                            onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
                             className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                           >
                             <option value="NEW">New</option>
@@ -900,27 +998,27 @@ const SalesDashboard = () => {
                             <option value="NOT_INTERESTED">Not Interested</option>
                           </select>
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Notes</label>
                           <textarea
                             value={editFormData.notes || selectedInquiry.notes || ''}
-                            onChange={(e) => setEditFormData({...editFormData, notes: e.target.value})}
+                            onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
                             rows={4}
                             className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                           ></textarea>
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700">Follow Up Date</label>
                           <input
                             type="date"
                             value={editFormData.followUpDate || (selectedInquiry.followUpDate ? new Date(selectedInquiry.followUpDate).toISOString().split('T')[0] : '')}
-                            onChange={(e) => setEditFormData({...editFormData, followUpDate: e.target.value})}
+                            onChange={(e) => setEditFormData({ ...editFormData, followUpDate: e.target.value })}
                             className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                           />
                         </div>
-                        
+
                         <div className="flex justify-end space-x-2">
                           <button
                             type="button"
@@ -944,24 +1042,24 @@ const SalesDashboard = () => {
                                   },
                                   body: JSON.stringify(editFormData)
                                 });
-                                
+
                                 const data = await response.json();
-                                
+
                                 if (!response.ok) {
                                   throw new Error(data.message || 'Failed to update inquiry');
                                 }
-                                
+
                                 // Update local state
-                                setInquiries(prev => 
-                                  prev.map(inquiry => 
+                                setInquiries(prev =>
+                                  prev.map(inquiry =>
                                     inquiry.id === selectedInquiry.id ? data.data : inquiry
                                   )
                                 );
-                                
+
                                 setSelectedInquiry(data.data);
                                 setIsEditingInquiry(false);
                                 setEditFormData({});
-                                
+
                                 // Refresh analytics
                                 fetchAnalytics();
                               } catch (error) {
@@ -983,51 +1081,46 @@ const SalesDashboard = () => {
                           {renderStatusBadge(selectedInquiry.status)}
                           <button
                             onClick={() => updateInquiryStatus(selectedInquiry.id, 'NEW')}
-                            className={`px-3 py-1 text-xs font-medium rounded border ${
-                              selectedInquiry.status === 'NEW'
-                                ? 'bg-blue-100 text-blue-800 border-blue-300'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium rounded border ${selectedInquiry.status === 'NEW'
+                              ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             New
                           </button>
                           <button
                             onClick={() => updateInquiryStatus(selectedInquiry.id, 'CONTACTED')}
-                            className={`px-3 py-1 text-xs font-medium rounded border ${
-                              selectedInquiry.status === 'CONTACTED'
-                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium rounded border ${selectedInquiry.status === 'CONTACTED'
+                              ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             Contacted
                           </button>
                           <button
                             onClick={() => updateInquiryStatus(selectedInquiry.id, 'FOLLOW_UP')}
-                            className={`px-3 py-1 text-xs font-medium rounded border ${
-                              selectedInquiry.status === 'FOLLOW_UP'
-                                ? 'bg-purple-100 text-purple-800 border-purple-300'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium rounded border ${selectedInquiry.status === 'FOLLOW_UP'
+                              ? 'bg-purple-100 text-purple-800 border-purple-300'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             Follow Up
                           </button>
                           <button
                             onClick={() => updateInquiryStatus(selectedInquiry.id, 'CONVERTED')}
-                            className={`px-3 py-1 text-xs font-medium rounded border ${
-                              selectedInquiry.status === 'CONVERTED'
-                                ? 'bg-green-100 text-green-800 border-green-300'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium rounded border ${selectedInquiry.status === 'CONVERTED'
+                              ? 'bg-green-100 text-green-800 border-green-300'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             Converted
                           </button>
                           <button
                             onClick={() => updateInquiryStatus(selectedInquiry.id, 'NOT_INTERESTED')}
-                            className={`px-3 py-1 text-xs font-medium rounded border ${
-                              selectedInquiry.status === 'NOT_INTERESTED'
-                                ? 'bg-red-100 text-red-800 border-red-300'
-                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                            }`}
+                            className={`px-3 py-1 text-xs font-medium rounded border ${selectedInquiry.status === 'NOT_INTERESTED'
+                              ? 'bg-red-100 text-red-800 border-red-300'
+                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                              }`}
                           >
                             Not Interested
                           </button>
@@ -1039,49 +1132,49 @@ const SalesDashboard = () => {
                           <h3 className="text-sm font-medium text-gray-500">Organization Name</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.organizationName}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Organization Type</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.organizationType || 'N/A'}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Contact Name</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.contactName}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Contact Email</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.contactEmail}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Contact Phone</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.contactPhone || 'N/A'}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Student Count</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.studentCount || 'N/A'}</p>
                         </div>
-                        
+
                         <div className="sm:col-span-2">
                           <h3 className="text-sm font-medium text-gray-500">Message</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.message || 'N/A'}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Created At</h3>
                           <p className="mt-1 text-sm text-gray-900">{formatDate(selectedInquiry.createdAt)}</p>
                         </div>
-                        
+
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Follow Up Date</h3>
                           <p className="mt-1 text-sm text-gray-900">
                             {selectedInquiry.followUpDate ? formatDate(selectedInquiry.followUpDate) : 'Not set'}
                           </p>
                         </div>
-                        
+
                         <div className="sm:col-span-2">
                           <h3 className="text-sm font-medium text-gray-500">Notes</h3>
                           <p className="mt-1 text-sm text-gray-900">{selectedInquiry.notes || 'No notes'}</p>
@@ -1097,7 +1190,7 @@ const SalesDashboard = () => {
                     <h3 className="mt-2 text-lg font-medium text-gray-900">Welcome to Sales Dashboard</h3>
                     <p className="mt-1 text-sm text-gray-500">Select an inquiry from the list to view details and manage your sales pipeline.</p>
                   </div>
-                  
+
                   {/* Quick Actions */}
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Quick Actions</h4>
@@ -1116,7 +1209,7 @@ const SalesDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Recent Activity */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Recent Activity</h4>
@@ -1150,11 +1243,10 @@ const SalesDashboard = () => {
                     freeTrialRequests.map((trial) => (
                       <div
                         key={trial.id}
-                        className={`p-4 hover:bg-blue-50 cursor-pointer transition-all duration-200 rounded-lg border ${
-                          selectedInquiry?.id === trial.id 
-                            ? 'bg-blue-50 border-blue-200 shadow-sm' 
-                            : 'bg-white border-gray-100 hover:border-blue-200'
-                        }`}
+                        className={`p-4 hover:bg-blue-50 cursor-pointer transition-all duration-200 rounded-lg border ${selectedInquiry?.id === trial.id
+                          ? 'bg-blue-50 border-blue-200 shadow-sm'
+                          : 'bg-white border-gray-100 hover:border-blue-200'
+                          }`}
                         onClick={() => setSelectedInquiry(trial)}
                       >
                         <div className="flex justify-between items-start">
@@ -1213,7 +1305,7 @@ const SalesDashboard = () => {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Full Name</label>
@@ -1259,11 +1351,10 @@ const SalesDashboard = () => {
                         <button
                           key={status}
                           onClick={() => updateFreeTrialStatus(selectedInquiry.id, status)}
-                          className={`px-3 py-1 text-xs rounded-full ${
-                            selectedInquiry.status === status
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                          className={`px-3 py-1 text-xs rounded-full ${selectedInquiry.status === status
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
                         >
                           {getStatusLabel(status)}
                         </button>
@@ -1278,7 +1369,7 @@ const SalesDashboard = () => {
                     <h3 className="mt-2 text-lg font-medium text-gray-900">Free Trial Requests</h3>
                     <p className="mt-1 text-sm text-gray-500">Select a free trial request to view details and manage student trial applications.</p>
                   </div>
-                  
+
                   {/* Quick Stats */}
                   <div className="bg-gray-50 rounded-lg p-4 mb-6">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Quick Stats</h4>
@@ -1297,7 +1388,7 @@ const SalesDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Recent Activity */}
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Recent Activity</h4>
@@ -1333,8 +1424,8 @@ const SalesDashboard = () => {
                         <dt className="text-sm font-semibold text-blue-800 truncate">Total Inquiries</dt>
                         <dd>
                           <div className="text-2xl font-bold text-blue-900">
-                            {Array.isArray(analytics.inquiryStatusCounts) 
-                              ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) 
+                            {Array.isArray(analytics.inquiryStatusCounts)
+                              ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0)
                               : 0}
                           </div>
                         </dd>
@@ -1356,8 +1447,8 @@ const SalesDashboard = () => {
                         <dt className="text-sm font-semibold text-green-800 truncate">Total Revenue</dt>
                         <dd>
                           <div className="text-2xl font-bold text-green-900">
-                            ₹{Array.isArray(analytics.revenueByPlan) 
-                              ? analytics.revenueByPlan.reduce((sum, item) => sum + Number(item.total || 0), 0) 
+                            ₹{Array.isArray(analytics.revenueByPlan)
+                              ? analytics.revenueByPlan.reduce((sum, item) => sum + Number(item.total || 0), 0)
                               : 0}
                           </div>
                         </dd>
@@ -1379,7 +1470,7 @@ const SalesDashboard = () => {
                         <dt className="text-sm font-semibold text-yellow-800 truncate">Active Leads</dt>
                         <dd>
                           <div className="text-2xl font-bold text-yellow-900">
-                            {Array.isArray(analytics.inquiryStatusCounts) 
+                            {Array.isArray(analytics.inquiryStatusCounts)
                               ? analytics.inquiryStatusCounts.find(i => i.status === 'FOLLOW_UP')?.count || 0
                               : 0}
                           </div>
@@ -1403,8 +1494,8 @@ const SalesDashboard = () => {
                         <dd>
                           <div className="text-2xl font-bold text-purple-900">
                             {(() => {
-                              const totalInquiries = Array.isArray(analytics.inquiryStatusCounts) 
-                                ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) 
+                              const totalInquiries = Array.isArray(analytics.inquiryStatusCounts)
+                                ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0)
                                 : 0;
                               const converted = analytics.inquiryStatusCounts?.find(i => i.status === 'CONVERTED')?.count || 0;
                               return totalInquiries > 0 ? `${Math.round((converted / totalInquiries) * 100)}%` : '0%';
@@ -1429,14 +1520,14 @@ const SalesDashboard = () => {
               <div className="p-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-5">
                   {['NEW', 'CONTACTED', 'FOLLOW_UP', 'CONVERTED', 'NOT_INTERESTED'].map((status) => {
-                    const count = Array.isArray(analytics.inquiryStatusCounts) 
-                      ? analytics.inquiryStatusCounts.find(i => i.status === status)?.count || 0 
+                    const count = Array.isArray(analytics.inquiryStatusCounts)
+                      ? analytics.inquiryStatusCounts.find(i => i.status === status)?.count || 0
                       : 0;
                     const totalInquiries = Array.isArray(analytics.inquiryStatusCounts)
                       ? analytics.inquiryStatusCounts.reduce((sum, item) => sum + Number(item.count || 0), 0) || 1
                       : 1;
                     const percentage = calculatePercentage(count, totalInquiries);
-                    
+
                     return (
                       <div key={status} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                         <div className="text-center">
@@ -1475,19 +1566,19 @@ const SalesDashboard = () => {
                     // Map plan types to display names
                     const planDisplayNames = {
                       'STARTER': 'Starter Plan',
-                      'SOLO': 'Solo Plan', 
+                      'SOLO': 'Solo Plan',
                       'PRO': 'Pro Plan',
                       'INSTITUTIONAL': 'Institutional Plan'
                     };
-                    
-                    const revenue = Array.isArray(analytics.revenueByPlan) 
+
+                    const revenue = Array.isArray(analytics.revenueByPlan)
                       ? analytics.revenueByPlan.find(i => i.planType === planType)?.total || 0
                       : 0;
                     const totalRevenue = Array.isArray(analytics.revenueByPlan)
                       ? analytics.revenueByPlan.reduce((sum, item) => sum + Number(item.total || 0), 0) || 1
                       : 1;
                     const percentage = calculatePercentage(revenue, totalRevenue);
-                    
+
                     return (
                       <div key={planType} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                         <div className="text-center">
@@ -1509,6 +1600,291 @@ const SalesDashboard = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'users' && (
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    {/* Users List */}
+    <div className="lg:col-span-1 bg-white shadow rounded-lg">
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">Registered Users</h3>
+        <p className="text-sm text-gray-500 mt-1">Total: {users.length} users</p>
+      </div>
+      
+      {/* Role Filter */}
+      <div className="p-4 border-b border-gray-200">
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="block w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="ALL">All Roles</option>
+          <option value="USER">User</option>
+          <option value="ADMIN">Admin</option>
+          <option value="SALES">Sales</option>
+          <option value="MODERATOR">Moderator</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="p-6 text-center text-gray-500">Loading users...</div>
+      ) : users.length === 0 ? (
+        <div className="p-6 text-center text-gray-500">No users found</div>
+      ) : (
+        <>
+          <ul className="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+            {users.map((user) => (
+              <li
+                key={user.id}
+                onClick={() => setSelectedUser(user)}
+                className={`p-4 hover:bg-blue-50 cursor-pointer transition-all duration-200 rounded-lg border ${
+                  selectedUser?.id === user.id 
+                    ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                    : 'bg-white border-gray-100 hover:border-blue-200'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900">{user.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1 flex items-center">
+                      <Mail className="h-4 w-4 mr-1 text-gray-400" />
+                      {user.email}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(user.role)}`}>
+                        {user.role}
+                      </span>
+                      {user._count?.payments > 0 && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                          {user._count.payments} payments
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-gray-500 flex items-center">
+                  <Clock className="mr-1 h-4 w-4" />
+                  Joined {formatDate(user.createdAt)}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Pagination - reuse your existing pagination component */}
+          <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing page <span className="font-medium">{currentPage}</span> of{' '}
+                  <span className="font-medium">{totalPages}</span>
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === 1
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+                      currentPage === totalPages
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+
+    {/* User Details */}
+    <div className="lg:col-span-2 bg-white shadow rounded-lg">
+      {selectedUser ? (
+        <>
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-lg font-medium text-gray-900">User Details</h2>
+            <div className="flex space-x-2">
+              {role === 'ADMIN' && (
+                <button
+                  onClick={() => setIsEditingUserRole(true)}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit Role
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          
+          {isEditingUserRole ? (
+            <div className="p-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Edit User Role</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Current Role</label>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.role}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">New Role</label>
+                  <select
+                    onChange={(e) => {
+                      if (window.confirm(`Are you sure you want to change ${selectedUser.name}'s role to ${e.target.value}?`)) {
+                        updateUserRole(selectedUser.id, e.target.value);
+                      }
+                    }}
+                    className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select new role...</option>
+                    <option value="USER">User</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SALES">Sales</option>
+                    
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => setIsEditingUserRole(false)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">
+              <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Name</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.name}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Email</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.email}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Phone Number</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.phonenumber}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Age</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.age}</p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">User Class</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser.userClass}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Role</h3>
+                  <div className="mt-1">
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${getRoleBadgeColor(selectedUser.role)}`}>
+                      {selectedUser.role}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Joined</h3>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(selectedUser.createdAt)}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Last Updated</h3>
+                  <p className="mt-1 text-sm text-gray-900">{formatDate(selectedUser.updatedAt)}</p>
+                </div>
+                
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Total Payments</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser._count?.payments || 0}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Active Subscriptions</h3>
+                  <p className="mt-1 text-sm text-gray-900">{selectedUser._count?.subscriptions || 0}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="p-6">
+          <div className="text-center mb-6">
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">User Management</h3>
+            <p className="mt-1 text-sm text-gray-500">Select a user from the list to view details and manage their account.</p>
+          </div>
+          
+          {/* User Statistics */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-3">User Statistics</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {userStats.map((stat) => (
+                <div key={stat.role} className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-blue-600">{stat._count.id}</div>
+                    <div className="text-xs text-gray-600">{stat.role}S</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
       </main>
     </div>
   );
