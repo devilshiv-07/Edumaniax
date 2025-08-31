@@ -6,11 +6,7 @@ let prisma;
 const createPrismaClient = () => {
   return new PrismaClient({
     log: process.env.NODE_ENV === "production" ? ["error", "warn"] : ["error", "warn"],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
+    
   });
 };
 

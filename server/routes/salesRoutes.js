@@ -11,10 +11,14 @@ import {
   getNotificationsByType,
   deleteInquiry,
   deleteFreeTrialRequest,
-  verifyDataIntegrity
+  verifyDataIntegrity,
+  getAllUsers,
+ 
 } from '../controllers/salesController.js';
 import authenticateUser from '../middlewares/authMiddleware.js';
-import checkRole from '../middlewares/roleMiddleware.js';const router = express.Router();
+import checkRole from '../middlewares/roleMiddleware.js';
+
+const router = express.Router();
 
 // Public route for creating inquiries (from contact form)
 router.post('/inquiries', createInstitutionalInquiry);
@@ -38,6 +42,9 @@ router.get('/notifications', authenticateUser, checkRole(['ADMIN', 'SALES']), ge
 
 // Data verification route (for debugging)
 router.get('/verify-data', authenticateUser, checkRole(['ADMIN', 'SALES']), verifyDataIntegrity);
+
+router.get('/users', authenticateUser, checkRole(['ADMIN', 'SALES']), getAllUsers);
+
 
 // Webhook endpoint for payment notifications
 router.post('/payment-webhook', handlePaymentWebhook);

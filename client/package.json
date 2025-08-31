@@ -29,7 +29,7 @@
     "@theatre/studio": "^0.7.0",
     "@types/canvas-confetti": "^1.9.0",
     "autoprefixer": "^10.4.21",
-    "axios": "^1.11.0",
+    "axios": "^1.9.0",
     "canvas-confetti": "^1.9.3",
     "chart.js": "^4.4.9",
     "chartjs-plugin-datalabels": "^2.2.0",
@@ -85,5 +85,10 @@
     "globals": "^16.0.0",
     "tw-animate-css": "^1.3.3",
     "vite": "^6.3.5"
-  }
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "iOS >= 12"
+  ]
 }
