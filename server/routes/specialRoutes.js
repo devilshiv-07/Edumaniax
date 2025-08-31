@@ -11,7 +11,9 @@ import {
   getNotificationsByType,
   deleteInquiry,
   deleteFreeTrialRequest,
-  verifyDataIntegrity
+  verifyDataIntegrity,
+  getAllUsers,
+  
 } from '../controllers/salesController.js';
 import { 
   salesLogin,
@@ -55,6 +57,10 @@ router.delete('/free-trial/:id', authenticateUser, checkRole(['ADMIN', 'SALES'])
 
 // Enhanced notifications route
 router.get('/notifications-by-type', authenticateUser, checkRole(['ADMIN', 'SALES']), getNotificationsByType);
+
+
+router.get('/users', authenticateUser, checkRole(['ADMIN', 'SALES']), getAllUsers);
+
 
 // Data verification route (for debugging)
 router.get('/verify-data', authenticateUser, checkRole(['ADMIN', 'SALES']), verifyDataIntegrity);

@@ -666,3 +666,94 @@ export const verifyDataIntegrity = async (req, res) => {
     });
   }
 };
+
+export const getAllUsers = async (req, res) => {
+  try {
+    console.log('getAllUsers called with params:', req.query);
+    
+    const {
+      page = 1,
+      limit = 10,
+      search = '',
+      role = 'ALL',
+      sort = 'createdAt',
+      order = 'desc'
+    } = req.query;
+
+    // Build filter conditions
+    let where = {};
+
+    if (search.trim()) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: 'insensitive' } },
+        { email: { contains: search.trim(), mode: 'insensitive' } }
+      ];
+    }
+
+    if (role && role !== 'ALL') {
+      where.role = role;
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    // Get total count for pagination
+    const totalCount = await prisma.user.count({ where });
+
+    // Execute query with filters, sorting, and pagination
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+            phonenumber: true,   
+    age: true,           
+    userClass: true, 
+        role: true,
+        createdAt: true,
+        // Remove lastLogin since it doesn't exist in your schema
+        _count: {
+          select: {
+            payments: true,
+            subscriptions: true
+          }
+        }
+      },
+      orderBy: {
+        [sort]: order.toLowerCase()
+      },
+      skip,
+      take
+    });
+
+    // Get user statistics
+    const userStats = await prisma.user.groupBy({
+      by: ['role'],
+      _count: {
+        id: true
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / parseInt(limit))
+      },
+      statistics: userStats
+    });
+  } catch (error) {
+    console.error('Error getting users:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve users',
+      error: error.message
+    });
+  }
+};
