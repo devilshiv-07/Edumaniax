@@ -1,6 +1,15 @@
+
+import dotenv from "dotenv";
+import path from "path";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
+
+
+// force load .env from current folder
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+
+console.log("DEBUG DB URL:", process.env.DATABASE_URL); 
 
 import { prisma, prismaMiddleware } from "./utils/prisma.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -22,7 +31,7 @@ import salesRoutes from './routes/salesRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import { initializeSubscriptionMonitoring } from './utils/subscriptionManager.js';
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 8080;
