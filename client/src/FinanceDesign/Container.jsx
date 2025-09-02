@@ -185,10 +185,10 @@ const modulesfor11to12 = [
   },
 ];
 
-const tabs = ["Overview Of Game", "Levels", "Skills you will Learn"];
+const tabs = ["Overview Of Games", "Game Levels", "Skills You'll Learn"];
 
 const Container = () => {
-  const [activeTab, setActiveTab] = useState("Overview Of Game");
+  const [activeTab, setActiveTab] = useState("Overview Of Games");
   const { user, role } = useAuth();
 
   let modules = [];
@@ -213,7 +213,7 @@ const Container = () => {
   }
 
   const renderTabContent = () => {
-    if (activeTab === "Overview Of Game") {
+    if (activeTab === "Overview Of Games") {
       return (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 py-8">
@@ -247,7 +247,7 @@ const Container = () => {
       );
     }
 
-    if (activeTab === "Levels") {
+    if (activeTab === "Game Levels") {
       if (role === "admin") {
         return (
           <>
@@ -272,7 +272,7 @@ const Container = () => {
       }
     }
 
-    if (activeTab === "Skills you will Learn") {
+    if (activeTab === "Skills You'll Learn") {
       return (
         <>
           <SkillsYouWillLearn />
