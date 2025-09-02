@@ -20,6 +20,7 @@ import IntroScreen from "./IntroScreen.jsx";
 import GameNav from "./GameNav.jsx";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay.jsx";
+import { notesFinance6to8 } from "@/data/notesFinance6to8.js";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -47,6 +48,7 @@ function parsePossiblyStringifiedJSON(text) {
 }
 
 const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'budgetBuilderGameState';
 
 const BudgetBuilder = () => {
   const { completeFinanceChallenge } = useFinance();
@@ -144,6 +146,21 @@ const BudgetBuilder = () => {
   const [isGameOver, setIsGameOver] = useState(false);
 
   useEffect(() => {
+    const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON);
+        // Restore the critical parts of the state
+        setShowIntro(false); 
+        setIsGameOver(true);
+        setAiInsight(savedState.aiInsight);
+        setResult(savedState.result);
+        setShowVictoryScreen(savedState.showVictoryScreen);
+        
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
     if (heartCount === 0) {
       setIsGameOver(true);
     }
@@ -225,12 +242,19 @@ const BudgetBuilder = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [result, setResult] = useState("");
   const [showGif, setShowGif] = useState(false);
+  const [result, setResult] = useState(null);
+  const [showResultBox, setShowResultBox] = useState(false);
   const [gifCount, setGifCount] = useState(0);
   const [showInstructions, setShowInstructions] = useState(true);
-  const [showResultBox, setShowResultBox] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [aiInsight, setAiInsight] = useState({
+      tip: "",
+      spendingScore: "0/10",
+      categoryToCut: "",
+      recommendedSectionId: null,
+      recommendedSectionTitle: ""
+  });
 
   useEffect(() => {
     if (result) {
@@ -311,44 +335,51 @@ const BudgetBuilder = () => {
       finalScore
     );
 
+    const mistakes = spent.filter(item => item.priorityScore <= 3)
+                      .map(item => ({ label: item.label, relatedTopics: item.relatedTopics }));
+
+const prompt = `
+You are an expert AI tutor for a student in grades 6-8. The student just finished a budgeting game. Your task is to provide targeted feedback.
+
+### CONTEXT ###
+1.  **Student's Spending Decisions & Mistakes:**
+    The student spent money on these items. Items with a low priority score (3 or less) are considered spending mistakes or "wants" over "needs".
+    ${JSON.stringify(mistakes, null, 2)}
+
+2.  **Final Score:** ${finalScore}/10
+
+3.  **All Available Note Sections for this Finance Module:**
+    ${JSON.stringify(notesFinance6to8, null, 2)}
+
+### YOUR TASK ###
+1.  **DETECT:** Analyze the student's spending mistakes. Based on the "relatedTopics" of their mistakes, find the ONE note section from the provided list that is the best match for review.
+2.  **GENERATE FEEDBACK:** Provide feedback based on their score and mistakes.
+    - If the score is > 6, the tip should be encouraging.
+    - If the score is <= 6, the tip must be critical and suggest what to focus on. The avatarType should be "disappointing".
+    - The "categoryToCut" must be one of the spent items with the lowest priority score. If all spending was on high-priority items, set it to "None - you balanced well!".
+    - The tip should be a short, encouraging insight (about 25-30 words).
+
+### OUTPUT FORMAT ###
+Return ONLY a raw JSON object. Do not add markdown backticks.
+{
+  "spendingScore": "${finalScore}/10",
+  "tip": "Your personalized and encouraging feedback message here.",
+  "categoryToCut": "The item with the lowest priority score from what they spent",
+  "avatarType": "congratulatory" or "disappointing",
+  "detectedTopicId": "The 'topicId' of the most relevant note section you identified (e.g., '2', '6', etc.)"
+}`;
+
     // console.log(finalScore);
 
     try {
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`,
         {
           contents: [
             {
               parts: [
                 {
-                  text: `Evaluate the user's budget decisions and return feedback. The user is a school student.
-
-Initial wallet: ₹1000
-Initial Planned expenses: ${JSON.stringify(cleanExpenses)}
-Final spent: ${JSON.stringify(cleanSpent)}
-Percentage spent : ${percentageSpent}
-
-### FINAL INSTRUCTION ###
-Return ONLY raw JSON (no backticks, no markdown, no explanations).
-Example format:
-{
-  spendingScore: ${finalScore} / 10, ##Here always give marks in the format "marks/10". 
-  tip: "Saving is crucial. Consider a higher savings rate in future.",
-  categoryToCut: "Movie", ##The categoryToCut, if present, must be one of the spent items only and must be of the lowest priority score among all spent items.
-  avatarType : "congratulatory" or "disappointing"
-}
-
-The four fields should never be empty. If you find exceptionally well-balanced expenses, you may keep the categoryToCut field as "None - you balanced your expenses really well".
- 
-Constraints - 
-- Do not make any changes int he spending score. Keep the given score as it is.
--Always give marks in the format "marks/10".  
-- Tip must suggest something actionable, not vague advice.
-- If final spending score <= 6, the tip must be critical.  
-- If final spending score > 6, the tip include some praise.
-- If final spending score <= 6, avatarType should be "disappointing".
-- If final spending score > 6, avatarType should be "congratulatory".
-- If you find exceptional budgeting, the categoryToCut must be "None - you managed your expenses really well".`,
+                  text: prompt,
                 },
               ],
             },
@@ -357,11 +388,33 @@ Constraints -
       );
 
       const aiReply = response.data.candidates[0].content.parts[0].text;
-      console.log(aiReply);
-      const parsed = parsePossiblyStringifiedJSON(aiReply);
-      console.log(parsed);
-      setResult(parsed);
-      setFeedbackAvatarType(parsed.avatarType);
+const parsed = parsePossiblyStringifiedJSON(aiReply);
+      
+if (parsed) {
+    const recommendedNote = notesFinance6to8.find(note => note.topicId === parsed.detectedTopicId);
+        
+    setAiInsight({
+        tip: parsed.tip,
+        spendingScore: parsed.spendingScore,
+        categoryToCut: parsed.categoryToCut,
+        recommendedSectionId: parsed.detectedTopicId,
+        recommendedSectionTitle: recommendedNote ? recommendedNote.title : ""
+    });
+
+    setResult(parsed); 
+    setShowResultBox(true);
+
+    const scoreNumber = parseInt(parsed.spendingScore?.split("/")[0]);
+    if (!isNaN(scoreNumber) && scoreNumber >= 7) {
+        setShowVictoryScreen(true);
+        completeFinanceChallenge(0, 0);
+    } else if (heartCount > 0) {
+        setIsGameOver(true);
+    }
+
+} else {
+    throw new Error("Failed to parse AI response");
+}
 
       // ✅ For performance
       const scoreNumber = parseInt(parsed.spendingScore?.split("/")[0]);
@@ -409,7 +462,21 @@ Constraints -
     navigate("/pick-a-bank"); // ensure `useNavigate()` is defined
   };
 
-  if (isGameOver) {
+  const handleNavigateToSection = () => {
+      if (aiInsight.recommendedSectionId) {
+          const stateToSave = {
+              isGameOver: true,
+              aiInsight: aiInsight,
+              result: result,
+              showVictoryScreen: showVictoryScreen
+          };
+          sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateToSave));
+
+          navigate(`/finance/notes?grade=6-8&section=${aiInsight.recommendedSectionId}`);
+      }
+  };
+
+  if (isGameOver && !showVictoryScreen) {
     return (
       <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center overflow-hidden">
         {/* Game Over Content */}
@@ -425,7 +492,26 @@ Constraints -
           <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
             Oops! That was close! Wanna Retry?
           </p>
-        </div>
+        
+          {aiInsight.tip && (
+            <div className="mt-6 flex flex-col gap-4 w-full max-w-md">
+                <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                    <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                    <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center px-4 text-center">
+                        <span className="text-[#FFCC00] text-sm">{aiInsight.tip}</span>
+                    </div>
+                </div>
+                 {aiInsight.recommendedSectionTitle && (
+                    <button
+                        onClick={handleNavigateToSection}
+                        className="bg-[#068F36] text-white rounded-lg py-3 px-6 text-sm md:text-base hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg"
+                    >
+                        Review "{aiInsight.recommendedSectionTitle}" Notes
+                    </button>
+                 )}
+            </div>
+          )}
+</div>
 
         {/* Footer Buttons */}
         <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex flex-wrap justify-center gap-3">

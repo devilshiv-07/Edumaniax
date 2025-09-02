@@ -12,6 +12,7 @@ const Navbar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // New state for dropdown
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMobileCoursesOpen, setIsMobileCoursesOpen] = useState(false); // New state for mobile courses dropdown
   const sidebarRef = useRef(null);
   const dropdownRef = useRef(null); // New ref for dropdown
 
@@ -40,6 +41,7 @@ const Navbar = () => {
     setIsSidebarOpen(false);
     // Optional: Close dropdown when a sidebar link is clicked
     setIsDropdownOpen(false);
+    setIsMobileCoursesOpen(false); // Close mobile courses dropdown
   };
 
   const handleLogoutClick = () => {
@@ -355,7 +357,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Sidebar (This part remains largely the same) */}
+        {/* Mobile Sidebar */}
         {isSidebarOpen && (
           <div
             ref={sidebarRef}
@@ -395,17 +397,61 @@ const Navbar = () => {
                 >
                   About Us
                 </Link>
-                <Link
-                  to="/courses"
-                  onClick={handleItemClick}
-                  className={`block text-lg font-medium transition duration-300 ${
-                    isActive("/courses")
-                      ? "text-green-600"
-                      : "text-black hover:text-green-600"
-                  }`}
-                >
-                  Courses
-                </Link>
+
+                {/* Mobile Courses Dropdown */}
+                <div className="space-y-2">
+                  {/* Main Courses Link */}
+                  <div className="flex items-center justify-between">
+                    <Link
+                      to="/courses"
+                      onClick={handleItemClick}
+                      className={`text-lg font-medium transition duration-300 ${
+                        isActive("/courses")
+                          ? "text-green-600"
+                          : "text-black hover:text-green-600"
+                      }`}
+                    >
+                      Courses
+                    </Link>
+                    <button
+                      onClick={() =>
+                        setIsMobileCoursesOpen(!isMobileCoursesOpen)
+                      }
+                      className="p-1"
+                    >
+                      <ChevronDown
+                        size={20}
+                        className={`text-gray-500 transition-transform duration-300 ${
+                          isMobileCoursesOpen ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Courses Dropdown Content */}
+                  {isMobileCoursesOpen && (
+                    <div className="ml-4 space-y-3 max-h-60 overflow-y-auto">
+                      {courses.map((course) => (
+                        <Link
+                          key={course.name}
+                          to={course.path}
+                          onClick={handleItemClick}
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 transition duration-300"
+                        >
+                          <img
+                            src={course.icon}
+                            alt={course.name}
+                            className="w-4 h-4 flex-shrink-0"
+                          />
+                          <span className="text-sm font-medium text-gray-700 hover:text-green-600">
+                            {course.name}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <Link
                   to="/pricing"
                   onClick={handleItemClick}

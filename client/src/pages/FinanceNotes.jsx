@@ -1,4 +1,4 @@
-
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Menu, ChevronDown, BookOpen, TrendingUp, Target } from "lucide-react";
 import { motion } from "framer-motion";
@@ -72,12 +72,29 @@ const notesSidebar11to12 = [
 
 
 
-const DigitalMarketingFullNotes = () => {
+const FinanceFullNotes = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const gradeFromUrl = searchParams.get('grade');
+    const sectionFromUrl = searchParams.get('section');
+
+    if (gradeFromUrl && gradeFromUrl !== selectedGrade) {
+      handleGradeSelect(gradeFromUrl, false);
+    }
+
+    if (sectionFromUrl && notesVisible) {
+      setTimeout(() => {
+        scrollTo(sectionFromUrl);
+      }, 300);
+    }
+  }, [searchParams, notesVisible, selectedGrade]);
 
   const topicRefs = useRef({});
   const visibleTopics = useRef(new Set());
@@ -152,12 +169,14 @@ const DigitalMarketingFullNotes = () => {
     setShowSidebar(false);
   };
 
-  const handleGradeSelect = (grade) => {
+  const handleGradeSelect = (grade, shouldScrollToTop = true) => {
     setSelectedGrade(grade);
     setShowDropdown(false);
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 100);
+    if (shouldScrollToTop) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    }
   };
 
   const getCurrentSidebar = () => {
@@ -477,5 +496,5 @@ const DigitalMarketingFullNotes = () => {
   );
 };
 
-export default DigitalMarketingFullNotes;
+export default FinanceFullNotes;
 

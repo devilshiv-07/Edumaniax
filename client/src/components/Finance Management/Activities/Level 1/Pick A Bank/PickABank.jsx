@@ -7,6 +7,30 @@ import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay";
+import { notesFinance6to8 } from "@/data/notesFinance6to8.js";
+
+const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'pickABankGameState';
+
+function parsePossiblyStringifiedJSON(text) {
+  if (typeof text !== "string") return null;
+  text = text.trim();
+  if (text.startsWith("```")) {
+    text = text
+      .replace(/^```(json)?/, "")
+      .replace(/```$/, "")
+      .trim();
+  }
+  if (text.startsWith("`") && text.endsWith("`")) {
+    text = text.slice(1, -1).trim();
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Failed to parse JSON:", err);
+    return null;
+  }
+}
 
 const upiOptions = ["Google Pay", "PhonePe", "Paytm", "BHIM"];
 const banks = [
@@ -283,6 +307,11 @@ export default function PickABank() {
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [outcome, setOutcome] = useState("");
+    const [aiInsight, setAiInsight] = useState({
+    tip: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: "",
+  });
 
   //for Performance
   const { updatePerformance } = usePerformance();
@@ -291,6 +320,32 @@ export default function PickABank() {
   const [showGif, setShowGif] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const navigate = useNavigate();
+
+   useEffect(() => {
+    const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedStateJSON) {
+      try {
+        const savedState = JSON.parse(savedStateJSON);
+
+        // Restore all relevant states
+        setStep("result");
+        setOutcome(savedState.outcome);
+        setFeedback(savedState.feedback);
+        setAiInsight(savedState.aiInsight);
+        setSelectedBank(savedState.selectedBank);
+        setParentAdvice(savedState.parentAdvice);
+        setChosenReason(savedState.chosenReason);
+
+        setShowIntro(false);
+        setShowInstructions(false);
+
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch (error) {
+        console.error("Failed to parse saved game state:", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -339,18 +394,55 @@ export default function PickABank() {
 
     // Still run your win/lose challenge functions
     if (outcomeResult === "win") {
-      completeFinanceChallenge(1, 0);
-    } else {
-      completeFinanceChallenge(0, 1);
-    }
+      completeFinanceChallenge(1, 0);
+      setLoadingFeedback(false);
+      setStep("result");
+    } else {
+      // LOSE case: Call AI for note recommendation
+      completeFinanceChallenge(0, 1);
+      const prompt = `
+        You are an expert AI tutor for a student in grades 6-8 who made a suboptimal choice in a bank selection game.
 
-    setStartTime(Date.now());
+        ### CONTEXT ###
+        1.  **Student's Goal:** Choose the best bank account.
+        2.  **Their Choices:**
+            - Bank Chosen: ${selectedBank?.name} (Features: ${selectedBank?.digital}, Fee: ${selectedBank?.fee}, Interest: ${selectedBank?.interest})
+            - Parent's Advice Followed: "${parentAdvice}"
+            - Reason for Choice: "${chosenReason}"
+        3.  **Outcome:** This combination of choices was determined to be suboptimal.
+        4.  **All Available Note Sections for this Finance Module:**
+            ${JSON.stringify(notesFinance6to8, null, 2)}
 
-    // Simulate feedback delay
-    setTimeout(() => {
-      setLoadingFeedback(false);
-      setStep("result"); // show result screen
-    }, 1500);
+        ### YOUR TASK ###
+        Based on the student's choices and the suboptimal outcome, DETECT the SINGLE most relevant note section from the provided list that would help them understand their mistake. For example, if they chose a high-fee bank while trying to avoid fees, 'Understanding Bank Fees' would be a good recommendation.
+
+        ### OUTPUT FORMAT ###
+        Return ONLY a raw JSON object with the detected topic ID. Do not add markdown backticks.
+        {"detectedTopicId": "The 'topicId' of the most relevant note section (e.g., '1', '4', etc.)"}
+      `;
+      try {
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`,
+          { contents: [{ parts: [{ text: prompt }] }] }
+        );
+        const aiReply = response.data.candidates[0].content.parts[0].text;
+        const parsed = parsePossiblyStringifiedJSON(aiReply);
+        const recommendedNote = notesFinance6to8.find(
+          (note) => note.topicId === parsed.detectedTopicId
+        );
+        setAiInsight({
+          tip: feedbackText, // Use existing feedback for the tip
+          recommendedSectionId: parsed.detectedTopicId,
+          recommendedSectionTitle: recommendedNote ? recommendedNote.title : "",
+        });
+      } catch (err) {
+        console.error("AI recommendation failed:", err);
+        setAiInsight({ tip: feedbackText }); // Fallback
+      } finally {
+        setLoadingFeedback(false);
+        setStep("result");
+      }
+    }
   };
 
   const notAllowed = () => {
@@ -377,6 +469,22 @@ export default function PickABank() {
   // Next Challenge Handler
   const handleNextChallenge = () => {
     navigate("/overspend-trap"); // ensure `useNavigate()` is defined
+  };
+    const handleNavigateToSection = () => {
+    if (aiInsight.recommendedSectionId) {
+      const stateToSave = {
+        outcome,
+        feedback,
+        aiInsight,
+        selectedBank,
+        parentAdvice,
+        chosenReason,
+      };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateToSave));
+      navigate(
+        `/finance/notes?grade=6-8&section=${aiInsight.recommendedSectionId}`
+      );
+    }
   };
 
   return (
@@ -678,23 +786,28 @@ export default function PickABank() {
                       </p>
 
                       {/* What Went Wrong Box */}
-                      <div className="mt-4 sm:mt-8 lg:mt-12 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
-                        <p className="text-black text-sm font-extrabold mb-1 mt-2">
-                          WHAT WENT WRONG?
-                        </p>
-                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center overflow-hidden">
-                          <span
-                            className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
-                            style={{
-                              fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
-                              lineHeight: "1.1",
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {feedback || "Analyzing your results..."}
-                          </span>
-                        </div>
-                      </div>
+                      {aiInsight.tip && (
+                        <div className="mt-6 flex flex-col gap-4 w-full max-w-md">
+                          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                            <p className="text-black text-sm font-bold my-2 uppercase">
+                              Insight
+                            </p>
+                            <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center px-4 text-center">
+                              <span className="text-[#FFCC00] text-sm">
+                                {aiInsight.tip}
+                              </span>
+                            </div>
+                          </div>
+                          {aiInsight.recommendedSectionTitle && (
+                            <button
+                              onClick={handleNavigateToSection}
+                              className="bg-[#068F36] text-white rounded-lg py-3 px-6 text-sm md:text-base hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg"
+                            >
+                              Review "{aiInsight.recommendedSectionTitle}" Notes
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Footer Buttons */}

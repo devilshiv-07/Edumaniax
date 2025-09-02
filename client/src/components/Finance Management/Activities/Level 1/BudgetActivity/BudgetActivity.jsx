@@ -9,6 +9,7 @@ import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay.jsx";
+import { notesFinance6to8 } from "@/data/notesFinance6to8.js";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -32,8 +33,60 @@ function parsePossiblyStringifiedJSON(text) {
     return null;
   }
 }
+function LevelCompletePopup({ isOpen, onConfirm, onCancel, onClose, title, message, confirmText, cancelText }) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000]">
+            <style>{`
+                @keyframes scale-in-popup {
+                    0% { transform: scale(0.9); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scale-in-popup { animation: scale-in-popup 0.3s ease-out forwards; }
+            `}</style>
+            <div className="relative bg-[#131F24] border-2 border-[#FFCC00] rounded-2xl p-6 md:p-8 text-center shadow-2xl w-11/12 max-w-md mx-auto animate-scale-in-popup">
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors p-2 rounded-full"
+                    aria-label="Close"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="lilita-one-regular text-2xl md:text-3xl text-yellow-400 mb-3">
+                    Yayy! You completed Level 1.
+                </h2>
+                <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
+                    Would you like to move to Level Two?
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="px-8 py-3 bg-red-600 text-lg text-white lilita-one-regular rounded-md hover:bg-red-700 transition-colors border-b-4 border-red-800 active:border-transparent shadow-lg"
+                    >
+                        Exit game
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-8 py-3 bg-green-600 text-lg text-white lilita-one-regular rounded-md hover:bg-green-700 transition-colors border-b-4 border-green-800 active:border-transparent shadow-lg"
+                    >
+                         Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'budgetBuilderGameState';
 
 const BudgetActivity = () => {
   const { completeFinanceChallenge } = useFinance();
@@ -49,6 +102,7 @@ const BudgetActivity = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackAvatarType, setFeedbackAvatarType] = useState("disappointing");
+  const [isPopupVisible, setPopupVisible] = useState(false);
 
   //for performance
   const { updatePerformance } = usePerformance();
@@ -63,6 +117,43 @@ const BudgetActivity = () => {
   const [hasWon, setHasWon] = useState(false);
   const [insightFeedback, setInsightFeedback] = useState("");
   const [showInstructions, setShowInstructions] = useState(true);
+  const [aiInsight, setAiInsight] = useState({
+    tip: "",
+    remark: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: ""
+  });
+
+  useEffect(() => {
+    const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedStateJSON) {
+      try {
+        const savedState = JSON.parse(savedStateJSON);
+
+        // Restore the state from the saved data
+        setHasWon(savedState.hasWon);
+        setAiInsight(savedState.aiInsight || { tip: "", remark: "", recommendedSectionId: null, recommendedSectionTitle: "" });
+        setFeedback(savedState.feedback || "");
+        setInsightFeedback(savedState.feedback || ""); // Also for the win screen insight
+        setRemark(savedState.remark || "");
+
+        // If it was a game-over state, set hearts to 0
+        if (savedState.isGameOver) {
+          setHeartCount(0);
+        }
+
+        // Make sure to skip the intro screen when restoring state
+        setShowIntro(false);
+        setShowInstructions(false); 
+
+        // Clean up sessionStorage to prevent re-loading this state on a full refresh
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch (error) {
+        console.error("Failed to parse saved game state:", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY); // Clean up corrupted data
+      }
+    }
+  }, []); 
 
   useEffect(() => {
     if (feedback) {
@@ -81,11 +172,13 @@ const BudgetActivity = () => {
   }, [feedback]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowIntro(false);
-    }, 4000); // show intro for 4 seconds
-    return () => clearTimeout(timer);
-  }, []);
+    if (showIntro) {
+      const timer = setTimeout(() => {
+        setShowIntro(false);
+      }, 4000); 
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
 
   if (showIntro) {
     return <IntroScreen />;
@@ -130,47 +223,39 @@ const BudgetActivity = () => {
     console.log(typeof percentageSpent);
 
     return `
-You are a critical financial advisor.
-A student created this one-month budget:
+You are an expert AI tutor for a student in grades 6-8 who has just created a monthly budget.
 
-Income: ₹${income}
-Expense Details: ${expenseDetails}
-Percentage spent : ${percentageSpent}
-Saving Strategies: ${allStrategies}
+### CONTEXT ###
+1.  **Student's Budget Plan:**
+    - Income: ₹${income}
+    - Expenses: ${JSON.stringify(expenseDetails, null, 2)}
+    - Percentage of Income Spent: ${percentageSpent}%
+    - Stated Saving Strategies: "${allStrategies}"
 
-Please give helpful feedback focusing on whether the student is making smart choices and if the saving strategies are strong. Also comment on whether it shows discipline and planning. If the choices are bad, give criticism and a poor remark. If the choices are good, give helpful suggestions for improvemnt and encouraging remark. 
+2.  **All Available Note Sections for this Finance Module:**
+    ${JSON.stringify(notesFinance6to8, null, 2)}
 
-Constraints:
-- The larger the percentageSpent, the poorer the remark and the feedback
+### YOUR TASK ###
+1.  **DETECT:** Analyze the student's budget. Look at their spending habits (high percentage spent, many "want" items like "Movie") and their chosen strategies. Identify the ONE note section from the provided list that is the best match for review based on their potential weaknesses. For example, if they spent too much, recommend 'Budgeting 101' or 'Smart Spending Habits'.
+2.  **GENERATE FEEDBACK:** Create a 'remark' and 'feedback' based on the percentageSpent, following the rules below. The feedback should be a short, encouraging insight (about 25-30 words).
 
-- The 'remark' must match these rules:
-  - If percentageSpent > 90 and <= 100, remark must be "Spendthrift"
-  - If percentageSpent > 70 and <= 90, remark must be "Poor budgeting"
-  - If percentageSpent > 60 and <= 70, remark must be "Not bad"
-  - If percentageSpent > 50 and <=60, remark must be "Impressive" or "Smart"
-  - If percentageSpent > 40 and <=50, remark must be "Great"
-  - If percentageSpent <40, remark must be "Excellent"
-  - If percentageSpent <10, remark must be "Miser"
+### RULES & OUTPUT FORMAT ###
+- The 'remark' must strictly follow these rules:
+  - If percentageSpent > 90, remark is "Spendthrift".
+  - If percentageSpent > 70 and <= 90, remark is "Poor budgeting".
+  - If percentageSpent > 60 and <= 70, remark is "Not bad".
+  - If percentageSpent > 50 and <= 60, remark is "Impressive".
+  - If percentageSpent <= 50 and > 10, remark is "Excellent".
+  - If percentageSpent <= 10, remark is "Miser".
+- The 'feedback' must be critical for poor remarks and encouraging for good ones.
+- Return ONLY a raw JSON object. Do not add markdown backticks.
 
-
-- The 'feedback' must match these rules:
-  - If percentageSpent > 60, feedback must include some strong criticism and an actionable advice to improve budgeting. Also give review about the saving strategies.
-  - If percentageSpent <= 10, , feedback must encourage to spend a little more and not to save like a miser. Do not praise for this kind of saving attitude where percentageSpent <= 10.
-  - If percentageSpent < 60 and >10, feedback must include some praise. Also give review about the saving strategies.
-  - Maximum length of ffedbacvk is 60 words.
-
-
-### FINAL INSTRUCTION ###
-Return ONLY raw JSON (no backticks, no markdown, no explanations).
-Example format:
 {
-  feedback : "Your feedback",
-  remark : ""
-}
-
-Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive", "Not bad", "Poor budgeting", "Spendthrift" 
-`;
-  };
+  "feedback": "Your personalized and encouraging feedback message here.",
+  "remark": "Spendthrift",
+  "detectedTopicId": "The 'topicId' of the most relevant note section you identified (e.g., '2', '6', etc.)"
+}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -193,6 +278,15 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
 
       const aiReply = response.data.candidates[0].content.parts[0].text;
       const parsed = parsePossiblyStringifiedJSON(aiReply);
+      if (parsed) {
+        const recommendedNote = notesFinance6to8.find(note => note.topicId === parsed.detectedTopicId);
+        
+        setAiInsight({
+            tip: parsed.feedback, // Storing feedback in the unified 'aiInsight' state
+            remark: parsed.remark,
+            recommendedSectionId: parsed.detectedTopicId,
+            recommendedSectionTitle: recommendedNote ? recommendedNote.title : ""
+        })};
       setFeedback(parsed.feedback);
       // auto-hide feedback panel after 15s
       setTimeout(() => {
@@ -317,8 +411,37 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
 
   // Next Challenge Handler
   const handleNextChallenge = () => {
-    navigate("/credit-card-simulator"); // ensure `useNavigate()` is defined
+    setPopupVisible(true);
   };
+  
+  // --- NEW HANDLERS FOR POPUP ---
+  const handleConfirmNavigation = () => {
+    navigate("/credit-card-simulator");
+    setPopupVisible(false);
+  };
+
+  const handleCancelNavigation = () => {
+    navigate("/finance/games"); // Navigate to the main games page
+    setPopupVisible(false);
+  };
+
+  const handleClosePopup = () => {
+    setPopupVisible(false);
+  };
+
+  const handleNavigateToSection = () => {
+    if (aiInsight.recommendedSectionId) {
+        const stateToSave = {
+            hasWon: hasWon,
+            isGameOver: !hasWon, // Only true if it's a loss screen
+            aiInsight: aiInsight,
+            feedback: feedback, // Save all relevant states
+            remark: remark
+        };
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateToSave));
+        navigate(`/finance/notes?grade=6-8&section=${aiInsight.recommendedSectionId}`);
+    }
+};
 
   console.log(feedbackAvatarType);
 
@@ -634,6 +757,7 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
         </>
       ) : (
         // ❌ Game Over Screen
+
         <div className="flex flex-col justify-between h-screen bg-[#0A160E] text-center overflow-hidden">
           <div className="flex flex-col items-center justify-center flex-1 p-4">
             <img
@@ -644,6 +768,24 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
             <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
               Oops! That was close! Wanna Retry?
             </p>
+            {aiInsight.tip && (
+        <div className="mt-6 flex flex-col gap-4 w-full max-w-md">
+            <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center px-4 text-center">
+                    <span className="text-[#FFCC00] text-sm">{aiInsight.tip}</span>
+                </div>
+            </div>
+            {aiInsight.recommendedSectionTitle && (
+                <button
+                    onClick={handleNavigateToSection}
+                    className="bg-[#068F36] text-white rounded-lg py-3 px-6 text-sm md:text-base hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg"
+                >
+                    Review "{aiInsight.recommendedSectionTitle}" Notes
+                </button>
+            )}
+        </div>
+    )}
           </div>
           <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-3 overflow-x-auto">
             <img
@@ -676,6 +818,17 @@ Remark can have one of these values : "Excellent", "Great", "Smart", "Impressive
           <InstructionOverlay onClose={() => setShowInstructions(false)} />
         </div>
       )}
+
+      <LevelCompletePopup
+            isOpen={isPopupVisible}
+            onConfirm={handleConfirmNavigation}
+            onCancel={handleCancelNavigation}
+            onClose={handleClosePopup}
+            title="Ready For More?"
+            message="Do you want to proceed to the next challenge?"
+            confirmText="Next Challenge"
+            cancelText="Exit"
+      />
     </>
   );
 };

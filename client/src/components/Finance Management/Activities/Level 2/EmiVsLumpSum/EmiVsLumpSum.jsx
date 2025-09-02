@@ -14,6 +14,9 @@ import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay";
+import { notesFinance6to8 } from "@/data/notesFinance6to8";
+
+const SESSION_STORAGE_KEY = 'emiVsLumpSumGameState';
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -53,6 +56,12 @@ const EmiVsLumpSum = () => {
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
+    const [aiInsight, setAiInsight] = useState({
+    tip: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: "",
+  });
+
 
   const lumpSumTotal = 4000 * 3; // ₹12,000
   const emiTotal = 4500 + 3000 * 3; // ₹13,500
@@ -64,6 +73,31 @@ const EmiVsLumpSum = () => {
   const [showGif, setShowGif] = useState(false);
   const [showInstructions, setShowInstructions] = useState(true);
   const navigate = useNavigate();
+
+   useEffect(() => {
+    const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedStateJSON) {
+      try {
+        const savedState = JSON.parse(savedStateJSON);
+
+        // Restore the state to the end-game screen
+        setShowResult(true);
+        setSelectedOption(savedState.selectedOption);
+        setReason(savedState.reason);
+        setFeedback(savedState.feedback);
+        setAiInsight(savedState.aiInsight);
+
+        // Skip intro screens
+        setShowIntro(false);
+        setShowInstructions(false);
+
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch (error) {
+        console.error("Failed to parse saved game state:", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -97,17 +131,30 @@ const EmiVsLumpSum = () => {
             {
               parts: [
                 {
-                  text: `The user had to buy a phone of ₹12000. He had two options : 
-                  Option A and B. Option A was the lumpsum option. In A, he had to save 4000 for 3 months and then buy the phone, using lumpsum payment. Option B was the EMI option. In option B, he had to pay 4500 upfront and then pay 3000 per month for three months. Of course this included interest as extra payment. The user chose option "${selectedOption}".
-                  His reason was "${reason}". Evaluate his choices. Give feedback regarding the differnce between his choice and the other choice. If his choice is option B, criticize showing the issues of instant gratification, impulsive buying and the extra interest and if it is option A, appreciate accordingly. Your last sentence should give the verdict, like good choice or bad choice. Maximum length 40 words.
+                  text: `
+You are an expert AI tutor for a student in grades 6-8 evaluating their choice between paying in a lump sum versus EMIs.
 
-### FINAL INSTRUCTION ###
-Return ONLY raw JSON (no backticks, no markdown, no explanations).
-Example format:
+### CONTEXT ###
+1.  **Scenario:** Buying a ₹12,000 phone.
+2.  **Option A (Lump Sum):** Save ₹4,000 for 3 months, then pay ₹12,000 total.
+3.  **Option B (EMI):** Pay ₹4,500 upfront + ₹3,000/month for 3 months, totaling ₹13,500 (includes ₹1,500 interest).
+4.  **Student's Choice:** Option "${selectedOption}"
+5.  **Student's Reason:** "${reason}"
+6.  **Available Note Sections:**
+    ${JSON.stringify(notesFinance6to8, null, 2)}
+
+### YOUR TASK ###
+1.  **EVALUATE:** Provide brief feedback (max 40 words). If they chose 'A', praise them for avoiding debt and interest. If they chose 'B', gently criticize it, highlighting the extra cost and the risk of instant gratification.
+2.  **DETECT:** If the student chose the suboptimal Option 'B', DETECT the SINGLE most relevant note section from the provided list to help them. Topics like 'Debt and Interest' or 'Needs vs. Wants' are strong candidates. If they chose 'A', this is not needed.
+
+### RULES & OUTPUT FORMAT ###
+-   Return ONLY a raw JSON object. Do not add markdown backticks.
+-   For the correct choice (A), 'detectedTopicId' can be null.
+
 {
-feedback : "Your feedback"
-}
-`,
+  "feedback": "Your concise feedback here.",
+  "detectedTopicId": "The 'topicId' of the most relevant note section, or null if the choice was correct."
+}`,
                 },
               ],
             },
@@ -116,10 +163,26 @@ feedback : "Your feedback"
       );
 
       const aiReply = response.data.candidates[0].content.parts[0].text;
-      console.log(aiReply);
       const parsed = parsePossiblyStringifiedJSON(aiReply);
-      console.log(parsed);
-      setFeedback(parsed.feedback);
+
+      if (parsed) {
+        setFeedback(parsed.feedback);
+        if (parsed.detectedTopicId) {
+          const recommendedNote = notesFinance6to8.find(
+            (note) => note.topicId === parsed.detectedTopicId
+          );
+          setAiInsight({
+            tip: parsed.feedback,
+            recommendedSectionId: parsed.detectedTopicId,
+            recommendedSectionTitle: recommendedNote
+              ? recommendedNote.title
+              : "",
+          });
+        }
+      } else {
+        setError("Could not parse AI response.");
+        setFeedback("That's a valid choice, but consider the long-term impact of interest payments.");
+      }
 
       if (hasselectedA && hasselectedB) {
         completeFinanceChallenge(1, 1);
@@ -177,6 +240,21 @@ feedback : "Your feedback"
   // Next Challenge Handler
   const handleNextChallenge = () => {
     navigate("/challenge3"); // ensure `useNavigate()` is defined
+  };
+
+  const handleNavigateToSection = () => {
+    if (aiInsight.recommendedSectionId) {
+      const stateToSave = {
+        selectedOption,
+        reason,
+        feedback,
+        aiInsight,
+      };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateToSave));
+      navigate(
+        `/finance/notes?grade=6-8&section=${aiInsight.recommendedSectionId}`
+      );
+    }
   };
 
   return (
@@ -337,24 +415,28 @@ feedback : "Your feedback"
                         Oops! That was close! Wanna Retry?
                       </p>
 
-                      {/* What Went Wrong Box */}
-                      <div className="mt-4 sm:mt-8 lg:mt-12 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-74">
-                        <p className="text-black text-sm font-extrabold mb-1 mt-2">
-                          WHAT WENT WRONG?
-                        </p>
-                        <div className="bg-[#131F24] mt-0 w-73 h-16 rounded-xl flex items-center justify-center px-4 text-center overflow-hidden">
-                          <span
-                            className="text-[#FFCC00] lilita-one-regular font-medium italic leading-tight"
-                            style={{
-                              fontSize: "clamp(0.65rem, 1.2vw, 0.85rem)",
-                              lineHeight: "1.1",
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {feedback || "Analyzing your results..."}
-                          </span>
+                      {aiInsight.tip && (
+                        <div className="mt-6 flex flex-col gap-4 w-full max-w-md">
+                          <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                            <p className="text-black text-sm font-bold my-2 uppercase">
+                              Insight
+                            </p>
+                            <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center px-4 text-center">
+                              <span className="text-[#FFCC00] text-sm">
+                                {aiInsight.tip}
+                              </span>
+                            </div>
+                          </div>
+                          {aiInsight.recommendedSectionTitle && (
+                            <button
+                              onClick={handleNavigateToSection}
+                              className="bg-[#068F36] text-white rounded-lg py-3 px-6 text-sm md:text-base hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg"
+                            >
+                              Review "{aiInsight.recommendedSectionTitle}" Notes
+                            </button>
+                          )}
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Footer Buttons */}

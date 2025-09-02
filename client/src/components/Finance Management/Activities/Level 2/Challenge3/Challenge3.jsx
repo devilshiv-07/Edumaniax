@@ -11,7 +11,31 @@ import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay";
+import axios from "axios";
+import { notesFinance6to8 } from "@/data/notesFinance6to8";
 
+const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'budgetChallengeGameState';
+
+function parsePossiblyStringifiedJSON(text) {
+  if (typeof text !== "string") return null;
+  text = text.trim();
+  if (text.startsWith("```")) {
+    text = text
+      .replace(/^```(json)?/, "")
+      .replace(/```$/, "")
+      .trim();
+  }
+  if (text.startsWith("`") && text.endsWith("`")) {
+    text = text.slice(1, -1).trim();
+  }
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    console.error("Failed to parse JSON:", err);
+    return null;
+  }
+}
 const items = [
   { name: "School bag", price: 1200 },
   { name: "Spotify Premium", price: 119 },
@@ -70,6 +94,11 @@ const Challenge3 = () => {
   const [lastFeedback, setLastFeedback] = useState("");
   const [currentAction, setCurrentAction] = useState("");
   const [startTime, setStartTime] = useState(Date.now());
+    const [aiInsight, setAiInsight] = useState({
+    tip: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: "",
+  });
 
   // Track winner state
   const [parsedWinner, setParsedWinner] = useState(null);
@@ -115,6 +144,22 @@ const Challenge3 = () => {
   const handleNextChallenge = () => {
     navigate("/my_purchase_plan"); // ensure `useNavigate()` is defined
   };
+  
+  const handleNavigateToSection = () => {
+    if (aiInsight.recommendedSectionId) {
+      const stateToSave = {
+        parsedWinner,
+        expenseLimit,
+        sortedItems,
+        feedbackLog,
+        aiInsight,
+      };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(stateToSave));
+      navigate(
+        `/finance/notes?grade=6-8&section=${aiInsight.recommendedSectionId}`
+      );
+    }
+  };
 
   const resetGame = () => {
     setStep(0);
@@ -134,28 +179,102 @@ const Challenge3 = () => {
     setStartTime(Date.now()); // reset timer
   };
 
-  // Post-game effects
   useEffect(() => {
-    if (step >= items.length && expenseLimit) {
-      const overspent = getTotalSpent() > Number(expenseLimit);
-      setParsedWinner(!overspent);
+    const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedStateJSON) {
+      try {
+        const savedState = JSON.parse(savedStateJSON);
 
-      if (!overspent) {
-        completeFinanceChallenge(1, 2);
-        const totalTimeSec = (Date.now() - startTime) / 1000;
-        updatePerformance({
-          moduleName: "Finance",
-          topicName: "bankingExpert",
-          score: 10,
-          accuracy: 100,
-          avgResponseTimeSec: totalTimeSec / items.length,
-          studyTimeMinutes: Math.ceil(totalTimeSec / 60),
-          completed: true,
-        });
-        setStartTime(Date.now());
-      }
-    }
-  }, [step, expenseLimit]);
+        // Restore the state to the end-game screen
+        setStep(items.length);
+        setParsedWinner(savedState.parsedWinner);
+        setExpenseLimit(savedState.expenseLimit);
+        setSortedItems(savedState.sortedItems);
+        setFeedbackLog(savedState.feedbackLog);
+        setAiInsight(savedState.aiInsight);
+
+        // Skip intro screens
+        setShowIntro(false);
+        setShowInstructions(false);
+
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch (error) {
+        console.error("Failed to parse saved game state:", error);
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // After
+  // Post-game effects
+  useEffect(() => {
+    const runEndGameLogic = async () => {
+      if (step >= items.length && expenseLimit) {
+        const totalSpent = getTotalSpent();
+        const overspent = totalSpent > Number(expenseLimit);
+        setParsedWinner(!overspent);
+
+        if (!overspent) {
+          completeFinanceChallenge(1, 2);
+          const totalTimeSec = (Date.now() - startTime) / 1000;
+          updatePerformance({
+            moduleName: "Finance",
+            topicName: "bankingExpert",
+            score: 10,
+            accuracy: 100,
+            avgResponseTimeSec: totalTimeSec / items.length,
+            studyTimeMinutes: Math.ceil(totalTimeSec / 60),
+            completed: true,
+          });
+          setStartTime(Date.now());
+        } else {
+          // LOSE CASE: Call AI for a recommendation
+          const prompt = `
+            You are an expert AI tutor for a student in grades 6-8 who failed a budgeting challenge.
+
+            ### CONTEXT ###
+            1.  **Student's Budget:** ₹${expenseLimit}
+            2.  **Their Spending:** They chose to buy items totaling ₹${totalSpent}.
+            3.  **The Mistake:** They overspent their budget.
+            4.  **Items they chose to buy ('Need Now'):**
+                ${JSON.stringify(sortedItems.needNow, null, 2)}
+            5.  **All Available Note Sections for this Finance Module:**
+                ${JSON.stringify(notesFinance6to8, null, 2)}
+
+            ### YOUR TASK ###
+            Based on the student overspending and the items they chose to buy, DETECT the SINGLE most relevant note section from the provided list to help them improve. For example, if they bought many 'wants', 'Needs vs. Wants' is a great topic. If they simply miscalculated, 'Budgeting 101' is better.
+
+            ### OUTPUT FORMAT ###
+            Return ONLY a raw JSON object with the detected topic ID. Do not add markdown backticks.
+            {"detectedTopicId": "The 'topicId' of the most relevant note section (e.g., '1', '2', etc.)"}
+          `;
+
+          try {
+            const response = await axios.post(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`,
+              { contents: [{ parts: [{ text: prompt }] }] }
+            );
+            const aiReply = response.data.candidates[0].content.parts[0].text;
+            const parsed = parsePossiblyStringifiedJSON(aiReply);
+            const recommendedNote = notesFinance6to8.find(
+              (note) => note.topicId === parsed.detectedTopicId
+            );
+            setAiInsight({
+              tip: `You set a budget of ₹${expenseLimit} but spent ₹${totalSpent}. Let's review some topics to help with planning next time!`,
+              recommendedSectionId: parsed.detectedTopicId,
+              recommendedSectionTitle: recommendedNote ? recommendedNote.title : "",
+            });
+          } catch (err) {
+            console.error("AI recommendation failed:", err);
+            setAiInsight({
+              tip: `You set a budget of ₹${expenseLimit} but spent ₹${totalSpent}. Budgeting is a key skill to practice!`,
+            }); // Fallback
+          }
+        }
+      }
+    };
+    runEndGameLogic();
+  }, [step, expenseLimit]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -295,6 +414,29 @@ const Challenge3 = () => {
             <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl font-semibold text-center">
               Oops! That was close! Wanna Retry?
             </p>
+
+            {/* AI Insight and Recommendation Box */}
+            {aiInsight.tip && (
+              <div className="mt-6 flex flex-col gap-4 w-full max-w-md">
+                <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                  <p className="text-black text-sm font-bold my-2 uppercase">
+                    Insight
+                  </p>
+                  <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center px-4 text-center">
+                    <span className="text-[#FFCC00] text-sm">{aiInsight.tip}</span>
+                  </div>
+                </div>
+                {aiInsight.recommendedSectionTitle && (
+                  <button
+                    onClick={handleNavigateToSection}
+                    className="bg-[#068F36] text-white rounded-lg py-3 px-6 text-sm md:text-base hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg"
+                  >
+                    Review "{aiInsight.recommendedSectionTitle}" Notes
+                  </button>
+                )}
+              </div>
+            )}
+
 
             {/* Feedback Log (Scrollable) */}
             <div className="mt-6 space-y-4">
