@@ -1,180 +1,162 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ThinkingCloud from "@/components/icon/ThinkingCloud";
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// Demo data, structured similarly to the game data
-const demoPuzzle = {
-    audioSrc: "/audio1.mp3",
-    emotions: ["😐", "😊", "😟"],
-    correctEmotion: "😐",
-    behaviors: ["Paying attention", "Not paying attention", "Interrupting"],
-    correctBehavior: "Not paying attention",
-    mcq: {
-        question: "What did the speaker mean?",
-        options: [
-            "B wasn’t listening carefully",
-            "They were excited",
-            "They changed their mind",
-        ],
-        correct: "B wasn’t listening carefully",
-    },
+// --- Custom Hook to get screen breakpoint ---
+const useBreakpoint = () => {
+    const [breakpoint, setBreakpoint] = useState('lg');
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setBreakpoint('sm');
+            else if (window.innerWidth < 1024) setBreakpoint('md');
+            else setBreakpoint('lg');
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Set initial breakpoint
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+    return breakpoint;
+};
+
+
+// Demo data for the self-playing animation
+const demoEmotions = [
+    { id: 1, face: "😄", emotion: "Happy" },
+    { id: 2, face: "😠", emotion: "Angry" },
+    { id: 4, face: "😳", emotion: "Embarrassed" },
+    { id: 5, face: "😱", emotion: "Scared" },
+];
+
+// Helper to shuffle the emotions array for variety
+const shuffleArray = (array) => {
+    const newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
 };
 
 const ScenarioContent = () => {
-    const [animationState, setAnimationState] = useState('idle');
+    const [remainingFaces, setRemainingFaces] = useState(demoEmotions);
+    const [remainingEmotions, setRemainingEmotions] = useState(shuffleArray([...demoEmotions]));
+    const [matches, setMatches] = useState([]);
+    const [selectedFace, setSelectedFace] = useState(null);
     const [selectedEmotion, setSelectedEmotion] = useState(null);
-    const [selectedBehavior, setSelectedBehavior] = useState(null);
-    const [selectedMcq, setSelectedMcq] = useState(null);
 
-    // This useEffect hook controls the self-playing animation
+    const breakpoint = useBreakpoint();
+    const isSmallScreen = breakpoint === 'sm' || breakpoint === 'md';
+
     useEffect(() => {
-        const animationSteps = [
-            () => {
-                setSelectedEmotion(demoPuzzle.correctEmotion);
-                setSelectedBehavior(null);
-                setSelectedMcq(null);
-                setAnimationState('selecting-emotion');
-            },
-            () => {
-                setSelectedBehavior(demoPuzzle.correctBehavior);
-                setSelectedMcq(null);
-                setAnimationState('selecting-behavior');
-            },
-            () => {
-                setSelectedMcq(demoPuzzle.mcq.correct);
-                setAnimationState('selecting-mcq');
-            },
-            () => {
-                setAnimationState('finished');
-            },
-        ];
+        let timer;
+        let matchIndex = 0;
 
-        let currentStep = 0;
-        const interval = setInterval(() => {
-            if (currentStep < animationSteps.length) {
-                animationSteps[currentStep]();
-                currentStep++;
-            } else {
-                setAnimationState('idle');
-                setSelectedEmotion(null);
-                setSelectedBehavior(null);
-                setSelectedMcq(null);
-                currentStep = 0;
-            }
-        }, 1200); // Wait time between each selection
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Component for a single selectable option
-    const Option = ({ text, isSelected, isEmoji = false }) => (
-        <div
-            className={`flex items-center gap-1.5 p-1.5 bg-[#131f24] rounded-md border border-[#37464f] shadow-[0_1px_0_0_#37464f] transition-all duration-300 transform ${isSelected ? 'border-[#6DFF00] ring-1 ring-[#6DFF00] scale-105' : 'hover:border-gray-500'}`}
-        >
-            <div className={`w-3.5 h-3.5 flex-shrink-0 flex justify-center items-center rounded-sm border border-[#37464f] transition-colors ${isSelected ? 'bg-[#6DFF00] border-[#6DFF00]' : 'bg-[#0A160E]'}`}>
-                {isSelected && <span className="text-black text-xs font-bold">✓</span>}
-            </div>
-            <span className={`text-[#f1f7fb] font-normal text-left text-xs ${isEmoji ? 'text-xl py-0.5' : 'py-1.5'}`}>
-                {text}
-            </span>
-        </div>
-    );
-
-    // Audio Player component with the character
-    const AudioPlayerCharacter = ({ audioSrc }) => {
-        const audioRef = useRef(null);
-        const [isPlaying, setIsPlaying] = useState(false);
-
-        const togglePlayPause = async () => {
-            const audioElement = audioRef.current;
-            if (!audioElement) return;
-
-            if (isPlaying) {
-                audioElement.pause();
-                setIsPlaying(false);
-            } else {
-                try {
-                    await audioElement.play();
-                    setIsPlaying(true);
-                } catch (error) {
-                    console.error("Audio play failed:", error);
-                    setIsPlaying(false);
-                }
-            }
+        const resetAnimation = () => {
+            setMatches([]);
+            setRemainingFaces(demoEmotions);
+            setRemainingEmotions(shuffleArray([...demoEmotions]));
+            setSelectedFace(null);
+            setSelectedEmotion(null);
+            matchIndex = 0;
         };
 
-        return (
-            <div className="flex items-end justify-center">
-                <audio ref={audioRef} onEnded={() => setIsPlaying(false)} preload="auto" style={{ display: 'none' }}>
-                    <source src={audioSrc} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                </audio>
-                <img src="/feedbackcharacter.gif" alt="Character" className="w-[1.75rem] md:w-[2.4rem] h-auto object-contain shrink-0" />
-                <div className="relative md:mb-4 md:ml-1">
-                    <ThinkingCloud className="w-[110px] h-auto md:w-[130px]" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-2">
-                        <button onClick={togglePlayPause} className="cursor-pointer flex-shrink-0 focus:outline-none rounded-full w-4.5">
-                            <img src={isPlaying ? "/communicationGames6to8/pause.svg" : "/communicationGames6to8/play.svg"} alt={isPlaying ? "Pause audio" : "Play audio"} className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 hover:scale-105 active:scale-95" />
-                        </button>
-                        <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-4 md:h-5" />
-                    </div>
-                </div>
-            </div>
-        );
-    };
+        const runAnimationStep = () => {
+            if (matchIndex >= demoEmotions.length) {
+                // After all matches are done, wait a bit then reset
+                timer = setTimeout(resetAnimation, 2000);
+                return;
+            }
+
+            const currentEmotionToMatch = demoEmotions[matchIndex];
+            
+            // 1. Select Face
+            timer = setTimeout(() => setSelectedFace(currentEmotionToMatch), 500);
+            
+            // 2. Select Emotion
+            timer = setTimeout(() => setSelectedEmotion(currentEmotionToMatch), 1500);
+            
+            // 3. Make the match
+            timer = setTimeout(() => {
+                setMatches(prev => [...prev, currentEmotionToMatch]);
+                setRemainingFaces(prev => prev.filter(f => f.id !== currentEmotionToMatch.id));
+                setRemainingEmotions(prev => prev.filter(e => e.id !== currentEmotionToMatch.id));
+                setSelectedFace(null);
+                setSelectedEmotion(null);
+                matchIndex++;
+            }, 2500);
+        };
+
+        // This interval triggers the next match sequence
+        const loop = setInterval(runAnimationStep, 3000);
+
+        return () => clearInterval(loop);
+    }, []);
 
     return (
-        <div className="w-full h-full bg-[#00260e]  rounded-lg flex flex-col items-center justify-center px-2 pt-2">
-            <div className="w-full h-full flex flex-col font-['Inter'] relative overflow-hidden">
-                <main className="flex-1 w-full flex flex-col items-center justify-center p-1 md:p-2">
-                    <div className="w-full max-w-xl bg-[rgba(32,47,54,0.3)] rounded-lg p-2 md:p-3 space-y-1.5">
-                        {/* Question 1: Emotion */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">What is the emotion of the speaker?</p>
-                            <div className="flex gap-1.5 md:gap-2">
-                                {demoPuzzle.emotions.map(emo => (
-                                    <Option
-                                        key={emo}
-                                        text={emo}
-                                        isEmoji
-                                        isSelected={selectedEmotion === emo}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Question 2: Behavior */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">What is the listener's behavior?</p>
-                            <div className="flex flex-col md:flex-row gap-1.5 md:gap-2">
-                                {demoPuzzle.behaviors.map(b => (
-                                    <Option
-                                        key={b}
-                                        text={b}
-                                        isSelected={selectedBehavior === b}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Question 3: MCQ */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">{demoPuzzle.mcq.question}</p>
-                            <div className="flex flex-col items-start gap-1.5 md:gap-2">
-                                {demoPuzzle.mcq.options.map(opt => (
-                                    <Option
-                                        key={opt}
-                                        text={opt}
-                                        isSelected={selectedMcq === opt}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </main>
-
-                <div className="w-full flex justify-center">
-                    <AudioPlayerCharacter audioSrc={demoPuzzle.audioSrc} />
+        <div className="w-full h-full bg-[#00260e] rounded-lg flex flex-col items-center justify-center p-4 md:p-6 space-y-3">
+            
+            {/* Faces Section */}
+            <div className="w-full bg-gray-800/30 rounded-lg p-3 min-h-[70px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 h-full">
+                    <AnimatePresence>
+                        {remainingFaces.map(face => (
+                            <motion.div 
+                                key={`face-${face.id}`} 
+                                layout={!isSmallScreen}
+                                initial={{opacity: 0, scale: 0.5}} 
+                                animate={{opacity: 1, scale: 1}} 
+                                exit={{opacity: 0, scale: 0.5}}
+                                className={`bg-gray-900 rounded-md flex flex-col justify-center items-center gap-1 py-1 transition-all duration-200 ${selectedFace?.id === face.id ? 'outline outline-2 outline-yellow-400 scale-105' : ''}`}>
+                                <span className="text-xl md:text-2xl">{face.face}</span>
+                                <span className="text-[10px] md:text-xs font-bold text-slate-100">Face {face.id}</span>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                 </div>
+            </div>
+
+            {/* Emotions Section */}
+            <div className="w-full bg-gray-800/30 rounded-lg p-3 min-h-[45px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 h-full">
+                    <AnimatePresence>
+                        {remainingEmotions.map(emotion => (
+                             <motion.div 
+                                key={`emo-${emotion.id}`} 
+                                layout={!isSmallScreen}
+                                initial={{opacity: 0, scale: 0.5}} 
+                                animate={{opacity: 1, scale: 1}} 
+                                exit={{opacity: 0, scale: 0.5}}
+                                className={`bg-gray-900 rounded-md flex justify-center items-center py-2 transition-all duration-200 ${selectedEmotion?.id === emotion.id ? 'outline outline-2 outline-yellow-400 scale-105' : ''}`}>
+                                <span className="text-xs md:text-sm font-bold text-slate-100">{emotion.emotion}</span>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            </div>
+
+            {/* Your Matches Section */}
+            <div className="w-full bg-gray-800/30 rounded-lg p-3 flex-grow flex items-center justify-center min-h-[50px]">
+                {matches.length === 0 ? (
+                    <div className="text-white text-base font-normal">Your Matches</div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                         <AnimatePresence>
+                            {matches.map((match) => (
+                                <motion.div 
+                                    key={`match-${match.id}`} 
+                                    layout={!isSmallScreen}
+                                    initial={{opacity: 0, y: 20}} 
+                                    animate={{opacity: 1, y: 0}}
+                                    className="bg-gray-900 rounded-md flex justify-center items-center p-2">
+                                    <div className="flex items-center justify-center gap-1 text-slate-100 text-xs font-semibold">
+                                        <span className="text-lg md:text-xl">{match.face}</span>
+                                        <span>⟶</span>
+                                        <span className="text-xs">{match.emotion}</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                )}
             </div>
         </div>
     );
