@@ -14,7 +14,7 @@ import InstructionsScreen from "./InstructionsScreen";
 // Setup (API, Session Key, Helper Functions)
 // =============================================================================
 const APIKEY = import.meta.env.VITE_API_KEY;
-const SESSION_STORAGE_KEY = 'complimentChallengeState_v1'; // Incremented version for new game
+const SESSION_STORAGE_KEY = 'persuasionChallengeState_v4'; // Incremented version to avoid old state conflicts
 
 function parsePossiblyStringifiedJSON(text) {
     if (typeof text !== "string") return null;
@@ -38,6 +38,7 @@ const scrollbarHideStyle = `
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;
 
+// --- NEW POPUP COMPONENT (from ChainReaction, made more generic) ---
 function LevelCompletePopup({ isOpen, onConfirm, onCancel, onClose, title, message, confirmText, cancelText }) {
     if (!isOpen) return null;
 
@@ -60,7 +61,7 @@ function LevelCompletePopup({ isOpen, onConfirm, onCancel, onClose, title, messa
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
-
+                
                 <div className="relative w-24 h-24 mx-auto mb-4">
                     <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
                     <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
@@ -101,11 +102,11 @@ function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
                     <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
                     <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
                 </div>
-                <h2 className="text-yellow-400 font-['Lilita_One'] text-3xl sm:text-4xl mt-6">Perfectly Phrased!</h2>
-                <p className="text-white text-lg mt-2">You're a master of positive communication!</p>
+                <h2 className="text-yellow-400 font-['Lilita_One'] text-3xl sm:text-4xl mt-6">Argument Won!</h2>
+                <p className="text-white text-lg mt-2">You're a master of persuasion!</p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
                     <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col">
-                        <p className="text-black text-sm font-bold my-2 uppercase">Compliment Score</p>
+                        <p className="text-black text-sm font-bold my-2 uppercase">Persuasion Score</p>
                         <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center p-4">
                             <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
                             <span className="text-[#09BE43] text-2xl ">{accuracyScore}%</span>
@@ -132,12 +133,12 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
         <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
             <style>{scrollbarHideStyle}</style>
             <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
-                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 mt-12 md:mt-0" />
-                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl">Oops! That didn't land right.</p>
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl">Oops! The motion was denied.</p>
                 <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl mb-6">Want to try again?</p>
                 <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
                     <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col">
-                        <p className="text-black text-sm font-bold my-2 uppercase">Compliment Score</p>
+                        <p className="text-black text-sm font-bold my-2 uppercase">Persuasion Score</p>
                         <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex items-center justify-center p-4">
                             <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
                             <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
@@ -164,6 +165,7 @@ function LosingScreen({ onPlayAgain, onViewFeedback, onContinue, insight, accura
             <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
                 <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 hover:scale-105" />
                 <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 hover:scale-105" />
+                {/* The 'onContinue' here will also trigger the popup */}
                 <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
             </div>
         </div>
@@ -174,7 +176,7 @@ function ReviewScreen({ answers, onBackToResults }) {
     return (
         <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
             <style>{scrollbarHideStyle}</style>
-            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400">Review Your Choices</h1>
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400">Review Your Argument</h1>
             <div className="w-full max-w-4xl flex flex-col gap-4 overflow-y-auto p-2 no-scrollbar">
                 {answers.map((ans, idx) => {
                     const isCorrect = ans.scoreAwarded >= ans.maxScore;
@@ -182,12 +184,12 @@ function ReviewScreen({ answers, onBackToResults }) {
                         <div key={idx} className={`p-4 rounded-xl flex flex-col ${isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
                             <p className="text-gray-300 font-bold mb-2">{ans.scenario}</p>
                             <div className="text-sm space-y-1">
-                                <p className="font-semibold">Your Answer:</p>
+                                <p className="font-semibold">Your Answer(s):</p>
                                 <p className={`${isCorrect ? 'text-white' : 'text-red-300'} whitespace-pre-line`}>{ans.selectedOptions.map(opt => `• ${opt.text}`).join('\n')}</p>
                                 {!isCorrect && (
                                     <>
-                                        <p className="font-semibold pt-2">Correct Answer:</p>
-                                        <p className="text-green-300 whitespace-pre-line">{`• ${ans.correctAnswerText}`}</p>
+                                        <p className="font-semibold pt-2">Correct Answer(s):</p>
+                                        <p className="text-green-300 whitespace-pre-line">{ans.correctAnswerText.split(' & ').map(txt => `• ${txt}`).join('\n')}</p>
                                     </>
                                 )}
                             </div>
@@ -200,99 +202,21 @@ function ReviewScreen({ answers, onBackToResults }) {
     );
 }
 
-function OptionCard({ option, isSelected, onClick, showFeedback, isCorrectAnswer }) {
-    let cardClasses = `flex items-center justify-center inter-font w-full min-h-[60px] px-4 py-3 rounded-xl shadow-md transition-all text-center `;
-    let textClasses = `font-medium text-base `;
-
-    if (showFeedback) {
-        cardClasses += 'cursor-default ';
-        if (isCorrectAnswer) {
-            cardClasses += "bg-green-800/70 border-2 border-green-500";
-            textClasses += "text-green-200";
-        } else if (isSelected) {
-            cardClasses += "bg-red-800/70 border-2 border-red-500";
-            textClasses += "text-red-200";
-        } else {
-            cardClasses += "bg-[#131f24] border-2 border-[#37464f] opacity-60";
-            textClasses += "text-[#f1f7fb]";
-        }
-    } else {
-        cardClasses += `cursor-pointer hover:scale-102 ${isSelected ? "bg-[#202f36] border-2 border-[#5f8428] shadow-[0_2px_0_0_#5f8428]" : "bg-[#131f24] border-2 border-[#37464f]"}`;
-        textClasses += isSelected ? "text-[#79b933]" : "text-[#f1f7fb]";
-    }
-    
+function OptionCard({ option, isSelected, onClick, isDisabled }) {
+    const cardClasses = `flex items-center justify-center inter-font w-full min-h-[60px] px-4 py-3 rounded-xl shadow-md transition-all cursor-pointer text-center ${isSelected ? "bg-[#202f36] border-2 border-[#5f8428] shadow-[0_2px_0_0_#5f8428]" : "bg-[#131f24] border-2 border-[#37464f]"} ${isDisabled && !isSelected ? "opacity-50 cursor-not-allowed" : "hover:scale-102"}`;
+    const textClasses = `font-medium text-base ${isSelected ? "text-[#79b933]" : "text-[#f1f7fb]"}`;
     return <div className={cardClasses} onClick={onClick}><span className={textClasses}>{option.text}</span></div>;
 }
 
 // =============================================================================
 // Game Data
 // =============================================================================
-const compliments = [
-  {
-    action: "Ayaan helped you when your project crashed.",
-    options: [
-      "Thanks, Ayaan. You always do everything for me.",
-      "Appreciate the help. I was really lost without you.",
-      "Thank you for helping me fix my file, Ayaan. You stayed calm and patient when I was stressed. That meant a lot!",
-      "I guess you saved me. Nice job, I guess.",
-    ],
-    correctIndex: 2,
-  },
-  {
-    action: "Priya included everyone in the group discussion.",
-    options: [
-      "Priya, that was so inclusive of you! You made sure everyone’s voice was heard, and that made our session better.",
-      "Priya, you talk too much.",
-      "It was okay, Priya. You could have let me speak more.",
-      "Thanks for running the meeting.",
-    ],
-    correctIndex: 0,
-  },
-  {
-    action: "Ravi stayed back to clean the classroom.",
-    options: [
-      "Ravi, thanks for staying and cleaning. You didn’t have to, but it really helped us get done faster.",
-      "That’s your job, Ravi.",
-      "Cool, you like cleaning I guess?",
-      "Wish you told me, I could have left earlier.",
-    ],
-    correctIndex: 0,
-  },
-  {
-    action: "Sara stood up for a friend being teased.",
-    options: [
-      "Thanks, Sara. It took courage to speak up. You showed kindness and strength, and that’s inspiring.",
-      "Wow, you really went off.",
-      "Next time maybe don’t make it a scene.",
-      "I didn’t think it was a big deal, but okay.",
-    ],
-    correctIndex: 0,
-  },
-  {
-    action: "Kabir offered to share his notes when you were absent.",
-    options: [
-      "Kabir, your notes really helped me catch up. I appreciate you taking the time and being thoughtful.",
-      "You always want to show off your notes.",
-      "Thanks Kabir. Next time can you type them?",
-      "They were alright I guess.",
-    ],
-    correctIndex: 0,
-  },
+const dilemmas = [
+    { id: 1, type: 'single-select', question: "Convince your school to allow an extra sports period.", scenario: "Step 1: Choose your opening line.", options: [{ text: "I believe an extra sports period would benefit all students.", score: 3 }, { text: "We should have more fun. Period.", score: 0 }, { text: "If we don't get this, we'll protest!", score: 0 }], correctAnswerTexts: ["I believe an extra sports period would benefit all students."] },
+    { id: 2, type: 'multi-select', selectCount: 2, question: "Convince your school to allow an extra sports period.", scenario: "Step 2: Choose exactly 2 strong reasons.", options: [{ text: "It improves focus and fitness.", score: 3 }, { text: "We can burn energy in a healthy way.", score: 3 }, { text: "It’s more fun than math.", score: 0 }], correctAnswerTexts: ["It improves focus and fitness.", "We can burn energy in a healthy way."] },
+    { id: 3, type: 'single-select', question: "Convince your school to allow an extra sports period.", scenario: "Step 3: End with a catchy slogan.", options: [{ text: "Sweat Today, Succeed Tomorrow!", score: 3 }, { text: "Brain Boost = Sports Dose", score: 0 }], correctAnswerTexts: ["Sweat Today, Succeed Tomorrow!"] },
 ];
-
-const dilemmas = compliments.map((comp, index) => ({
-    id: index + 1,
-    type: 'single-select',
-    question: "Choose the best compliment for this situation:",
-    scenario: comp.action,
-    options: comp.options.map((opt, optIndex) => ({
-        text: opt,
-        score: optIndex === comp.correctIndex ? 3 : 0
-    })),
-    correctAnswerTexts: [comp.options[comp.correctIndex]]
-}));
-
-const totalPossibleScore = dilemmas.length * 3;
+const totalPossibleScore = dilemmas.reduce((total, d) => total + (d.type === 'multi-select' ? d.options.reduce((sum, o) => sum + (o.score > 0 ? o.score : 0), 0) : Math.max(...d.options.map(o => o.score))), 0);
 
 // =============================================================================
 // State Management with useReducer
@@ -302,6 +226,7 @@ const initialState = {
     currentDilemmaIndex: 0,
     selectedOptions: [],
     totalScore: 0,
+    feedbackMessage: "",
     showFeedback: false,
     dilemmaResults: [],
     insight: "",
@@ -320,10 +245,11 @@ function gameReducer(state, action) {
         case 'SELECT_OPTION':
             return { ...state, selectedOptions: action.payload };
         case 'SUBMIT_ANSWER': {
-            const { stepScore, maxStepScore } = action.payload;
+            const { stepScore, feedback, maxStepScore } = action.payload;
             return {
                 ...state,
                 totalScore: state.totalScore + stepScore,
+                feedbackMessage: feedback,
                 showFeedback: true,
                 dilemmaResults: [...state.dilemmaResults, {
                     scenario: dilemmas[state.currentDilemmaIndex].scenario,
@@ -339,7 +265,7 @@ function gameReducer(state, action) {
             if (nextIndex >= dilemmas.length) {
                 return { ...state, gameState: 'finished' };
             }
-            return { ...state, currentDilemmaIndex: nextIndex, selectedOptions: [], showFeedback: false };
+            return { ...state, currentDilemmaIndex: nextIndex, selectedOptions: [], showFeedback: false, feedbackMessage: "" };
         }
         case 'SET_AI_INSIGHT':
             return { ...state, ...action.payload };
@@ -360,9 +286,9 @@ function gameReducer(state, action) {
 export default function PersuasionChallenge() {
     const navigate = useNavigate();
     const [state, dispatch] = useReducer(gameReducer, initialState);
-    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [isPopupVisible, setPopupVisible] = useState(false); // --- NEW STATE FOR POPUP ---
 
-    const { gameState, currentDilemmaIndex, selectedOptions, showFeedback, totalScore, dilemmaResults, insight, recommendedSectionTitle, recommendedSectionId } = state;
+    const { gameState, currentDilemmaIndex, selectedOptions, showFeedback, feedbackMessage, totalScore, dilemmaResults, insight, recommendedSectionTitle, recommendedSectionId } = state;
 
     useEffect(() => {
         const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
@@ -387,14 +313,14 @@ export default function PersuasionChallenge() {
                 const incorrectAnswers = dilemmaResults.filter(res => res.scoreAwarded < res.maxScore);
 
                 if (incorrectAnswers.length === 0) {
-                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Flawless communication! You know exactly how to make others feel valued.", recommendedSectionId: null, recommendedSectionTitle: "" } });
+                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "A flawless argument! You've mastered persuasion.", recommendedSectionId: null, recommendedSectionTitle: "" } });
                     return;
                 }
 
-                const prompt = `A student played the 'Compliment Challenge' game. Their incorrect choices are: ${JSON.stringify(incorrectAnswers)}. The available communication skills notes are: ${JSON.stringify(notesCommunication6to8)}. TASK: 1. DETECT: Find the most relevant note section for errors related to giving effective, positive feedback. 2. GENERATE: Write a 25-35 word insight recommending that section by its title. OUTPUT: JSON with "detectedTopicId" and "insight".`;
+                const prompt = `A student played the 'Persuasion Challenge' game. Their incorrect choices are: ${JSON.stringify(incorrectAnswers)}. The available communication skills notes are: ${JSON.stringify(notesCommunication6to8)}. TASK: 1. DETECT: Find the most relevant note section for errors related to persuasive speaking. 2. GENERATE: Write a 25-35 word insight recommending that section by its title to help them improve. OUTPUT: JSON with "detectedTopicId" and "insight".`;
 
                 try {
-                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
                     const rawText = response.data.candidates[0].content.parts[0].text;
                     const parsed = parsePossiblyStringifiedJSON(rawText);
 
@@ -409,8 +335,14 @@ export default function PersuasionChallenge() {
                         }
                     } else { throw new Error("Parsed AI response is invalid or missing required keys."); }
                 } catch (err) {
-                    console.error("Error fetching AI insight:", err);
-                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Good effort! Take a moment to review the module notes to master positive communication.", recommendedSectionId: null, recommendedSectionTitle: "" } });
+                    console.error("Error fetching or parsing AI insight:", err);
+                    const fallbackNote = notesCommunication6to8.find(note => note.topicId === '3') || notesCommunication6to8[2];
+                    const fallbackPayload = {
+                        insight: "Great attempt! To make your arguments stronger, review the 'Speak with Purpose' notes.",
+                        recommendedSectionId: fallbackNote.topicId,
+                        recommendedSectionTitle: fallbackNote.title
+                    };
+                    dispatch({ type: "SET_AI_INSIGHT", payload: fallbackPayload });
                 }
             };
             generateInsight();
@@ -419,20 +351,45 @@ export default function PersuasionChallenge() {
 
     const handleSelectOption = (option) => {
         if (showFeedback) return;
-        dispatch({ type: 'SELECT_OPTION', payload: [option] });
+        let newSelectedOptions;
+        if (currentDilemma.type === 'multi-select') {
+            const isSelected = selectedOptions.some(o => o.text === option.text);
+            if (isSelected) {
+                newSelectedOptions = selectedOptions.filter(o => o.text !== option.text);
+            } else if (selectedOptions.length < currentDilemma.selectCount) {
+                newSelectedOptions = [...selectedOptions, option];
+            } else {
+                newSelectedOptions = selectedOptions;
+            }
+        } else {
+            newSelectedOptions = [option];
+        }
+        dispatch({ type: 'SELECT_OPTION', payload: newSelectedOptions });
     };
 
     const handleSubmit = () => {
         if (!selectedOptions.length) return;
-        const stepScore = selectedOptions[0].score;
-        const maxStepScore = 3;
-        dispatch({ type: 'SUBMIT_ANSWER', payload: { stepScore, maxStepScore } });
+        let stepScore = 0, feedback = "", maxStepScore = 0;
+        if (currentDilemma.type === 'multi-select') {
+            stepScore = selectedOptions.reduce((sum, opt) => sum + opt.score, 0);
+            maxStepScore = currentDilemma.options.filter(o => o.score > 0).reduce((sum, o) => sum + o.score, 0);
+            if (stepScore === maxStepScore) feedback = "Perfect! You've chosen the two strongest reasons.";
+            else if (stepScore > 0) feedback = "Good start! One of your reasons is strong, but the other could be better.";
+            else feedback = "These reasons aren't very persuasive.";
+        } else {
+            stepScore = selectedOptions[0].score;
+            maxStepScore = Math.max(...currentDilemma.options.map(o => o.score));
+            if (stepScore === maxStepScore) feedback = "Excellent choice! A very persuasive point.";
+            else feedback = "That might not be the most effective approach.";
+        }
+        dispatch({ type: 'SUBMIT_ANSWER', payload: { stepScore, feedback, maxStepScore } });
     };
 
     const isButtonEnabled = useMemo(() => {
-        if (showFeedback) return true; // Always enabled for "Continue"
-        return selectedOptions.length === 1; // Enabled only when an option is selected
-    }, [selectedOptions, showFeedback]);
+        if (showFeedback) return true;
+        const requiredCount = currentDilemma.type === 'multi-select' ? currentDilemma.selectCount : 1;
+        return selectedOptions.length === requiredCount;
+    }, [selectedOptions, currentDilemma, showFeedback]);
 
     const handleNavigateToSection = () => {
         if (recommendedSectionId) {
@@ -441,6 +398,7 @@ export default function PersuasionChallenge() {
         }
     };
     
+    // --- UPDATED AND NEW HANDLERS FOR POPUP LOGIC ---
     const handleContinue = () => {
         setPopupVisible(true);
     };
@@ -453,7 +411,7 @@ export default function PersuasionChallenge() {
 
     const handleCancelNavigation = () => {
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        navigate("/communications/games");
+        navigate("/communications/games"); // Navigate to the main games page for this subject
         setPopupVisible(false);
     };
 
@@ -474,7 +432,7 @@ export default function PersuasionChallenge() {
         if (gameState === "intro") {
             return <IntroScreen
                 onShowInstructions={() => dispatch({ type: 'SHOW_INSTRUCTIONS' })}
-                title="Compliment Challenge"
+                title="Persuasion Challenge"
             />;
         }
 
@@ -490,6 +448,7 @@ export default function PersuasionChallenge() {
             return <ReviewScreen answers={dilemmaResults} onBackToResults={() => dispatch({ type: 'BACK_TO_FINISH' })} />;
         }
         
+        // This is the main game view which will stay in the background during instructions
         return (
             <div className="w-full h-screen bg-[#0A160E] flex flex-col">
                 <GameNav />
@@ -497,22 +456,17 @@ export default function PersuasionChallenge() {
 
                 <main className="flex-1 flex flex-col items-center justify-center p-4">
                     <div className="w-full max-w-4xl bg-gray-800/30 rounded-xl p-6 md:p-10 text-center">
-                        <h2 className="text-slate-100 text-xl md:text-2xl font-medium">{currentDilemma?.scenario}</h2>
+                        <h2 className="text-slate-100 text-xl md:text-2xl font-medium">{currentDilemma?.question}</h2>
+                        <p className="text-gray-300 text-sm md:text-base mt-2"><span className="font-bold">Scenario:</span> {currentDilemma?.scenario}</p>
                         <div className="w-full max-w-lg mx-auto mt-6 flex flex-col gap-4">
-                            {currentDilemma?.options.map((option, index) => {
-                                const isSelected = selectedOptions.some(o => o.text === option.text);
-                                const isCorrectAnswer = option.score > 0;
-                                return (
-                                    <OptionCard
-                                        key={index}
-                                        option={option}
-                                        isSelected={isSelected}
-                                        onClick={() => handleSelectOption(option)}
-                                        showFeedback={showFeedback}
-                                        isCorrectAnswer={isCorrectAnswer}
-                                    />
-                                );
-                            })}
+                            {currentDilemma?.options.map((option, index) => (
+                                <OptionCard
+                                    key={index} option={option}
+                                    isSelected={selectedOptions.some(o => o.text === option.text)}
+                                    onClick={() => handleSelectOption(option)}
+                                    isDisabled={showFeedback && !selectedOptions.some(o => o.text === option.text)}
+                                />
+                            ))}
                         </div>
                     </div>
                 </main>
@@ -538,7 +492,7 @@ export default function PersuasionChallenge() {
                 onConfirm={handleConfirmNavigation}
                 onCancel={handleCancelNavigation}
                 onClose={handleClosePopup}
-                title="Level Complete!"
+                title="Argument Won!"
                 message="Ready for a new challenge?"
                 confirmText="Next Challenge"
                 cancelText="Exit"

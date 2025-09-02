@@ -7,8 +7,10 @@ import bgMusic from "/financeGames6to8/bgMusic.mp3";
 const GameNav = () => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  // State to remember if music was playing before being paused by game audio
   const wasPlayingBeforePause = useRef(false);
 
+  // --- Main toggle function for the user clicking the volume icon ---
   const toggleAudio = () => {
     if (!audioRef.current) return;
 
@@ -75,12 +77,14 @@ const GameNav = () => {
     <div className="w-full h-[10.5vh] bg-[#28343A] flex items-center justify-between px-[2vw] relative z-10">
       <audio ref={audioRef} loop src={bgMusic} />
       
+      {/* Update the path to wherever your games list page is */}
       <Link to="/communications/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100">
         <BackButton className="w-16 md:w-28"/>
       </Link>
       
+      {/* I've updated the game title to match the component */}
       <span className="lilita [text-shadow:0_5px_0_#000] [text-stroke:1px_black] text-[15px] md:text-3xl lg:text-4xl text-[#ffcc00] tracking-[0.05vw]">
-        Listen Up
+        Pick your Persuasion
       </span>
       
       <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-60'}`}>
