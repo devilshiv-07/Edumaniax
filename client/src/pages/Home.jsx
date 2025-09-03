@@ -1928,7 +1928,7 @@ const Home = () => {
 
   const faqs = [
     {
-      question: "What makes EduManiax courses truly unique?",
+      question: "What makes Edumaniax courses truly unique?",
       answer:
         "Our courses blend cutting-edge interactive learning with real-world applications through gamification, AI-powered personalized learning paths, and adaptive assessments. Every piece of content is crafted by industry veterans and continuously updated to reflect the latest trends and best practices in your field.",
 
@@ -1960,21 +1960,21 @@ const Home = () => {
 
   const pricingFaqData = [
     {
-      question: "What if I'm not satisfied with EduManiax after joining?",
+      question: "What if I'm not satisfied with Edumaniax after joining?",
       answer:
         "No worries! EduManiax offers a 90% refund policy for your peace of mind. Before enrolling, you also get a full demo of the platform, personalized one-on-one interaction, and access to our 24/7 support team to help you at every step.",
       QbgColor: "bg-[#6DEE0E]", // Vivid green
       AbgColor: "bg-[#E9FCD4]", // 🍏 Light green pastel
     },
     {
-      question: "How is EduManiax different from other platforms?",
+      question: "How is Edumaniax different from other platforms?",
       answer:
         "With our unique combination of risk‑free demo and refund policy, personalized onboarding, and round‑the‑clock support, EduManiax is built to ensure every learner feels confident and supported.",
       QbgColor: "bg-[#FEC6C7]", // Soft pink
       AbgColor: "bg-[#FFF1F2]", // 🌸 Ultra-light pink
     },
     {
-      question: "What payment methods are accepted on EduManiax?",
+      question: "What payment methods are accepted on Edumaniax?",
       answer:
         "We use Razorpay as our secure payment gateway, which supports all major payment methods including credit/debit cards, UPI, net banking, PayPal, and wallets. Fast, safe, and hassle-free!",
       QbgColor: "bg-[#DBEDFB]", // Light blue

@@ -76,6 +76,9 @@ const AboutUs = () => {
 
   const buttonText = isLoggedIn ? "Purchase Now" : "Book your Free Demo!";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
+  const buttonMarginClasses = isLoggedIn
+    ? "ml-6 -mt-4 lg:ml-10 lg:mt-0 px-6 py-3" // Margins for "Purchase Now"
+    : "-mt-7 ml-16 lg:mt-0 px-3 py-2 lg:px-6 lg:py-3";
 
   const heroCards = [
     {
@@ -627,7 +630,7 @@ const AboutUs = () => {
       <section className="px-4 sm:px-6 lg:px-6 py-8 sm:py-12 lg:py-16">
         <div className="w-full sm:w-[95%] lg:w-[80%] mx-auto">
           <AnimatedCard delay={0.2}>
-            <div className="bg-[#FFD86B] relative w-full h-auto lg:h-[50vh] rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-12 overflow-hidden">
+            <div className="bg-[#FFD86B] relative w-full h-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 lg:pl-12 overflow-hidden">
               <div className="flex flex-col lg:flex-row items-center gap-4 sm:gap-6 lg:gap-8">
                 <div className="flex-1 w-full lg:w-[60%] h-full text-center lg:text-left">
                   <div className="mb-4 sm:mb-6">
@@ -646,16 +649,16 @@ const AboutUs = () => {
                     </p>
                   </div>
                 </div>
-                <div className="w-full lg:w-[40%] relative flex flex-col items-center">
+                <div className="w-full lg:w-[40%] relative flex flex-col items-center ">
                   <div className="w-full h-48 sm:h-56 lg:h-63 mb-4 lg:mb-0">
                     <img
                       src="CTA.svg"
                       alt="Gaming trophy and dice illustration"
-                      className="w-full h-full object-contain p-2"
+                      className="w-full h-full object-contain mt-4 "
                     />
                   </div>
                   <Link to={buttonLink}>
-                    <button className="bg-[#068F36] hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-md shadow-md transition text-lg">
+                    <button className={`bg-[#068F36] hover:bg-green-700 text-white font-semibold rounded-md shadow-md transition text-lg ${buttonMarginClasses}`}>
                       {buttonText}
                     </button>
                   </Link>
