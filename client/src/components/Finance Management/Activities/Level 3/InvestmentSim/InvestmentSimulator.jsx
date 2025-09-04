@@ -6,6 +6,62 @@ import { usePerformance } from "@/contexts/PerformanceContext"; // for performan
 import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import InstructionOverlay from "./InstructionOverlay";
+import { useNavigate } from "react-router-dom";
+
+function GameCompletionPopup({ isOpen, onConfirm, onCancel, onClose, title, message, confirmText, cancelText, hideConfirmButton = false }) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000]">
+            <style>{`
+                @keyframes scale-in-popup {
+                    0% { transform: scale(0.9); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scale-in-popup { animation: scale-in-popup 0.3s ease-out forwards; }
+            `}</style>
+            <div className="relative bg-[#131F24] border-2 border-[#FFCC00] rounded-2xl p-6 md:p-8 text-center shadow-2xl w-11/12 max-w-md mx-auto animate-scale-in-popup">
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors p-2 rounded-full"
+                    aria-label="Close"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="lilita-one-regular text-2xl md:text-3xl text-yellow-400 mb-3">
+                    {title || "Challenge Complete!"}
+                </h2>
+                <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
+                    {message || "What would you like to do next?"}
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="px-8 py-3 bg-red-600 text-lg text-white lilita-one-regular rounded-md hover:bg-red-700 transition-colors border-b-4 border-red-800 active:border-transparent shadow-lg"
+                    >
+                        {cancelText || "Exit Game"}
+                    </button>
+                    {!hideConfirmButton && (
+                        <button
+                            onClick={onConfirm}
+                            className="px-8 py-3 bg-green-600 text-lg text-white lilita-one-regular rounded-md hover:bg-green-700 transition-colors border-b-4 border-green-800 active:border-transparent shadow-lg"
+                        >
+                            {confirmText || "Continue"}
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 const InvestmentSimulator = () => {
   const { completeFinanceChallenge } = useFinance();
@@ -49,6 +105,8 @@ const InvestmentSimulator = () => {
   const [showWin, setShowWin] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false); // 👉 new state for feedback modal
   const [showInstructions, setShowInstructions] = useState(true); // 👉 new state for instructions overlay
+  const [isPopupVisible, setIsPopupVisible] = useState(false); // --- NEW STATE FOR POPUP ---
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -166,6 +224,18 @@ const InvestmentSimulator = () => {
 
   const handleViewFeedback = () => {
     setShowFeedback(true);
+  };
+  const handleNextChallenge = () => {
+    setIsPopupVisible(true);
+  };
+
+  const handleExitGame = () => {
+    navigate("/courses"); 
+    setIsPopupVisible(false);
+  };
+
+  const handleClosePopup = () => {
+    setIsPopupVisible(false);
   };
 
   const retryGame = () => {
@@ -415,28 +485,32 @@ const InvestmentSimulator = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Footer Buttons */}
+{/* Footer Buttons */}
               <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
-                {/* Feedback button */}
                 <img
                   src="/financeGames6to8/feedback.svg"
                   alt="Feedback"
-                  onClick={handleViewFeedback} // 👉 make sure this function exists
+                  onClick={handleViewFeedback}
                   className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
                 />
-
-                {/* Retry button */}
                 <img
                   src="/financeGames6to8/retry.svg"
                   alt="Retry"
                   onClick={retryGame}
                   className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
                 />
+                {/* --- ADDED NEXT CHALLENGE BUTTON --- */}
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
               </div>
             </div>
           )}
 
+          {/* Instructions overlay */}
           {/* Instructions overlay */}
           {showInstructions && (
             <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -445,6 +519,17 @@ const InvestmentSimulator = () => {
           )}
         </div>
       </div>
+
+      {/* --- RENDER THE POPUP --- */}
+      <GameCompletionPopup
+        isOpen={isPopupVisible}
+        onCancel={handleExitGame}
+        onClose={handleClosePopup}
+        title="Challenge Complete!"
+        message="Would you like to exit to the main menu?"
+        cancelText="Exit Game"
+        hideConfirmButton={true} 
+      />
     </>
   );
 };

@@ -38,6 +38,31 @@ const getHeroImageForGrade = (userClass) => {
   return "/heroIMG.png";
 };
 
+// This function determines the CSS classes for the stats container based on grade.
+const getStatsContainerClasses = (userClass) => {
+  // These classes define the layout and are common for all grades.
+  const baseLayoutClasses ="rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center  relative overflow-hidden";
+
+  const styleForGrades6to8 = `bg-[#00B347] h-[300px] sm:h-[430px] w-full lg:w-[550px] ${baseLayoutClasses}`;
+
+  if (!userClass) {
+    return styleForGrades6to8;
+  }
+
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+
+  if (isNaN(gradeNumber)) {
+    return styleForGrades6to8;
+  }
+
+  // Custom style for grades 9 and above.
+  if (gradeNumber >= 9) {
+    return `h-[300px] sm:h-[485px] md:h-[600px] lg:h-[485px] -mt-20 md:-mt-40 lg:-mt-24 w-full lg:w-[580px] ${baseLayoutClasses}`;
+  }
+
+  return styleForGrades6to8;
+};
+
 const getStatsGifForGrade = (userClass) => {
   if (!userClass) {
     return "/5.gif";
@@ -50,7 +75,7 @@ const getStatsGifForGrade = (userClass) => {
   }
 
   if (gradeNumber >= 9) {
-    return "/5.gif";
+    return "/teddyhero.gif";
   }
 
   return "/5.gif";
@@ -1518,6 +1543,7 @@ const Home = () => {
   const [showScroll, setShowScroll] = useState(false);
   const heroImage = getHeroImageForGrade(user?.userClass);
   const statsGif = getStatsGifForGrade(user?.userClass);
+  const statsContainerClasses = getStatsContainerClasses(user?.userClass);
   useEffect(() => {
     const fetchUserSubscriptions = async () => {
       if (!user?.id) return;
@@ -2473,8 +2499,7 @@ const Home = () => {
 
               {/* Image - order 2 on mobile, spans both rows on desktop */}
               <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
-                <div className="bg-[#00B347] rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center h-[300px] sm:h-[430px] w-full lg:w-[550px] relative overflow-hidden">
-                  {/* Character illustration */}
+                <div className={statsContainerClasses}>                  {/* Character illustration */}
                   <div className="relative w-full pt-5 -mb-10 h-full z-10">
                     <img
                       src={statsGif}
