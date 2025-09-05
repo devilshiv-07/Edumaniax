@@ -5,6 +5,7 @@ import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import InstructionOverlay from "./InstructionOverlay";
+import { getLeadershipNotesRecommendation } from "@/utils/getLeadershipNotesRecommendation";
 
 const pairs = [
   {
@@ -77,6 +78,23 @@ export default function LeaderTypeMatch() {
       }
     }
   }, [stage, score]);
+
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+
+  useEffect(() => {
+    if (stage === "result" && score < 5) {
+      // Collect mistakes summary
+      const mistakes = {
+        dragData,
+        mcqAnswers,
+        score,
+      };
+
+      getLeadershipNotesRecommendation(mistakes).then((notes) =>
+        setRecommendedNotes(notes)
+      );
+    }
+  }, [stage]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -369,6 +387,35 @@ export default function LeaderTypeMatch() {
                   <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
                     Oops! That was close! Wanna Retry?
                   </p>
+
+                  {/* Suggested Notes Section */}
+                  {recommendedNotes.length > 0 && (
+                    <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                      <h3 className="text-white lilita-one-regular text-xl mb-2">
+                        📘 Learn & Improve
+                      </h3>
+                      <p className="text-white mb-3 text-sm leading-relaxed">
+                        We recommend revisiting{" "}
+                        <span className="text-yellow-300 font-bold">
+                          {recommendedNotes.map((n) => n.title).join(", ")}
+                        </span>{" "}
+                        to strengthen your skills before retrying.
+                      </p>
+                      {recommendedNotes.map((note) => (
+                        <button
+                          key={note.topicId}
+                          onClick={() =>
+                            navigate(
+                              `/leadership/notes?grade=6-8&section=${note.topicId}`
+                            )
+                          }
+                          className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                        >
+                          Go to {note.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer */}
