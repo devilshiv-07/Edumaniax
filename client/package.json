@@ -16,6 +16,7 @@
     "@emailjs/browser": "^4.4.1",
     "@faker-js/faker": "^9.9.0",
     "@fontsource/sigmar-one": "^5.2.6",
+    "@google/generative-ai": "^0.24.1",
     "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-hook/window-size": "^3.1.1",
