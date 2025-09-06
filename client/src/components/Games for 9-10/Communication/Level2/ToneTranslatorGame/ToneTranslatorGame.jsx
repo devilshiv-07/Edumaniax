@@ -43,6 +43,58 @@ const scrollbarHideStyle = `
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;
 
+function LevelCompletePopup({ isOpen, onConfirm, onCancel, onClose, title, message, confirmText, cancelText }) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000]">
+            <style>{`
+                @keyframes scale-in-popup {
+                    0% { transform: scale(0.9); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scale-in-popup { animation: scale-in-popup 0.3s ease-out forwards; }
+            `}</style>
+            <div className="relative bg-[#131F24] border-2 border-[#FFCC00] rounded-2xl p-6 md:p-8 text-center shadow-2xl w-11/12 max-w-md mx-auto animate-scale-in-popup">
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors p-2 rounded-full"
+                    aria-label="Close"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="lilita-one-regular text-2xl md:text-3xl text-yellow-400 mb-3">
+                    Yayy! You completed Level 2.
+                </h2>
+                <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
+                    Would you like to move to Level Three?
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="px-8 py-3 bg-red-600 text-lg text-white lilita-one-regular rounded-md hover:bg-red-700 transition-colors border-b-4 border-red-800 active:border-transparent shadow-lg"
+                    >
+                        Exit Game
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="px-8 py-3 bg-green-600 text-lg text-white lilita-one-regular rounded-md hover:bg-green-700 transition-colors border-b-4 border-green-800 active:border-transparent shadow-lg"
+                    >
+                        Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // --- Ending Screens (Written in-file) ---
 function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
     const { width, height } = useWindowSize();
@@ -171,6 +223,7 @@ function gameReducer(state, action) {
 export default function ToneTranslatorGame() {
     const navigate = useNavigate();
     const [state, dispatch] = useReducer(gameReducer, initialState);
+    const [isPopupVisible, setPopupVisible] = useState(false);
     
     const [gameStep, setGameStep] = useState(1);
     const [drops, setDrops] = useState({});
@@ -302,6 +355,23 @@ export default function ToneTranslatorGame() {
     };
 
     const handleNextStep = () => setGameStep(2);
+    const handleContinue = () => {
+        setPopupVisible(true);
+    };
+
+    const handleConfirmNavigation = () => {
+        setPopupVisible(false);
+        navigate('/ConflictCommanderGame'); 
+    };
+
+    const handleCancelNavigation = () => {
+        setPopupVisible(false);
+        navigate('/communications/games'); 
+    };
+
+    const handleClosePopup = () => {
+        setPopupVisible(false);
+    };
     
     const handleFinish = () => {
         let score = 0, finalAnswers = [];
@@ -351,14 +421,14 @@ export default function ToneTranslatorGame() {
     if (state.gameState === "finished") {
         const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
         return accuracyScore >= PASSING_THRESHOLD * 100
-            ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={() => navigate('/communications')} />
+            ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={handleContinue} />
             : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={handlePlayAgain} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />;
     }
     if (state.gameState === "review") return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
 
     const isStep1SubmitDisabled = Object.keys(drops).length < samples.length;
 
-    return (
+    return (<>
         <div className="w-full min-h-screen bg-[#0A160E] flex flex-col inter-font relative text-white">
             <style>{scrollbarHideStyle}</style>
             {state.gameState === "instructions" && <InstructionsScreen onStartGame={() => dispatch({type: 'START_GAME'})} />}
@@ -433,5 +503,13 @@ export default function ToneTranslatorGame() {
                 </div>
             </footer>
         </div>
+        <LevelCompletePopup
+                isOpen={isPopupVisible}
+                onConfirm={handleConfirmNavigation}
+                onCancel={handleCancelNavigation}
+                onClose={handleClosePopup}
+            />
+        </>
+        
     );
 }

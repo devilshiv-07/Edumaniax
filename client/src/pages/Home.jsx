@@ -1804,7 +1804,7 @@ const Home = () => {
     {
       title: "Connect & learn together",
       description:
-        "Students and teachers, both can learn together without any hussle, at their on ease",
+        "Students and teachers, both can learn together without any hassle, at their own ease",
       bgColor: "bg-yellow-200",
       peopleIcons: true,
     },
@@ -1816,7 +1816,7 @@ const Home = () => {
       dragDropGame: true,
     },
     {
-      title: "Learn any of trending skill, with fun",
+      title: "Learn any trending skill, with fun",
       description:
         "You can learn subjects like AI, Law, Science etc. while having fun and playing simple games",
       bgColor: "bg-green-200",
@@ -2320,7 +2320,7 @@ const Home = () => {
                 </h3>
                 <p className="text-gray-700 mb-4 sm:mb-6 text-sm">
                   Students and teachers, both can learn together without any
-                  hussle, at their on ease
+                  hassle, at their own ease
                 </p>
                 <div className="flex-1 flex items-center h-[60%] justify-center">
                   <PeopleAvatars defaultImages={defaultImages} />
@@ -2367,7 +2367,7 @@ const Home = () => {
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
                 <h3 className="text-base sm:text-lg font-bold text-black mb-2 sm:mb-3">
-                  Learn any of trending skill, with fun
+                  Learn any trending skill, with fun
                 </h3>
                 <p className="text-gray-700 mb-4 sm:mb-6 text-sm">
                   You can learn subjects like AI, Law, Science etc. while having
@@ -2519,7 +2519,7 @@ const Home = () => {
                         50+
                       </div>
                       <div className="text-xs sm:text-sm pr-2 sm:pr-0 text-gray-600">
-                        Partners School overall India
+                        Partner Schools all over India
                       </div>
                     </div>
                     <div className="text-center  sm:px-6">

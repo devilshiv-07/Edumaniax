@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import axios from "axios";
-import toast from "react-hot-toast";
-import { useCommunication } from "@/contexts/CommunicationContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import React, { useState, useEffect, useReducer } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Confetti from 'react-confetti';
+import useWindowSize from 'react-use/lib/useWindowSize';
+import { DndContext, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import IntroScreen from './IntroScreen'; 
+import InstructionsScreen from './InstructionsScreen';
+import GameNav from './GameNav';
+import Checknow from '@/components/icon/GreenBudget/Checknow';
+
+// --- Import your notes data ---
+import { notesCommunication9to10 } from "@/data/notesCommunication9to10.js";
+
+// --- Game Configuration & Data ---
 const originalCards = [
     { id: 1, text: "We’ve studied how similar clubs in 3 other schools succeeded with this idea.", type: "Logos" },
     { id: 2, text: "This project will help students feel more involved and boost morale.", type: "Pathos" },
@@ -16,379 +26,433 @@ const originalCards = [
     { id: 9, text: "We plan to track impact with a survey afterwards.", type: "Logos" },
 ];
 
-const getFinalFeedback = (total) => {
-    if (total <= 4) {
-        return {
-            label: "🌱 Beginner Persuader",
-            message:
-                "You're just getting started. Try mixing emotional, logical, and credible points next time to build stronger influence.",
-        };
-    } else if (total <= 7) {
-        return {
-            label: "🚀 Confident Communicator",
-            message:
-                "Good job! You’ve used multiple types of persuasion well. Now work on polishing structure and tone for maximum impact.",
-        };
-    } else {
-        return {
-            label: "🧠 Master Persuader",
-            message:
-                "Excellent! You’ve created a balanced, persuasive, and impactful pitch — just like a pro communicator.",
-        };
+const zoneNames = ["Introduction", "Main Argument", "Final Appeal"];
+const PERFECT_SCORE = 13; // Max score possible
+const PASSING_THRESHOLD = 0.7; // 70% to win
+const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'pitchPerfectGameState';
+
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+// --- Helper Functions ---
+const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
+
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text.replace(/^```(json)?/, "").replace(/```$/, "").trim();
     }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
+
+// --- Draggable/Droppable Components ---
+const DraggableCard = React.memo(({ card }) => {
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: card.id, data: card });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        visibility: isDragging ? 'hidden' : 'visible',
+    };
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="p-3 bg-[#2a3b42] border-2 border-cyan-700 rounded-lg shadow-md cursor-grab touch-none text-sm font-medium text-gray-200 hover:bg-cyan-900/50 transition-colors">
+            {card.text}
+        </div>
+    );
+});
+
+const DroppableZone = React.memo(({ zoneIndex, card, onRemove }) => {
+    const { setNodeRef, isOver } = useDroppable({ id: zoneIndex });
+    return (
+        <div className="flex-1 flex flex-col gap-4 p-4 border-2 border-dashed border-[#3F4B48] rounded-xl bg-gray-900/50 min-h-[200px] transition-colors duration-200">
+            <h2 className="text-center text-lg font-bold text-yellow-400 lilita-one-regular">{zoneNames[zoneIndex]}</h2>
+            <div ref={setNodeRef} className={`flex-grow flex items-center justify-center p-2 rounded-lg ${isOver ? 'bg-yellow-400/20 border-yellow-400' : 'bg-transparent border-transparent'} border-2 border-dashed`}>
+                {card ? (
+                    <div className="w-full text-center">
+                         <div className="p-3 bg-green-800/60 rounded-lg shadow-inner border border-green-500 text-gray-100 font-medium">
+                            {card.text}
+                        </div>
+                        <button onClick={() => onRemove(zoneIndex, card)} className="mt-2 text-xs bg-red-800/70 text-red-200 px-2 py-1 rounded hover:bg-red-700 transition">
+                            Remove
+                        </button>
+                    </div>
+                ) : (
+                    <span className="text-slate-100/50 text-sm font-medium">Drop a card here</span>
+                )}
+            </div>
+        </div>
+    );
+});
+
+// --- Screen Components (Victory, Losing, Review) ---
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onNavigateToSection, recommendedSectionTitle }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-[11px] font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+                {recommendedSectionTitle && (
+                     <div className="mt-8 w-full max-w-md md:max-w-2xl flex justify-center">
+                        <button onClick={onNavigateToSection} className="bg-[#068F36] text-black text-sm font-semibold rounded-lg py-3 px-10 md:px-6 hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg">
+                            Review "{recommendedSectionTitle}" Notes
+                        </button>
+                    </div>
+                )}
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex flex-wrap justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ answers, onBackToResults }) {
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
+            <style>{scrollbarHideStyle}</style>
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 flex-shrink-0">Review Your Pitch</h1>
+            <div className="w-full max-w-4xl space-y-6 overflow-y-auto p-2 no-scrollbar">
+                <div>
+                    <h2 className="text-2xl font-semibold text-cyan-300 mb-2">Your Chosen Cards</h2>
+                    <div className="space-y-3">
+                        {answers.zones.map((card, idx) => (
+                             <div key={idx} className="p-4 rounded-xl bg-gray-800 border border-gray-700">
+                                <h3 className="text-lg font-bold text-yellow-300">{zoneNames[idx]}</h3>
+                                <p className="text-gray-300 font-medium mt-1">{card ? card.text : "No card selected"}</p>
+                             </div>
+                        ))}
+                    </div>
+                </div>
+                 <div>
+                    <h2 className="text-2xl font-semibold text-cyan-300 mb-2">Your Custom Pitch</h2>
+                     <div className="space-y-3">
+                        {answers.customPitch.map((text, idx) => (
+                             <div key={idx} className="p-4 rounded-xl bg-gray-800 border border-gray-700">
+                                <h3 className="text-lg font-bold text-yellow-300">{zoneNames[idx]}</h3>
+                                <p className="text-gray-300 font-medium mt-1 italic">{text ? `"${text}"` : "No custom text written"}</p>
+                             </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <button onClick={onBackToResults} className="mt-auto px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors flex-shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg">
+                Back to Results
+            </button>
+        </div>
+    );
+}
+
+// --- Game State Management (Reducer) ---
+const initialState = {
+    gameState: "intro", // "intro", "instructions", "playing", "bonus_round", "finished", "review"
+    cardBank: shuffleArray(originalCards),
+    zones: [null, null, null],
+    customPitch: ["", "", ""],
+    cardScore: 0, // Score from the card selection part
+    totalScore: 0, // Final combined score
+    answers: null,
+    insight: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: ""
 };
 
+function gameReducer(state, action) {
+    switch (action.type) {
+        case "RESTORE_STATE":
+            return action.payload;
+        case "SHOW_INSTRUCTIONS":
+            return { ...state, gameState: "instructions" };
+        case "START_GAME":
+            return { ...initialState, gameState: "playing" };
+        case "DROP_CARD": {
+            const { zoneIndex, card } = action.payload;
+            if (state.zones[zoneIndex]) return state;
+            const newZones = [...state.zones];
+            newZones[zoneIndex] = card;
+            const newCardBank = state.cardBank.filter(c => c.id !== card.id);
+            return { ...state, zones: newZones, cardBank: newCardBank };
+        }
+        case "REMOVE_CARD": {
+            const { zoneIndex, card } = action.payload;
+            const newZones = [...state.zones];
+            newZones[zoneIndex] = null;
+            const newCardBank = [...state.cardBank, card];
+            return { ...state, zones: newZones, cardBank: newCardBank };
+        }
+        case "PROCEED_TO_BONUS": {
+            let score = 0;
+            const types = state.zones.map((c) => c?.type);
+            if (types.includes("Ethos") && types.includes("Pathos") && types.includes("Logos")) score += 3;
+            if (state.zones.every((c) => !!c)) score += 2;
+            const idealOrder = ["Ethos", "Pathos", "Logos"];
+            if (state.zones.map((c) => c?.type).every((t, i) => t === idealOrder[i])) score += 2;
+            if (state.zones.some(c => c !== null)) score += 3;
+            
+            return { ...state, gameState: "bonus_round", cardScore: score };
+        }
+        case "UPDATE_CUSTOM_PITCH": {
+            const { index, value } = action.payload;
+            const newCustomPitch = [...state.customPitch];
+            newCustomPitch[index] = value;
+            return { ...state, customPitch: newCustomPitch };
+        }
+        case "FINISH_GAME":
+            return {
+                ...state,
+                gameState: "finished",
+                totalScore: action.payload.score,
+                answers: { zones: state.zones, customPitch: state.customPitch }
+            };
+        case "SET_AI_INSIGHT":
+            return { ...state, ...action.payload };
+        case "REVIEW_GAME":
+            return { ...state, gameState: "review" };
+        case "BACK_TO_FINISH":
+            return { ...state, gameState: "finished" };
+        case "RESET_GAME":
+             return { ...initialState, gameState: "playing" };
+        default:
+            return state;
+    }
+}
 
-const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
-const zoneNames = ["Introduction", "Main Argument", "Final Appeal"];
-const APIKEY = import.meta.env.VITE_API_KEY;
-
+// --- Main Game Component ---
 const PitchPerfectGame = () => {
-    const { completeCommunicationChallenge } = useCommunication();
-    const [cardBank, setCardBank] = useState([]);
-    const [zones, setZones] = useState([null, null, null]);
-    const [custom, setCustom] = useState(["", "", ""]);
-    const [score, setScore] = useState(null);
-    const [feedback, setFeedback] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [challengeCompleted, setChallengeCompleted] = useState(false);
+    const navigate = useNavigate();
+    const [state, dispatch] = useReducer(gameReducer, initialState);
+    const [activeCard, setActiveCard] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-
-    //for performance
-    const { updatePerformance } = usePerformance();
-   const [startTime,setStartTime] = useState(Date.now());
-    const [finalScore, setFinalScore] = useState(null);
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    );
 
     useEffect(() => {
-        setCardBank(shuffleArray(originalCards));
+        const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedStateJSON) {
+            try {
+                dispatch({ type: 'RESTORE_STATE', payload: JSON.parse(savedStateJSON) });
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) { console.error("Failed to parse saved game state:", error); }
+        }
     }, []);
 
     useEffect(() => {
-        if (finalScore !== null) {
-            const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+        if (state.gameState === "finished" && !state.insight) {
+            const generateInsight = async () => {
+                dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Analyzing your results...", recommendedSectionId: null, recommendedSectionTitle: "" } });
+                const scorePercentage = (state.totalScore / PERFECT_SCORE) * 100;
+                const prompt = `You are an AI tutor. A student just completed a persuasive pitch-building game. Analyze their performance and provide targeted feedback.
+                ### CONTEXT ###
+                1. **Student's Chosen Cards:**
+                   - Introduction: ${state.answers.zones[0]?.text || "None"} (${state.answers.zones[0]?.type || "N/A"})
+                   - Main Argument: ${state.answers.zones[1]?.text || "None"} (${state.answers.zones[1]?.type || "N/A"})
+                   - Final Appeal: ${state.answers.zones[2]?.text || "None"} (${state.answers.zones[2]?.type || "N/A"})
+                2. **Student's Custom Pitch:**
+                   - Introduction: "${state.answers.customPitch[0] || "Empty"}"
+                   - Main Argument: "${state.answers.customPitch[1] || "Empty"}"
+                   - Final Appeal: "${state.answers.customPitch[2] || "Empty"}"
+                3. **Student's Final Score:** ${state.totalScore}/${PERFECT_SCORE}
+                4. **Available Note Sections:** ${JSON.stringify(notesCommunication9to10.map(n => ({ topicId: n.topicId, title: n.title })), null, 2)}
+                ### YOUR TASK ###
+                1. **DETECT:** Based on the card choices, custom text, and score, identify the single biggest area for improvement. Find the ONE best-matching note section.
+                2. **GENERATE:** Provide a short, encouraging insight (25-30 words).
+                ### OUTPUT FORMAT ###
+                Return ONLY a raw JSON object: { "detectedTopicId": "...", "insight": "..." }`;
 
-            updatePerformance({
-                moduleName: "Communication",
-                topicName: "emotionalIntelligence",
-                score: Math.round((finalScore / 20) * 10),
-                accuracy: Math.round((finalScore / 20) * 100),
-                avgResponseTimeSec: timeTakenSec,
-                studyTimeMinutes: Math.ceil(timeTakenSec / 60),
-                completed: finalScore >= 15,
-                
-            });
-            setStartTime(Date.now());
+                try {
+                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                    const aiReply = response.data.candidates[0].content.parts[0].text;
+                    const parsed = parsePossiblyStringifiedJSON(aiReply);
+                    if (parsed && parsed.insight && parsed.detectedTopicId) {
+                        const recommendedNote = notesCommunication9to10.find(note => note.topicId === parsed.detectedTopicId);
+                        dispatch({ type: "SET_AI_INSIGHT", payload: { insight: parsed.insight, recommendedSectionId: parsed.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "" } });
+                    } else { throw new Error("Failed to parse response from AI."); }
+                } catch (err) {
+                    console.error("Error fetching AI insight:", err);
+                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Good effort! Review the notes on persuasion to improve.", recommendedSectionId: 'the-art-of-persuasion', recommendedSectionTitle: "The Art of Persuasion" } });
+                }
+            };
+            generateInsight();
+        }
+    }, [state.gameState, state.answers, state.insight, state.totalScore]);
 
+    const handleDragStart = (event) => setActiveCard(event.active.data.current);
+    const handleDragEnd = (event) => {
+        const { over, active } = event;
+        if (over && typeof over.id === 'number') {
+            dispatch({ type: 'DROP_CARD', payload: { zoneIndex: over.id, card: active.data.current } });
+        }
+        setActiveCard(null);
+    };
 
-            if (finalScore >= 15 && !challengeCompleted) {
-                completeCommunicationChallenge(1, 0);
-                setChallengeCompleted(true);
+    const handleFinishGame = async () => {
+        setIsSubmitting(true);
+        let customPitchScore = 0;
+        if (state.customPitch.some(p => p.trim().length > 0)) {
+             try {
+                const prompt = `Evaluate the persuasive quality of this pitch. Score it from 0 to 3. Intro: ${state.customPitch[0]}, Body: ${state.customPitch[1]}, Appeal: ${state.customPitch[2]}. Respond ONLY with a single number: 0, 1, 2, or 3.`;
+                const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                const text = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "0";
+                customPitchScore = parseInt(text.trim()) || 0;
+            } catch (error) {
+                console.error("Gemini custom pitch evaluation error:", error);
+                customPitchScore = 0;
             }
         }
-    }, [finalScore]);
-
-
-
-
-    const onDrop = (zoneIndex, card) => {
-        if (zones[zoneIndex]) return;
-        setZones((z) => z.map((c, i) => (i === zoneIndex ? card : c)));
-        setCardBank((bank) => bank.filter((c) => c.id !== card.id));
+        const finalScore = state.cardScore + customPitchScore;
+        dispatch({ type: 'FINISH_GAME', payload: { score: Math.min(finalScore, PERFECT_SCORE) } });
+        setIsSubmitting(false);
     };
 
-    const handleReset = () => {
-        setCardBank(shuffleArray(originalCards));
-        setZones([null, null, null]);
-        setCustom(["", "", ""]);
-        setScore(null);
-        setFeedback(null);
-        setStartTime(Date.now());
-
-    };
-
-    const calculateScore = () => {
-        let pts = 0;
-        const types = zones.map((c) => c?.type);
-        if (types.includes("Ethos") && types.includes("Pathos") && types.includes("Logos")) pts += 3;
-        if (zones.every((c) => !!c)) pts += 2;
-        const order = ["Ethos", "Pathos", "Logos"];
-        if (zones.map((c) => c?.type).every((t, i) => t === order[i])) pts += 2;
-        if (custom.some((t) => t.trim().length > 0)) pts += 3;
-        setScore(pts);
-    };
-
-    const handleGeminiSubmit = async () => {
-        setLoading(true);
-        setFeedback(null);
-        try {
-            const response = await axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`,
-                {
-                    contents: [
-                        {
-                            parts: [
-                                {
-                                    text: `Evaluate the persuasive quality of the user's custom pitch.
-Each section (Intro, Body, Appeal) is limited to 300 characters.
-Score only based on keyword richness, tone (persuasive), and structure. Max 3 points total.
-Give marks in "X/3" format.
-
-User's Pitch:
-Intro: ${custom[0]}
-Body: ${custom[1]}
-Appeal: ${custom[2]}
-
-Respond ONLY in this raw JSON format:
-{
-  "customPitchScore": "X/3",
-  "tips": "Practical improvement tips here",
-  "avatarType": "congratulatory" or "disappointing"
-}
-
-Constraints:
-- Never skip fields.
-- Do NOT fabricate the score.
-- If pitch uses persuasive tone + 3-part structure + keywords, give high score.
-- If weak or vague, give lower score and critical tips.`
-                                }
-                            ]
-                        }
-                    ]
-                }
-            );
-
-            let text = response?.data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-            // ✅ Clean triple backticks and optional "json" label
-            text = text.replace(/```json|```/g, "").trim();
-
-            const json = JSON.parse(text);
-            setFeedback(json);
-        } catch (error) {
-            console.error("Gemini response error:", error);
-            setFeedback({
-                tips: "Failed to get feedback. Try again.",
-                avatarType: "disappointing",
-                customPitchScore: "0/3",
-            });
+    const handleNavigateToSection = () => {
+        if (state.recommendedSectionId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+            navigate(`/communications/notes?grade=9-10&section=${state.recommendedSectionId}`);
         }
-        setLoading(false);
     };
 
+    // --- Render Logic ---
+    if (state.gameState === "intro") {
+        return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
+    }
+    if (state.gameState === "finished") {
+        const accuracyScore = Math.round((state.totalScore / PERFECT_SCORE) * 100);
+        const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
+        return isVictory
+            ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={() => navigate('/communications')} />
+            : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={() => dispatch({ type: 'RESET_GAME' })} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />;
+    }
+    if (state.gameState === "review") {
+        return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
+    }
+
+    // --- Main Game & Bonus Round Screens ---
     return (
-        <div className="p-6 max-w-5xl mx-auto my-5 bg-gradient-to-br from-blue-50 to-pink-50 rounded-xl shadow-xl">
-            <motion.h1
-                className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-center mb-6 drop-shadow-lg"
-                animate={{ scale: [1, 1.1, 1], rotate: [0, 1, -1, 0] }}
-                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            >
-                ✨🎤 Build Your Persuasive Pitch!💬🌟
-            </motion.h1>
+        <div className="w-full min-h-screen bg-[#0A160E] flex flex-col inter-font relative text-white">
+            <style>{scrollbarHideStyle}</style>
+            {state.gameState === "instructions" && <InstructionsScreen onStartGame={() => dispatch({ type: 'START_GAME' })} />}
+            <GameNav />
 
-
-
-
-            <motion.div
-                className="mb-6 p-4 bg-gradient-to-r from-yellow-100 to-pink-100 rounded-lg border-l-8 border-pink-400 shadow"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-            >
-                <h3 className="text-lg font-bold text-pink-800 mb-2">🎯 How to Play</h3>
-                <ul className="list-disc list-inside text-gray-700 space-y-1">
-                    <li>Drag cards into the 3 zones: <b>Introduction</b>, <b>Body</b>, and <b>Final Appeal</b>.</li>
-                    <li>Pick cards that show facts 💡, feelings ❤️, and trust 🙋 to make your pitch awesome!</li>
-                    <li>Then write your own pitch and let AI evaluate it! 🤖</li>
-                </ul>
-            </motion.div>
-
-
-            <div className="flex flex-col md:flex-row gap-6 mb-10">
-                {zones.map((zone, i) => (
-                    <motion.div
-                        key={i}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                            const data = JSON.parse(e.dataTransfer.getData("card"));
-                            onDrop(i, data);
-                        }}
-                        whileHover={{ scale: 1.02, rotate: [0, 1, -1, 0] }}
-                        className="flex-1 p-5 border-4 rounded-xl shadow-xl bg-gradient-to-br from-yellow-100 via-white to-pink-100 border-dashed border-purple-300 relative transition-all"
-                    >
-                        <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-white px-4 py-1 rounded-full border border-purple-200 shadow">
-                            <h2 className="text-md font-bold text-purple-600 flex items-center gap-2 text-center">
-                                {zoneNames[i]}
-                            </h2>
-                        </div>
-
-                        <div className="min-h-[70px] mt-6 mb-3 flex items-center justify-center">
-                            {zone ? (
-                                <motion.div
-                                    layout
-                                    className="p-3 bg-green-100 rounded-lg shadow-inner border border-green-300 text-gray-800 font-medium"
-                                    animate={{ scale: [1, 1.02, 1], rotate: [0, 1, -1, 0] }}
-                                    transition={{ repeat: Infinity, duration: 4 }}
-                                >
-                                    {zone.text}
-                                </motion.div>
-                            ) : (
-                                <div className="text-gray-400 italic text-center text-sm">
-                                    🧲 Drop your card here!
-                                </div>
-                            )}
-                        </div>
-
-                        {zone && (
-                            <div className="text-center">
-                                <button
-                                    onClick={() => {
-                                        setCardBank((b) => [...b, zone]);
-                                        setZones((z) => z.map((c, ii) => (ii === i ? null : c)));
-                                    }}
-                                    className="mt-2 text-sm bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 transition"
-                                >
-                                    ❌ Remove Card
-                                </button>
+            {state.gameState === "playing" && (
+                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
+                    <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-y-auto no-scrollbar">
+                        <div className="w-full max-w-7xl flex flex-col items-center gap-6">
+                            <div className="w-full flex flex-col md:flex-row gap-4">
+                                {state.zones.map((card, i) => (
+                                    <DroppableZone key={i} zoneIndex={i} card={card} onRemove={(idx, card) => dispatch({ type: 'REMOVE_CARD', payload: { zoneIndex: idx, card } })} />
+                                ))}
                             </div>
-                        )}
-                    </motion.div>
-                ))}
-            </div>
-
-
-            <div className="mb-10">
-                <motion.h3
-                    className="text-2xl font-extrabold text-blue-700 mb-3 flex items-center gap-2"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    🃏 Your Magical Card Bank
-                </motion.h3>
-
-                <div className="flex flex-wrap justify-between gap-3 max-h-[400px] overflow-y-auto p-4 bg-gradient-to-br from-cyan-50 via-white to-purple-50 rounded-xl shadow-inner border-4 border-blue-200">
-                    {cardBank.map((card) => (
-                        <motion.div
-                            key={card.id}
-                            layout
-                            whileHover={{ scale: 1.07, rotate: [0, 1, -1, 0] }}
-                            transition={{ duration: 0.3 }}
-                            draggable
-                            onDragStart={(e) => e.dataTransfer.setData("card", JSON.stringify(card))}
-                            className="p-3 min-w-[200px] max-w-[240px] bg-white border-2 border-blue-300 rounded-lg shadow-md cursor-grab text-sm font-medium text-gray-700 hover:bg-blue-50 transition-all"
-                        >
-                            <div>{card.text}</div>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mt-8 space-y-4">
-                <div className="flex gap-4">
-                    <button
-                        onClick={handleReset}
-                        className="px-4 py-2 bg-yellow-300 rounded-lg shadow-md hover:bg-yellow-400 transition-all"
-                    >
-                        🔄 Reset
-                    </button>
-                    <button
-                        onClick={() => {
-                            if (zones.every((z) => z)) {
-                                calculateScore();
-                            } else {
-                                toast.error("🚧 Please place all 3 cards before submitting!");
-                            }
-                        }}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 transition-all"
-                    >
-                        ✅ Submit Your Magical Pitch
-                    </button>
-                </div>
-
-                {score !== null && (
-                    <motion.div
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                        className="mt-6 p-4 bg-green-50 border-4 border-green-300 text-green-800 rounded-xl shadow-lg"
-                    >
-                        <h2 className="text-2xl font-bold">🧪 Pitch Score: {score} / 10</h2>
-                    </motion.div>
-                )}
-
-                {/* BONUS ROUND: Show only after 1st score is available */}
-                {score !== null && (
-                    <motion.div
-                        initial={{ y: 50, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="mt-10 p-6 bg-purple-50 border-4 border-purple-300 rounded-xl shadow-md"
-                    >
-                        <h3 className="text-xl font-bold text-purple-700 mb-2">🎁 Bonus Round: Craft Your Own Spellbinding Pitch</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            ✍️ Use the structure: <strong>Intro</strong> – <strong>Body</strong> – <strong>Appeal</strong> (max 300 characters each)
-                        </p>
-
-                        {zones.map((_, i) => (
-                            <textarea
-                                key={i}
-                                placeholder={`💭 ${zoneNames[i]}`}
-                                maxLength={300}
-                                value={custom[i]}
-                                onChange={(e) =>
-                                    setCustom((c) => c.map((t, ii) => (ii === i ? e.target.value : t)))
-                                }
-                                className="w-full p-3 border-2 border-purple-200 rounded-lg shadow-sm mb-3 text-gray-700"
-                            />
-                        ))}
-
-                        <button
-                            onClick={handleGeminiSubmit}
-                            className="mt-2 px-5 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-                        >
-                            ✨ Evaluate Custom Pitch
-                        </button>
-
-                        {loading && <p className="mt-4 text-blue-600">⏳ Summoning the Score...</p>}
-
-                        {feedback && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="mt-6 p-4 bg-white rounded-lg border-4 border-indigo-300 shadow"
-                            >
-                                <h2 className="text-xl font-bold text-indigo-600">🧠 Custom Pitch Score: {feedback.customPitchScore}</h2>
-                                <div className="flex items-start gap-4 mt-3">
-                                    <span className="text-3xl">
-                                        {feedback.avatarType === "congratulatory" ? "🌟" : "🤔"}
-                                    </span>
-                                    <p className="text-gray-700">{feedback.tips}</p>
+                            <div className="w-full p-4 bg-gray-800/50 border-2 border-[#3F4B48] rounded-xl">
+                                <h3 className="text-xl font-bold text-cyan-300 mb-3 text-center lilita-one-regular">Your Magical Card Bank</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {state.cardBank.map((card) => <DraggableCard key={card.id} card={card} />)}
                                 </div>
-                            </motion.div>
-                        )}
+                            </div>
+                        </div>
+                    </main>
+                    <DragOverlay>
+                        {activeCard && <div className="p-3 bg-[#3a505a] border-2 border-yellow-400 rounded-lg shadow-2xl text-sm font-medium text-white scale-105">{activeCard.text}</div>}
+                    </DragOverlay>
+                </DndContext>
+            )}
 
-                        {feedback && (
-                            (() => {
-                                const customPts = parseInt(feedback.customPitchScore?.split("/")[0]) || 0;
-                                const total = score + customPts;
-                                setFinalScore(total);
-                                const { label, message } = getFinalFeedback(total);
-                                return (
-                                    <motion.div
-                                        initial={{ y: 20, opacity: 0 }}
-                                        animate={{ y: 0, opacity: 1 }}
-                                        transition={{ delay: 0.2 }}
-                                        className="mt-6 p-4 bg-yellow-50 rounded-lg border-4 border-yellow-400 shadow"
-                                    >
-                                        <h2 className="text-xl font-bold text-yellow-700">🏁 Final Score: {total} / 20</h2>
-                                        <p className="text-lg font-semibold mt-2">{label}</p>
-                                        <p className="mt-1 text-gray-700 italic">💬 {message}</p>
-                                    </motion.div>
-                                );
-                            })()
-                        )}
-                    </motion.div>
-                )}
-            </div>
+            {state.gameState === "bonus_round" && (
+                 <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-y-auto no-scrollbar">
+                     <div className="w-full max-w-4xl p-6 bg-gray-800/50 border-2 border-[#3F4B48] rounded-xl space-y-4">
+                        <p className="text-center text-yellow-400 mb-4 text-lg font-semibold">Enhance your chosen cards with your own words.</p>
+                        {state.zones.map((card, i) => (
+                             <div key={i} className="p-3 bg-gray-900/70 rounded-lg">
+                                <label className="font-bold text-cyan-300">{zoneNames[i]}: <span className="font-normal text-gray-300 ">{card?.text || "No card chosen"}</span></label>
+                                <textarea
+                                    placeholder={`Write your custom ${zoneNames[i].toLowerCase()} here...`}
+                                    maxLength={300}
+                                    value={state.customPitch[i]}
+                                    onChange={(e) => dispatch({ type: 'UPDATE_CUSTOM_PITCH', payload: { index: i, value: e.target.value } })}
+                                    className="mt-2 w-full p-3 border-2 border-gray-600 rounded-lg shadow-sm text-gray-200 bg-[#1e2d34] placeholder-gray-400 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400"
+                                />
+                             </div>
+                         ))}
+                     </div>
+                 </main>
+            )}
+
+            <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0">
+                <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                    <button 
+                        className="relative w-full h-full cursor-pointer" 
+                        onClick={state.gameState === 'playing' ? () => dispatch({ type: 'PROCEED_TO_BONUS' }) : handleFinishGame}
+                        disabled={(state.gameState === 'playing' && state.zones.every(z => z === null)) || isSubmitting}
+                    >
+                        <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                        <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] ${isSubmitting ? "opacity-50" : ""}`}>
+                            {state.gameState === 'playing' ? 'Next Step' : (isSubmitting ? 'Evaluating...' : 'Finish')}
+                        </span>
+                    </button>
+                </div>
+            </footer>
         </div>
     );
 };
