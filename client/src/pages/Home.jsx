@@ -919,7 +919,7 @@ const StudentFeedbackCarousel = () => {
 
   const feedbackCards = [
     {
-      text: 'I like this type of quiz because it Shows us "the answer" when we get wrong and we don\'t understand the answer at the end it give feedback, where can understand it more so on the test we can get a A or B because we learned by wayground.',
+      text: 'I like this type of quiz because it shows us the correct answer when we get it wrong, and if we don’t understand, it gives feedback at the end. That way, we can understand better and perform well on the test, maybe even get an A or B, because we learned along the way.',
       author: "",
       bgColor: "bg-purple-300",
       rotation: "rotate-1",
