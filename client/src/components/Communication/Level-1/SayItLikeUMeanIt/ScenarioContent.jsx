@@ -1,181 +1,98 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import ThinkingCloud from "@/components/icon/ThinkingCloud";
+// --- Helper Data & Components (for a self-contained demo) ---
 
-// Demo data, structured similarly to the game data
-const demoPuzzle = {
-    audioSrc: "/audio1.mp3",
-    emotions: ["😐", "😊", "😟"],
-    correctEmotion: "😐",
-    behaviors: ["Paying attention", "Not paying attention", "Interrupting"],
-    correctBehavior: "Not paying attention",
-    mcq: {
-        question: "What did the speaker mean?",
-        options: [
-            "B wasn’t listening carefully",
-            "They were excited",
-            "They changed their mind",
-        ],
-        correct: "B wasn’t listening carefully",
+const demoData = {
+    sentence: "I still can't believe its monday again",
+    moodOptions: ["Sad", "Happy", "Bored", "Angry", "Sarcastic"],
+    moodEmojis: {
+        Sad: "😢",
+        Happy: "😃",
+        Bored: "😐",
+        Angry: "😠",
+        Sarcastic: "😏",
     },
+    animationTarget: "Sad",
 };
 
-const ScenarioContent = () => {
-    const [animationState, setAnimationState] = useState('idle');
-    const [selectedEmotion, setSelectedEmotion] = useState(null);
-    const [selectedBehavior, setSelectedBehavior] = useState(null);
-    const [selectedMcq, setSelectedMcq] = useState(null);
 
-    // This useEffect hook controls the self-playing animation
-    useEffect(() => {
-        const animationSteps = [
-            () => {
-                setSelectedEmotion(demoPuzzle.correctEmotion);
-                setSelectedBehavior(null);
-                setSelectedMcq(null);
-                setAnimationState('selecting-emotion');
-            },
-            () => {
-                setSelectedBehavior(demoPuzzle.correctBehavior);
-                setSelectedMcq(null);
-                setAnimationState('selecting-behavior');
-            },
-            () => {
-                setSelectedMcq(demoPuzzle.mcq.correct);
-                setAnimationState('selecting-mcq');
-            },
-            () => {
-                setAnimationState('finished');
-            },
-        ];
+const EmotionCard = ({ mood, emoji, isSelected }) => (
+    <div
+        className={`flex flex-col items-center justify-center 
+          w-20 h-20 md:w-24 md:h-24 
+          bg-[#131f24] rounded-lg border-2 
+          transition-all duration-300 transform
+          ${isSelected
+            ? 'border-[#6DFF00] shadow-[0_3px_0_0_#6DFF00] scale-105'
+            : 'border-[#37464f] shadow-[0_3px_0_0_#37464f]'}`
+        }
+    >
+        <span className="text-3xl md:text-4xl mb-1">{emoji}</span>
+        <span className="text-[#f1f7fb] font-medium text-xs md:text-sm">{mood}</span>
+    </div>
+);
 
-        let currentStep = 0;
-        const interval = setInterval(() => {
-            if (currentStep < animationSteps.length) {
-                animationSteps[currentStep]();
-                currentStep++;
-            } else {
-                setAnimationState('idle');
-                setSelectedEmotion(null);
-                setSelectedBehavior(null);
-                setSelectedMcq(null);
-                currentStep = 0;
-            }
-        }, 1200); // Wait time between each selection
 
-        return () => clearInterval(interval);
-    }, []);
-
-    // Component for a single selectable option
-    const Option = ({ text, isSelected, isEmoji = false }) => (
-        <div
-            className={`flex items-center gap-1.5 p-1.5 bg-[#131f24] rounded-md border border-[#37464f] shadow-[0_1px_0_0_#37464f] transition-all duration-300 transform ${isSelected ? 'border-[#6DFF00] ring-1 ring-[#6DFF00] scale-105' : 'hover:border-gray-500'}`}
-        >
-            <div className={`w-3.5 h-3.5 flex-shrink-0 flex justify-center items-center rounded-sm border border-[#37464f] transition-colors ${isSelected ? 'bg-[#6DFF00] border-[#6DFF00]' : 'bg-[#0A160E]'}`}>
-                {isSelected && <span className="text-black text-xs font-bold">✓</span>}
+const AudioPlayerCharacter = () => (
+    <div className="flex items-end justify-center">
+        <img src="/feedbackcharacter.gif" alt="Character" className="w-[2.5rem] md:w-[3.5rem] h-auto object-contain shrink-0" />
+        <div className="relative mb-2 md:mb-4 md:ml-1">
+            <ThinkingCloud className="w-[110px] h-auto md:w-[130px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-2 px-3">
+                <img src="/communicationGames6to8/play.svg" alt="Play audio" className="w-4 h-4 md:w-5 md:h-5" />
+                <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-4 md:h-5" />
             </div>
-            <span className={`text-[#f1f7fb] font-normal text-left text-xs ${isEmoji ? 'text-xl py-0.5' : 'py-1.5'}`}>
-                {text}
-            </span>
         </div>
-    );
+    </div>
+);
 
-    // Audio Player component with the character
-    const AudioPlayerCharacter = ({ audioSrc }) => {
-        const audioRef = useRef(null);
-        const [isPlaying, setIsPlaying] = useState(false);
 
-        const togglePlayPause = async () => {
-            const audioElement = audioRef.current;
-            if (!audioElement) return;
+// --- Main Scenario Content Component ---
 
-            if (isPlaying) {
-                audioElement.pause();
-                setIsPlaying(false);
-            } else {
-                try {
-                    await audioElement.play();
-                    setIsPlaying(true);
-                } catch (error) {
-                    console.error("Audio play failed:", error);
-                    setIsPlaying(false);
-                }
-            }
-        };
+const ScenarioContent = () => {
+    const [selectedEmotion, setSelectedEmotion] = useState(null);
 
-        return (
-            <div className="flex items-end justify-center">
-                <audio ref={audioRef} onEnded={() => setIsPlaying(false)} preload="auto" style={{ display: 'none' }}>
-                    <source src={audioSrc} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                </audio>
-                <img src="/feedbackcharacter.gif" alt="Character" className="w-[1.75rem] md:w-[2.4rem] h-auto object-contain shrink-0" />
-                <div className="relative md:mb-4 md:ml-1">
-                    <ThinkingCloud className="w-[110px] h-auto md:w-[130px]" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-2">
-                        <button onClick={togglePlayPause} className="cursor-pointer flex-shrink-0 focus:outline-none rounded-full w-4.5">
-                            <img src={isPlaying ? "/communicationGames6to8/pause.svg" : "/communicationGames6to8/play.svg"} alt={isPlaying ? "Pause audio" : "Play audio"} className="w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 hover:scale-105 active:scale-95" />
-                        </button>
-                        <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-4 md:h-5" />
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    // This useEffect hook creates the self-playing, looping animation.
+    useEffect(() => {
+        const animationInterval = setInterval(() => {
+            // 1. Select the target card
+            setSelectedEmotion(demoData.animationTarget);
+
+            // 2. Set a timeout to deselect the card after a short duration
+            const deselectTimeout = setTimeout(() => {
+                setSelectedEmotion(null);
+            }, 1800); 
+           
+            return () => clearTimeout(deselectTimeout);
+
+        }, 3000); // The entire loop (select -> deselect -> pause) repeats every 3 seconds
+
+       
+        return () => clearInterval(animationInterval);
+    }, []); 
 
     return (
-        <div className="w-full h-full bg-[#00260e]  rounded-lg flex flex-col items-center justify-center px-2 pt-2">
-            <div className="w-full h-full flex flex-col font-['Inter'] relative overflow-hidden">
-                <main className="flex-1 w-full flex flex-col items-center justify-center p-1 md:p-2">
-                    <div className="w-full max-w-xl bg-[rgba(32,47,54,0.3)] rounded-lg p-2 md:p-3 space-y-1.5">
-                        {/* Question 1: Emotion */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">What is the emotion of the speaker?</p>
-                            <div className="flex gap-1.5 md:gap-2">
-                                {demoPuzzle.emotions.map(emo => (
-                                    <Option
-                                        key={emo}
-                                        text={emo}
-                                        isEmoji
-                                        isSelected={selectedEmotion === emo}
-                                    />
-                                ))}
-                            </div>
-                        </div>
+        <div className="w-full h-full bg-[#00260e] rounded-lg flex flex-col items-center justify-center px-4 pt-4 font-['Inter']">
+            
+            <p className="text-white text-base md:text-lg text-center mb-4">
+                {demoData.sentence}
+            </p>
 
-                        {/* Question 2: Behavior */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">What is the listener's behavior?</p>
-                            <div className="flex flex-col md:flex-row gap-1.5 md:gap-2">
-                                {demoPuzzle.behaviors.map(b => (
-                                    <Option
-                                        key={b}
-                                        text={b}
-                                        isSelected={selectedBehavior === b}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Question 3: MCQ */}
-                        <div>
-                            <p className="text-[#f1f7fb] font-medium text-xs mb-1">{demoPuzzle.mcq.question}</p>
-                            <div className="flex flex-col items-start gap-1.5 md:gap-2">
-                                {demoPuzzle.mcq.options.map(opt => (
-                                    <Option
-                                        key={opt}
-                                        text={opt}
-                                        isSelected={selectedMcq === opt}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </main>
-
-                <div className="w-full flex justify-center">
-                    <AudioPlayerCharacter audioSrc={demoPuzzle.audioSrc} />
-                </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 mb-6">
+                {demoData.moodOptions.map(mood => (
+                    <EmotionCard
+                        key={mood}
+                        mood={mood}
+                        emoji={demoData.moodEmojis[mood]}
+                        isSelected={selectedEmotion === mood}
+                    />
+                ))}
             </div>
+
+            <div className="w-full flex justify-center ">
+                <AudioPlayerCharacter />
+            </div>
+
         </div>
     );
 };

@@ -46,7 +46,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Improves digital communication by rewriting messages with clarity, empathy, and positive tone.
               </span>
             </div>
           </div>

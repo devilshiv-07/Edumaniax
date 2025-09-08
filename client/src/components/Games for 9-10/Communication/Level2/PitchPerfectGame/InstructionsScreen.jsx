@@ -32,13 +32,15 @@ const InstructionsScreen = ({ onStartGame }) => {
           {/* Right Column (TEXT): Instructions & Learning Outcome */}
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-2 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You are given audio clips. Play those audio clips.</p>
-              <p className="mb-2">Your task will be to pick out the correct option for the following questions for each clip –</p>
-              <ul className="list-disc list-inside mb-2 pl-4">
-                <li>Emotion of speaker</li>
-                <li>Behavior of listener</li>
-                <li>What speaker meant</li>
-              </ul>
+  <p className="mb-2">You will be given a mission to persuade your club advisor about a new student-led project.</p>
+  <p className="mb-2">Your task will be to follow these steps –</p>
+  <ul className="list-disc list-inside mb-2 pl-4">
+    <li>Read the scenario prompt at the top of the screen</li>
+    <li>Drag & drop a suitable card into each pitch zone:
+       <p> introduction , main argument , final appeal</p>
+    </li>
+    <li>Balance credibility (Ethos), emotion (Pathos), and logic (Logos) in your choices</li>
+  </ul>
             </div>
             
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">

@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 // --- NEW DATA based on your request ---
 const scenarioData = {
     id: 1,
-    question: "Convince your school to allow an extra sports period.",
-    scenario: "Step 1: Choose your opening line.",
+    question: "Ayaan helped you when your project crashed.",
     options: [
-        "I believe an extra sports period would benefit all students.",
-        "We should have more fun. Period.",
-        "If we don't get this, we'll protest!"
+        "Thanks, Ayaan. You always do everything for me.",
+        "Appreciate the help. I was really lost without you.",
+        "Thank you for helping me fix my file, Ayaan. You stayed calm and patient when I was stressed. That meant a lot!",
+        "I guess you saved me. Nice job, I guess.",
     ],
 };
 
@@ -16,7 +16,7 @@ const scenarioData = {
 // NOTE: This component is updated with styling from your inspiration code.
 const OptionItem = ({ text, isHighlighted }) => {
     // Base classes for layout and transitions, consistent for all options
-    const baseClasses = "w-full p-4 min-h-[60px] flex justify-center items-center text-center rounded-xl border transition-all duration-300";
+    const baseClasses = "w-full p-2 min-h-[60px] flex justify-center items-center text-center rounded-xl border transition-all duration-300";
 
     // Dynamic classes that change based on the isHighlighted prop
     const highlightClasses = isHighlighted
@@ -61,21 +61,16 @@ const ScenarioContent = () => {
         // Main container with a dark background, centered content
         <div className="w-full h-auto bg-[#00260d] rounded-lg border border-[#f2f4f6] flex flex-col md:flex-row p-4 gap-4">
             {/* Inner container for the content, styled like the inspiration code */}
-            <div className="w-full max-w-4xl bg-gray-800/30 rounded-xl p-6 ">
-                <div className="flex flex-col justify-center items-center gap-4 text-center">
+            <div className="w-full max-w-4xl bg-gray-800/30 rounded-xl p-4 ">
+                <div className="flex flex-col justify-center items-center gap-2 text-center">
                     
                     {/* Question Text */}
-                    <h2 className="text-slate-100 text-xl md:text-xl font-medium leading-snug md:leading-9">
+                    <h2 className="text-slate-100 text-lg font-medium leading-snug md:leading-9">
                         {scenarioData.question}
                     </h2>
 
-                    {/* Scenario Description */}
-                    <p className="text-gray-300 text-sm md:text-base leading-relaxed font-regular">
-                        {scenarioData.scenario}
-                    </p>
-
                     {/* Options container */}
-                    <div className="w-full max-w-lg mt-2 flex flex-col justify-start items-stretch gap-4">
+                    <div className="w-full max-w-lg mt-2 flex flex-col justify-start items-stretch gap-2">
                         {scenarioData.options.map((optionText, index) => (
                             <OptionItem
                                 key={index}

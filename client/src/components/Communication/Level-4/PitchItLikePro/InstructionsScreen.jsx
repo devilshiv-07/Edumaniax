@@ -34,12 +34,13 @@ const InstructionsScreen = ({ onStartGame }) => {
 
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-2 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You are given audio clips. Play those audio clips.</p>
-              <p className="mb-2">Your task will be to pick out the correct option for the following questions for each clip –</p>
+              <p className="mb-2">You will be given a campaign idea with several pitch cards.</p>
+              <p className="mb-2">Your task will be to choose the 4 cards that best complete the pitch –</p>
               <ul className="list-disc list-inside mb-2 pl-4">
-                <li>Emotion of speaker</li>
-                <li>Behavior of listener</li>
-                <li>What speaker meant</li>
+                <li>An emotion hook</li>
+                <li>A real-life fact</li>
+                <li>A story or example</li>
+                <li>A clear call to action</li>
               </ul>
             </div>
             
@@ -48,7 +49,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Builds persuasive skills by selecting the strongest elements to create an effective pitch.
               </span>
             </div>
           </div>

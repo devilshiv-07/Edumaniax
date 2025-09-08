@@ -1,588 +1,372 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import React, { useRef, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Confetti from "react-confetti";
+import useWindowSize from "react-use/lib/useWindowSize";
+import axios from 'axios';
+
+// --- Context Hooks ---
 import { useCommunication } from "@/contexts/CommunicationContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import { usePerformance } from "@/contexts/PerformanceContext";
 
-const APIKEY = import.meta.env.VITE_API_KEY;
+// --- Data for AI-powered recommendations ---
+import { notesCommunication9to10 } from "@/data/notesCommunication9to10.js";
 
-const emotionOptions = [
-    "Angry",
-    "Embarrassed",
-    "Anxious",
-    "Frustrated",
-    "Disappointed",
-    "Confident",
-];
+// --- Icon Components (assuming they exist) ---
+import Checknow from '@/components/icon/GreenBudget/Checknow';
+import BackButton from "@/components/icon/GreenBudget/BackButton";
+import Vol from "@/components/icon/GreenBudget/Vol.jsx";
+import Heart from "@/components/icon/GreenBudget/Heart.jsx";
+import ThinkingCloud from "@/components/icon/ThinkingCloud";
 
-const correctEmotions = ["Anxious", "Frustrated", "Disappointed"];
-const concernKeywords = [
-    "overwhelmed",
-    "missed",
-    "vendor",
-    "help",
-    "support",
-    "reorganize",
-    "redistribute",
-    "tasks",
-    "team",
-    "logistics",
-    "too much",
-    "need assistance",
-];
+// --- Asset Imports ---
+import bgMusic from "/financeGames6to8/bgMusic.mp3";
 
-export default function ActiveListeningGame() {
-    const { completeCommunicationChallenge } = useCommunication();
-    const [step, setStep] = useState(1);
-    const [concerns, setConcerns] = useState("");
-    const [selectedEmotions, setSelectedEmotions] = useState([]);
-    const [response, setResponse] = useState("");
-    const [feedback, setFeedback] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [showConfetti, setShowConfetti] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(7 * 60); // 7 minutes in seconds
-    const [timeUp, setTimeUp] = useState(false);
-    const [gameStarted, setGameStarted] = useState(false);
-
-    //for performance
-    const { updatePerformance } = usePerformance();
-    const [startTime,setStartTime] = useState(Date.now());
-
-    // Timer countdown effect
-    useEffect(() => {
-        if (step === 1 && gameStarted && !timeUp) {
-            const timer = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timer);
-                        setTimeUp(true);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-
-            return () => clearInterval(timer);
-        }
-    }, [step, gameStarted, timeUp]);
-
-    const formatTime = (seconds) => {
-        const m = String(Math.floor(seconds / 60)).padStart(2, "0");
-        const s = String(seconds % 60).padStart(2, "0");
-        return `${m}:${s}`;
-    };
-
-
-    const toggleEmotion = (emotion) => {
-        setSelectedEmotions((prev) =>
-            prev.includes(emotion)
-                ? prev.filter((e) => e !== emotion)
-                : prev.length < 3
-                    ? [...prev, emotion]
-                    : prev
-        );
-    };
-
-    const handleNextFromAudio = () => setStep(2);
-
-    const handleQ1Submit = () => {
-        const text = concerns.toLowerCase();
-        const matches = concernKeywords.filter((word) => text.includes(word));
-        if (matches.length >= 2) {
-            setFeedback(null);
-            setStep(3);
-        } else {
-            setFeedback("⚠️ Try to include at least two specific concerns Riya expressed.");
-        }
-    };
-
-    const handleQ2Submit = () => {
-        const isAllCorrect =
-            selectedEmotions.length === 3 &&
-            selectedEmotions.every((e) => correctEmotions.includes(e));
-        if (isAllCorrect) {
-            setFeedback("🎯 Great job listening actively!");
-            setStep(4);
-        } else {
-            setFeedback("⚠️ Please select exactly 3 emotions that best reflect Riya’s feelings.");
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!response.trim()) {
-            setFeedback("⚠️ Please enter your response before submitting.");
-            return;
-        }
-
-        setFeedback("⏳ Evaluating with Gemini...");
-        setLoading(true);
-
-        const prompt = `You are evaluating a student’s short written response to their teammate Riya, who feels overwhelmed and is asking for help managing school event tasks.
-
-The response should demonstrate:
-1. Empathy – acknowledging Riya’s feelings (e.g., “Thanks for being honest”, “I understand it’s been a lot”)
-2. Supportive action – suggesting help or collaboration (e.g., “Let’s reorganize things”, “I’ll help with the vendor coordination”)
-3. A non-judgmental tone – avoiding blame or criticism
-
-Return only a valid JSON object in this format:
-{
-  "empathy": true/false,
-  "action": true/false,
-  "nonBlamingTone": true/false
+// --- Helper for hiding scrollbar & parsing JSON ---
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) { text = text.replace(/^```(json)?/, "").replace(/```$/, "").trim(); }
+    if (text.startsWith("`") && text.endsWith("`")) { text = text.slice(1, -1).trim(); }
+    try { return JSON.parse(text); } catch (err) { console.error("Failed to parse JSON:", err); return null; }
 }
 
-Rules:
-- Do NOT include markdown, explanation, or anything outside the JSON.
-- Only return a plain JSON object. No extra text.
+// --- Game Constants ---
+const APIKEY = import.meta.env.VITE_API_KEY;
+const GAME_DURATION_SECONDS = 7 * 60;
+const SESSION_STORAGE_KEY = 'activeListeningGameState';
+const PASSING_THRESHOLD = 70; // 70% accuracy to win
 
-Here is the student’s response:
-"${response}"`;
+const emotionOptions = [ "Angry", "Embarrassed", "Anxious", "Frustrated", "Disappointed", "Confident" ];
+const correctEmotions = ["Anxious", "Frustrated", "Disappointed"];
 
-        try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                    }),
-                }
-            );
+// --- MODEL ANSWERS FOR REVIEW SCREEN ---
+const MODEL_ANSWERS = {
+    concerns: "Riya is feeling overwhelmed with her tasks, specifically mentioning the missed vendor coordination and logistics. She is asking for help and support to reorganize or redistribute the work.",
+    emotions: correctEmotions,
+    response: "Hey Riya, thank you for being open about this. It sounds incredibly stressful. Let's definitely tackle this together. How about we sit down first thing tomorrow to re-distribute the tasks? I can take over the vendor logistics right away to get that off your plate."
+};
 
-            const data = await res.json();
-            let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            rawText = rawText.trim();
-            if (rawText.startsWith("```")) {
-                rawText = rawText.replace(/```(?:json)?|```/g, "").trim();
-            }
+// =============================================================================
+//  GameNav & AudioPlayer Components
+// =============================================================================
+const GameNav = ({ onTimeUp }) => {
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [timeLeft, setTimeLeft] = useState(GAME_DURATION_SECONDS);
+    const wasPlayingRef = useRef(true);
+    useEffect(() => { if (timeLeft <= 0) { if (onTimeUp) onTimeUp(); return; } const intervalId = setInterval(() => { setTimeLeft(prev => prev - 1); }, 1000); return () => clearInterval(intervalId); }, [timeLeft, onTimeUp]);
+    useEffect(() => { const handlePause = () => { if (audioRef.current && !audioRef.current.paused) { wasPlayingRef.current = true; audioRef.current.pause(); setIsPlaying(false); } else { wasPlayingRef.current = false; } }; const handlePlay = () => { if (audioRef.current && wasPlayingRef.current) { audioRef.current.play().catch(e => console.error("BG Audio Playback failed", e)); setIsPlaying(true); } }; window.addEventListener('pause-background-audio', handlePause); window.addEventListener('play-background-audio', handlePlay); return () => { window.removeEventListener('pause-background-audio', handlePause); window.removeEventListener('play-background-audio', handlePlay); }; }, []);
+    const formatTime = (seconds) => { const minutes = Math.floor(seconds / 60); const remainingSeconds = seconds % 60; return `${String(minutes)}:${String(remainingSeconds).padStart(2, '0')}`; };
+    const toggleAudio = () => { if (!audioRef.current) return; try { if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); wasPlayingRef.current = false; } else { audioRef.current.play(); setIsPlaying(true); wasPlayingRef.current = true; } } catch (err) { console.error("Audio play failed:", err); } };
+    useEffect(() => { const playAudio = async () => { if (!audioRef.current) return; try { await audioRef.current.play(); setIsPlaying(true); wasPlayingRef.current = true; } catch (err) { console.warn("Autoplay failed, user gesture required."); setIsPlaying(false); wasPlayingRef.current = false; } }; playAudio(); }, []);
+    return ( <div className="w-full h-[10.5vh] bg-[#28343A] flex items-center justify-between px-[2vw] relative z-10 shrink-0"> <audio ref={audioRef} loop src={bgMusic} /> <Link to="/communications/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100"> <BackButton className="w-16 md:w-28" /> </Link> <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_5px_0_#000] [text-stroke:1px_black] text-[15px] md:text-[28px] lg:text-4xl text-[#ffcc00] tracking-[0.05vw]"> Active Listening </span> <div className="flex items-center space-x-4 lg:space-x-8"> <div className="relative h-[100px] flex items-center justify-center"> <Heart className="w-16 md:w-28" /> <span className="absolute text-white font-bold text-base sm:text-base md:text-xl lg:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2"> {formatTime(timeLeft)} </span> </div> <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-90'}`}> <Vol isPlaying={isPlaying} className="w-16 md:w-28" /> </button> </div> </div> );
+};
 
-            const result = JSON.parse(rawText);
-            const { empathy, action, nonBlamingTone } = result;
-            const score = [empathy, action, nonBlamingTone].filter(Boolean).length;
+function AudioPlayerCharacter({ audioSrc, onPlaybackStop = () => {} }) {
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    useEffect(() => { const audioElement = audioRef.current; if (audioElement) { audioElement.pause(); audioElement.currentTime = 0; setIsPlaying(false); } }, [audioSrc]);
+    const handleAudioEnded = () => { setIsPlaying(false); onPlaybackStop(); };
+    const togglePlayPause = async () => { const audioElement = audioRef.current; if (!audioElement) return; if (isPlaying) { audioElement.pause(); setIsPlaying(false); onPlaybackStop(); } else { window.dispatchEvent(new CustomEvent('pause-background-audio')); try { await audioElement.play(); setIsPlaying(true); } catch (error) { console.error(`Audio play failed for src: "${audioSrc}".`, error); setIsPlaying(false); onPlaybackStop(); } } };
+    return ( <div className="flex items-end justify-center"> <audio ref={audioRef} onEnded={handleAudioEnded} preload="auto" style={{ display: 'none' }}> <source src={audioSrc} type="audio/mpeg" /> </audio> <img src="/feedbackcharacter.gif" alt="Character" className="w-[3.5rem] md:w-[4.8rem] h-auto object-contain shrink-0" /> <div className="relative mb-8 md:ml-2"> <ThinkingCloud className="w-[220px] h-auto md:w-[260px]" /> <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-5"> <button onClick={togglePlayPause} className="cursor-pointer flex-shrink-0 focus:outline-none rounded-full w-7"> <img src={isPlaying ? "/communicationGames6to8/pause.svg" : "/communicationGames6to8/play.svg"} alt={isPlaying ? "Pause" : "Play"} className="w-9 h-9 md:w-11 md:h-11 transition-transform duration-200 hover:scale-105 active:scale-95" /> </button> <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-9 md:h-11" /> </div> </div> </div> );
+}
 
-            if (score === 3) {
-                setFeedback("🎉 Great job listening actively!");
-                completeCommunicationChallenge(0, 1);
-                setShowConfetti(true);
-                setStep(5);
-
-                // ⬇️ Performance Tracking
-                const endTime = Date.now();
-                const totalTimeSec = Math.floor((endTime - startTime) / 1000);
-                const studyTimeMinutes = Math.max(1, Math.round(totalTimeSec / 60));
-                const avgResponseTimeSec = Math.floor(totalTimeSec / 3); // 3 questions
-                const finalScore = 10;
-                const accuracy = 100;
-
-                updatePerformance({
-                    moduleName: "Communication",
-                    topicName: "emotionalIntelligence",
-                    completed: true,
-                    studyTimeMinutes,
-                    avgResponseTimeSec,
-                    score: finalScore,
-                    accuracy,
-                });
-            }
-            else if (!empathy) {
-                setFeedback("🧠 Try to reword your reply with more empathy and support.");
-            } else if (!action) {
-                setFeedback("✅ You captured the emotions correctly, but try offering a clearer action step.");
-            } else {
-                setFeedback("🧠 Try to reword your reply with more empathy and support.");
-            }
-        } catch (error) {
-            console.error(error);
-            setFeedback("❌ Something went wrong while evaluating your response.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleRestart = () => {
-        setStep(1);
-        setConcerns("");
-        setSelectedEmotions([]);
-        setResponse("");
-        setFeedback(null);
-        setShowConfetti(false);
-        setLoading(false);
-        setTimeLeft(7 * 60);
-        setTimeUp(false);
-        setStartTime(Date.now());
-    };
-    if (timeUp) {
-        return (
-            <motion.div
-                className="text-center p-6 bg-red-50 rounded-2xl shadow-xl space-y-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-            >
-                <h2 className="text-3xl font-bold text-red-600">⏰ Time's Up!</h2>
-                <p className="text-lg text-gray-700 font-medium">
-                    Don’t worry — you can try again and support Riya with your best response! 💪
-                </p>
-                <Button
-                    onClick={handleRestart}
-                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-full"
-                >
-                    🔁 Try Again
-                </Button>
-            </motion.div>
-        )
-    }
-
+// =============================================================================
+//  End-Screen & Review Screen Components
+// =============================================================================
+function VictoryScreen({ onRestart, onViewFeedback, onContinue, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
     return (
-        <div className="relative min-h-screen px-6 py-10 bg-gradient-to-br from-white via-blue-100 to-blue-200 text-gray-800 overflow-hidden font-sans">
-            <div className="absolute w-40 h-40 bg-white opacity-30 rounded-full animate-pulse top-10 left-10"></div>
-            <div className="absolute w-60 h-60 bg-white opacity-20 rounded-full animate-pulse top-20 right-20"></div>
-            <div className="absolute w-32 h-32 bg-white opacity-25 rounded-full animate-pulse bottom-10 left-1/3"></div>
-            {showConfetti && <Confetti recycle={false} numberOfPieces={400} />}
-            <div className="relative max-w-4xl mx-auto bg-white border-4 border-blue-300 rounded-[2rem] shadow-2xl p-8">
-
-
-                <motion.div
-                    initial={{ opacity: 0, y: -50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="text-center mb-8"
-                >
-                    <motion.h1
-                        className="text-5xl sm:text-6xl font-extrabold text-purple-700 drop-shadow mb-4"
-                        animate={{ scale: [1, 1.05, 1], opacity: [1, 0.9, 1] }}
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            repeatType: "loop",
-                            ease: "easeInOut",
-                        }}
-                    >
-                        🎧 Listen Like a Leader
-                    </motion.h1>
-
-                    <motion.p
-                        className="text-lg sm:text-xl text-gray-700 max-w-2xl mx-auto px-4"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5, duration: 1 }}
-                    >
-                        You’re managing a school event. Your teammate <span className="font-semibold text-purple-600">Riya</span> has sent a voice message. <br className="hidden sm:block" />
-                        Listen closely and respond like a <span className="text-pink-500 font-semibold">supportive leader</span>.
-                    </motion.p>
-
-
-
-                    <motion.div
-                        className="mt-4 flex justify-center gap-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 1.2 }}
-                    >
-                        <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" />
-                        <div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce delay-150" />
-                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce delay-300" />
-                    </motion.div>
-
-                    <motion.div
-                        className="text-center text-lg sm:text-xl font-semibold mb-5 mt-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 1 }}
-                    >
-                        <div className="inline-block px-4 py-2 rounded-full bg-gradient-to-r from-yellow-100 via-white to-pink-100 shadow-md border border-purple-200">
-                            <span className="text-purple-700">⏳ Time Left:</span>{" "}
-                            <span
-                                className={`ml-2 font-extrabold tracking-wide text-transparent bg-clip-text ${timeLeft < 60
-                                    ? "bg-gradient-to-r from-red-500 to-red-700 animate-pulse"
-                                    : "bg-gradient-to-r from-green-400 to-green-600"
-                                    }`}
-                            >
-                                {formatTime(timeLeft)}
-                            </span>
+        <div className="w-full h-full bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Play Again" onClick={onRestart} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
 
-
-                <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-lg p-6 space-y-6">
-                    {step === 1 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1 }}
-                            className="text-center space-y-6"
-                        >
-                            {!gameStarted ? (
-                                <motion.div
-                                    initial={{ scale: 0.95 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 0.8 }}
-                                    className="space-y-4"
-                                >
-                                    <h2 className="text-3xl font-extrabold text-purple-700">🎯 Active Listening Challenge</h2>
-                                    <p className="text-lg text-gray-600">Click to begin and support your teammate Riya with care!</p>
-                                    <Button
-                                        onClick={() => setGameStarted(true)}
-                                        className="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white px-8 py-3 rounded-full text-lg shadow-lg transition-all hover:scale-105"
-                                    >
-                                        ▶️ Start Game
-                                    </Button>
-                                </motion.div>
-                            ) : (
-                                <>
-                                    <motion.div
-                                        className="relative p-6 bg-white rounded-3xl shadow-2xl border-4 border-purple-200"
-                                        initial={{ scale: 0.95 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ duration: 1.2, type: "spring" }}
-                                    >
-                                        <h3 className="text-2xl font-bold text-purple-700 mb-4 animate-pulse">
-                                            🎙️ Incoming Voice Note From Riya
-                                        </h3>
-                                        <motion.div
-                                            className="relative rounded-xl overflow-hidden ring-4 ring-pink-200"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ delay: 0.3 }}
-                                        >
-                                            <audio
-                                                controls
-                                                className="w-full bg-gradient-to-r from-purple-100 to-pink-100 p-2 rounded-xl shadow-inner"
-                                            >
-                                                <source src="./voices/level1_challenge2.mp3" type="audio/mpeg" />
-                                                Your browser does not support the audio element.
-                                            </audio>
-                                        </motion.div>
-                                    </motion.div>
-
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 0.5 }}
-                                    >
-                                        <Button
-                                            onClick={handleNextFromAudio}
-                                            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-purple-600 hover:to-pink-500 text-white font-bold px-8 py-3 rounded-full shadow-lg transition-transform transform hover:scale-105"
-                                        >
-                                            ✅ Ready for the Next Step
-                                        </Button>
-                                    </motion.div>
-                                </>
-                            )}
-                        </motion.div>
-                    )}
-
-                    {step === 2 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="space-y-6"
-                        >
-                            <motion.h2
-                                className="text-2xl sm:text-3xl font-extrabold text-purple-700 text-center"
-                                animate={{ scale: [1, 1.05, 1], color: ["#7c3aed", "#9333ea", "#7c3aed"] }}
-                                transition={{ duration: 2, repeat: Infinity, repeatType: "loop" }}
-                            >
-                                📝 Q1: What are the key concerns Riya is expressing?
-                            </motion.h2>
-
-                            <motion.textarea
-                                className="w-full p-4 border-2 border-purple-300 rounded-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-200 bg-gradient-to-br from-white to-purple-50 text-gray-800 placeholder-purple-400 font-medium"
-                                rows={4}
-                                maxLength={300}
-                                placeholder="✨ Write up to 3 sentences capturing what’s worrying Riya..."
-                                value={concerns}
-                                onChange={(e) => setConcerns(e.target.value)}
-                                whileFocus={{ scale: 1.01 }}
-                            />
-
-                            <div className="flex justify-center gap-4">
-                                <motion.button
-                                    onClick={handleQ1Submit}
-                                    className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-8 py-2 rounded-full text-lg font-bold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    ✅ Next
-                                </motion.button>
-
-                                <motion.button
-                                    onClick={handleRestart}
-                                    className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-500 hover:from-purple-500 hover:to-blue-600 text-white px-6 py-2 rounded-full text-lg font-semibold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    🔁 Listen Again
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    )}
-
-
-                    {step === 3 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8 }}
-                            className="space-y-6"
-                        >
-                            <motion.h2
-                                className="text-2xl sm:text-3xl font-extrabold text-purple-700 text-center"
-                                animate={{ scale: [1, 1.05, 1], color: ["#9333ea", "#a855f7", "#9333ea"] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                            >
-                                🧠 Q2: What emotions is Riya expressing?
-                            </motion.h2>
-
-                            <p className="text-center text-sm text-gray-600 mb-4 italic">
-                                (Choose exactly <span className="font-semibold text-purple-500">3 emotions</span> you think Riya is feeling)
-                            </p>
-
-                            <div className="flex flex-wrap justify-center gap-3">
-                                {emotionOptions.map((emotion) => (
-                                    <motion.button
-                                        key={emotion}
-                                        onClick={() => toggleEmotion(emotion)}
-                                        whileHover={{ scale: 1.1 }}
-                                        className={`px-4 py-2 rounded-full border text-sm font-semibold transition-all duration-200 shadow-sm 
-            ${selectedEmotions.includes(emotion)
-                                                ? "bg-gradient-to-br from-pink-400 to-pink-600 text-white shadow-lg"
-                                                : "bg-white text-purple-700 border-purple-200 hover:bg-purple-50"
-                                            }`}
-                                    >
-                                        {emotion}
-                                    </motion.button>
-                                ))}
-                            </div>
-
-                            <div className="text-center space-x-4 mt-6">
-                                <motion.button
-                                    onClick={handleQ2Submit}
-                                    className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-8 py-2 rounded-full text-lg font-bold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    ✅ Next
-                                </motion.button>
-
-                                <motion.button
-                                    onClick={handleRestart}
-                                    className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-purple-600 hover:to-blue-600 text-white px-6 py-2 rounded-full text-lg font-semibold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    🔁 Listen Again
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {step === 4 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8 }}
-                            className="space-y-6"
-                        >
-                            <motion.h2
-                                className="text-2xl sm:text-3xl font-extrabold text-purple-700 text-center"
-                                animate={{ scale: [1, 1.05, 1], color: ["#9333ea", "#a855f7", "#9333ea"] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                            >
-                                💬 Q3: Show Your Leadership Voice
-                            </motion.h2>
-
-                            <p className="text-center text-xl sm:text-2xl text-purple-800 font-semibold mb-3 leading-relaxed">
-                                💬 Show Riya you <span className="text-pink-600 underline underline-offset-4 font-bold">understand</span> her feelings — and offer a way to help her move forward with confidence.
-                            </p>
-                            <p className="text-center text-base text-gray-600 italic mb-2">
-                                ✍️ Keep your response thoughtful and within 4 lines.
-                            </p>
-
-                            <motion.textarea
-                                className="w-full p-4 border-2 border-purple-200 focus:border-purple-400 rounded-2xl shadow-inner text-gray-700 focus:outline-none transition duration-300 bg-gradient-to-br from-white via-purple-50 to-pink-50 placeholder:text-purple-300 font-medium"
-                                rows={4}
-                                maxLength={400}
-                                placeholder="Respond in 3–4 thoughtful lines..."
-                                value={response}
-                                onChange={(e) => setResponse(e.target.value)}
-                                whileFocus={{ scale: 1.02 }}
-                            />
-
-                            <div className="text-center space-x-4">
-                                <motion.button
-                                    onClick={handleSubmit}
-                                    disabled={loading}
-                                    className="bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white px-8 py-2 rounded-full text-lg font-bold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    {loading ? "⏳ Evaluating..." : "🚀 Submit"}
-                                </motion.button>
-
-                                <motion.button
-                                    onClick={handleRestart}
-                                    className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-2 rounded-full text-lg font-semibold shadow-md transition-all duration-300"
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                >
-                                    🔁 Listen Again
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    )}
-                    {step === 5 && (
-                        <motion.div
-                            className="text-center space-y-6 py-8 bg-gradient-to-br from-green-50 via-white to-pink-50 rounded-3xl  "
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 1, type: "spring" }}
-                        >
-                            <motion.h2
-                                className="text-4xl font-extrabold text-green-600 tracking-wide"
-                                animate={{ scale: [1, 1.05, 1] }}
-                                transition={{ repeat: Infinity, duration: 3 }}
-                            >
-                                🌟 You did it!
-                            </motion.h2>
-
-                            <p className="text-xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-medium">
-                                Your response showed <span className="text-pink-500 font-semibold underline underline-offset-4">real empathy</span>,
-                                <span className="text-purple-500 font-semibold"> strong support</span>, and
-                                <span className="text-blue-500 font-semibold"> thoughtful leadership</span>. Riya would feel truly
-                                <span className="text-green-600 font-bold"> cared for</span>. 💖
-                            </p>
-
-                            <motion.div
-                                className="flex justify-center"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                            >
-                                <Button
-                                    onClick={handleRestart}
-                                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-pink-500 hover:to-purple-600 text-white px-8 py-3 rounded-full text-lg shadow-lg"
-                                >
-                                    🔁 Restart Challenge
-                                </Button>
-                            </motion.div>
-                        </motion.div>
-                    )}
-
-
-                    {feedback && step !== 5 && (
-                        <motion.div
-                            className="text-center text-lg font-semibold text-purple-700 mt-4"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                        >
-                            {feedback}
-                        </motion.div>
+function LossScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onNavigateToSection, recommendedSectionTitle }) {
+    return (
+        <div className="w-full h-full bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-[11px] font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-8 w-full max-w-md md:max-w-2xl flex justify-center">
+                    {recommendedSectionTitle && (
+                        <button onClick={onNavigateToSection} className="bg-[#068F36] text-black text-sm font-semibold rounded-lg py-3 px-10 md:px-6 hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg">
+                            Review "{recommendedSectionTitle}" Notes
+                        </button>
                     )}
                 </div>
             </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex flex-wrap justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ onBackToResults, results }) {
+    return (
+        <div className="w-full h-full bg-[#0A160E] flex flex-col text-white p-4">
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-4 text-yellow-400 text-center shrink-0">Review Your Answers</h1>
+            <div className="flex-1 overflow-auto no-scrollbar space-y-4">
+                <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h2 className="text-lg font-bold text-green-400 mb-2">Q1: Riya's Key Concerns (Score: {results.scores.concernsScore}/3)</h2>
+                    <div className="space-y-2">
+                        <p className="font-semibold text-gray-300">Your Summary:</p>
+                        <p className="text-gray-100 italic">"{results.userConcerns || 'No answer given'}"</p>
+                        <p className="font-semibold text-gray-300 pt-2">Ideal Summary:</p>
+                        <p className="text-green-300">"{MODEL_ANSWERS.concerns}"</p>
+                    </div>
+                </div>
+                <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h2 className="text-lg font-bold text-blue-400 mb-2">Q2: Riya's Emotions (Score: {results.scores.emotionScore}/3)</h2>
+                    <div className="space-y-2">
+                        <p className="font-semibold text-gray-300">Your Selection:</p>
+                        <div className="flex flex-wrap gap-2">
+                            {results.userEmotions.length > 0 ? results.userEmotions.map(e => (
+                                <span key={e} className={`px-3 py-1 rounded-full text-sm ${MODEL_ANSWERS.emotions.includes(e) ? 'bg-green-500' : 'bg-red-500'}`}>{e}</span>
+                            )) : <p className="italic">No emotions selected.</p>}
+                        </div>
+                        <p className="font-semibold text-gray-300 pt-2">Correct Emotions:</p>
+                        <div className="flex flex-wrap gap-2">
+                           {MODEL_ANSWERS.emotions.map(e => <span key={e} className="px-3 py-1 rounded-full text-sm bg-blue-500">{e}</span>)}
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-gray-800/50 p-4 rounded-lg">
+                    <h2 className="text-lg font-bold text-yellow-400 mb-2">Q3: Your Response (Score: {results.scores.responseScore}/4)</h2>
+                    <div className="space-y-2">
+                        <p className="font-semibold text-gray-300">Your Response:</p>
+                        <p className="text-gray-100 italic">"{results.userResponse || 'No answer given'}"</p>
+                        <p className="font-semibold text-gray-300 pt-2">An Ideal Response:</p>
+                        <p className="text-yellow-300">"{MODEL_ANSWERS.response}"</p>
+                    </div>
+                </div>
+            </div>
+            <div className="shrink-0 pt-4 flex justify-center">
+                 <button onClick={onBackToResults} className="px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors border-b-4 border-yellow-800 active:border-transparent shadow-lg">
+                    Back to Results
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// =============================================================================
+// Main Game Component
+// =============================================================================
+export default function ActiveListeningGame() {
+    const navigate = useNavigate();
+    const { completeCommunicationChallenge } = useCommunication();
+    const { updatePerformance } = usePerformance();
+
+    const [gameState, setGameState] = useState({
+        screen: 1, endScreen: null, gameKey: Date.now(),
+        concerns: "", selectedEmotions: [], response: "",
+        gameResults: null, insight: "Analyzing your results...",
+        recommendedSectionId: null, recommendedSectionTitle: "",
+        accuracyScore: 0, loading: false, startTime: Date.now()
+    });
+
+    useEffect(() => {
+        const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedStateJSON) {
+            try { setGameState(JSON.parse(savedStateJSON)); sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) { sessionStorage.removeItem(SESSION_STORAGE_KEY); }
+        }
+    }, []);
+
+    const handleTimeUp = () => {
+        setGameState(prev => ({
+            ...prev,
+            screen: 'loss',
+            endScreen: 'loss',
+            accuracyScore: 0,
+            insight: "Time ran out! Quick, thoughtful responses are a key part of effective communication.",
+            gameResults: {
+                userConcerns: prev.concerns || "No answer",
+                userEmotions: prev.selectedEmotions,
+                userResponse: prev.response || "No answer",
+                scores: { concernsScore: 0, emotionScore: 0, responseScore: 0 }
+            }
+        }));
+    };
+    
+    const handleRestart = () => {
+        setGameState({
+            screen: 1, endScreen: null, gameKey: Date.now(), concerns: "", selectedEmotions: [],
+            response: "", gameResults: null, insight: "Analyzing your results...",
+            recommendedSectionId: null, recommendedSectionTitle: "",
+            accuracyScore: 0, loading: false, startTime: Date.now()
+        });
+    };
+    const resumeBackgroundMusic = () => window.dispatchEvent(new CustomEvent('play-background-audio'));
+    const handleViewFeedback = () => setGameState(prev => ({ ...prev, screen: 'review' }));
+    const handleBackToResults = () => setGameState(prev => ({ ...prev, screen: prev.endScreen }));
+    const handleContinue = () => navigate('/communications/games');
+    const handleNavigateToSection = () => {
+        if (gameState.recommendedSectionId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(gameState));
+            navigate(`/communications/notes?grade=9-10&section=${gameState.recommendedSectionId}`);
+        }
+    };
+    const toggleEmotion = (emotion) => {
+        setGameState(prev => ({...prev, selectedEmotions: prev.selectedEmotions.includes(emotion) ? prev.selectedEmotions.filter((e) => e !== emotion) : prev.selectedEmotions.length < 3 ? [...prev.selectedEmotions, emotion] : prev.selectedEmotions }));
+    };
+    const handleProceedToScreen2 = () => setGameState(prev => ({ ...prev, screen: 2 }));
+
+    const handleSubmit = async () => {
+        setGameState(prev => ({...prev, loading: true}));
+        const { concerns, selectedEmotions, response, startTime } = gameState;
+
+        const emotionScore = selectedEmotions.filter(e => correctEmotions.includes(e)).length;
+
+        const scoringPrompt = `You are an AI evaluator for a communication skills game. A student listened to an audio clip from an overwhelmed teammate (Riya) who mentioned missed vendor coordination, logistics, and needing help. Evaluate the student's two written answers below.
+        ### STUDENT'S ANSWERS ###
+        1. Summary of Riya's Concerns: "${concerns}"
+        2. Empathetic Response to Riya: "${response}"
+        ### YOUR TASK ###
+        Evaluate the answers and return ONLY a valid JSON object with scores based on these criteria:
+        - "concernsScore" (0-3 points): 3 points for capturing 2+ key issues (overwhelmed, vendor, logistics, help). 2 for one issue. 1 for vague mention of stress. 0 for irrelevant answers like "hi".
+        - "responseScore" (0-4 points): Award points for: Empathy (up to 2), a clear Action plan (1), and a Non-Blaming Tone (1).
+        ### OUTPUT FORMAT ###
+        { "concernsScore": <number>, "responseScore": <number> }`;
+        
+        let aiScores = { concernsScore: 0, responseScore: 0 };
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, {
+                method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: scoringPrompt }] }] }),
+            });
+            const data = await res.json();
+            aiScores = parsePossiblyStringifiedJSON(data.candidates[0].content.parts[0].text) || { concernsScore: 0, responseScore: 0 };
+        } catch (error) { console.error("AI scoring failed:", error); }
+
+        const totalScore = aiScores.concernsScore + emotionScore + aiScores.responseScore;
+        const accuracy = Math.round((totalScore / 10) * 100);
+        const results = { userConcerns: concerns, userEmotions: selectedEmotions, userResponse: response, scores: { concernsScore: aiScores.concernsScore, emotionScore, responseScore: aiScores.responseScore }};
+        const totalTimeSec = Math.floor((Date.now() - startTime) / 1000);
+        updatePerformance({ moduleName: "Communication", topicName: "emotionalIntelligence", completed: accuracy >= PASSING_THRESHOLD, studyTimeMinutes: Math.max(1, Math.round(totalTimeSec / 60)), avgResponseTimeSec: Math.floor(totalTimeSec / 3), score: totalScore, accuracy: accuracy });
+        
+        if (accuracy >= PASSING_THRESHOLD) {
+            completeCommunicationChallenge(0, 1);
+            setGameState(prev => ({...prev, screen: 'victory', endScreen: 'victory', insight: "Fantastic job! You perfectly balanced empathy with a clear plan of action.", accuracyScore: accuracy, gameResults: results, loading: false}));
+        } else {
+            const insightPrompt = `An AI tutor analyzing a student's active listening failure. Their scores: Concerns Summary ${aiScores.concernsScore}/3, Emotion ID ${emotionScore}/3, Empathetic Response ${aiScores.responseScore}/4. Note options: ${JSON.stringify(notesCommunication9to10.map(n => ({ topicId: n.topicId, title: n.title })), null, 2)}. ### TASK ### Based on their lowest score, DETECT their main weakness, find the BEST note section, and GENERATE a 25-word encouraging insight recommending that note by title. ### OUTPUT ### Return ONLY a JSON object: { "detectedTopicId": "...", "insight": "..." }`;
+            try {
+                const insightRes = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: insightPrompt }] }] });
+                const parsedInsight = parsePossiblyStringifiedJSON(insightRes.data.candidates[0].content.parts[0].text);
+                const recommendedNote = notesCommunication9to10.find(note => note.topicId === parsedInsight.detectedTopicId);
+                setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: parsedInsight.insight, recommendedSectionId: parsedInsight.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "", accuracyScore: accuracy, gameResults: results, loading: false }));
+            } catch (insightError) {
+                setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: "Good effort! Active listening is tough. Reviewing the notes can help sharpen your skills.", recommendedSectionId: "active-listening", recommendedSectionTitle: "Active Listening", accuracyScore: accuracy, gameResults: results, loading: false }));
+            }
+        }
+    };
+    
+    const { screen, gameKey, concerns, selectedEmotions, response, loading, gameResults, insight, recommendedSectionTitle, accuracyScore } = gameState;
+    const isNextDisabled = concerns.trim() === '' || selectedEmotions.length === 0;
+    const isSubmitDisabled = response.trim() === '';
+
+    if (screen === 'review' || screen === 'victory' || screen === 'loss') {
+        return (
+            <div className="w-full h-screen bg-[#0A160E]">
+                {screen === 'review' && <ReviewScreen onBackToResults={handleBackToResults} results={gameResults} />}
+                {screen === 'victory' && <VictoryScreen onRestart={handleRestart} onViewFeedback={handleViewFeedback} onContinue={handleContinue} accuracyScore={accuracyScore} insight={insight} />}
+                {screen === 'loss' && <LossScreen onPlayAgain={handleRestart} onViewFeedback={handleViewFeedback} insight={insight} accuracyScore={accuracyScore} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={recommendedSectionTitle} />}
+            </div>
+        );
+    }
+    
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col inter-font relative text-white">
+            <GameNav key={gameKey} onTimeUp={handleTimeUp} />
+            {screen === 1 && (
+                <main className="flex-1 w-full flex flex-col pt-4 px-4 overflow-hidden">
+                    <div className="flex-1 flex justify-center items-center overflow-auto no-scrollbar py-4">
+                        <div className="w-full max-w-3xl bg-[rgba(32,47,54,0.3)] rounded-xl p-4 md:p-6 space-y-6">
+                            <div><h3 className="text-lg font-bold text-yellow-400 mb-2 text-center">🎙️ Incoming Voice Note From Riya</h3></div>
+                            <div>
+                                <label className="block mb-1.5 text-green-400 font-medium text-sm">📝 Q1: What are Riya's key concerns?</label>
+                                <textarea className="w-full p-3 rounded-lg border border-[#37464f] bg-[#131f24] text-[#f1f7fb] shadow-lg" rows={3} placeholder="Summarize her main worries..." value={concerns} onChange={(e) => setGameState(prev => ({...prev, concerns: e.target.value}))} />
+                            </div>
+                            <div>
+                                <label className="block mb-1.5 text-blue-400 font-medium text-sm">🧠 Q2: What emotions is Riya expressing? (Choose up to 3)</label>
+                                <div className="flex flex-wrap justify-center gap-2 mt-2">
+                                    {emotionOptions.map((emotion) => ( <button key={emotion} onClick={() => toggleEmotion(emotion)} className={`px-4 py-2 rounded-full text-xs md:text-sm font-semibold transition-all duration-200 shadow-sm ${selectedEmotions.includes(emotion) ? "bg-blue-500 text-white border-blue-400" : "bg-[#131f24] text-gray-300 border border-[#37464f] hover:bg-gray-700" }`}> {emotion} </button> ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="shrink-0 flex justify-center"> <AudioPlayerCharacter key={gameKey} audioSrc="./voices/level1_challenge2.mp3" onPlaybackStop={resumeBackgroundMusic} /> </div>
+                </main>
+            )}
+            {screen === 2 && (
+                <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-auto no-scrollbar">
+                     <div className="w-full max-w-2xl bg-[rgba(32,47,54,0.3)] rounded-xl p-4 md:p-6 space-y-6">
+                        <div>
+                            <label className="block mb-1.5 text-yellow-400 font-medium text-lg text-center">💬 Q3: Show Your Leadership Voice</label>
+                            <p className="text-center text-gray-300 mb-4">Show Riya you understand her feelings and offer a way to help her move forward with confidence.</p>
+                            <textarea className="w-full p-3 rounded-lg border border-[#37464f] bg-[#131f24] text-[#f1f7fb] shadow-lg" rows={4} placeholder="Respond in 3–4 thoughtful lines..." value={response} onChange={(e) => setGameState(prev => ({...prev, response: e.target.value}))} />
+                        </div>
+                    </div>
+                </main>
+            )}
+            <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0">
+                <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                    {screen === 1 && ( <button className="relative w-full h-full cursor-pointer" onClick={handleProceedToScreen2} disabled={isNextDisabled}><Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" /><span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] lilita-one-regular ${isNextDisabled ? "opacity-50" : ""}`}> Next </span> </button> )}
+                    {screen === 2 && ( <button className="relative w-full h-full cursor-pointer" onClick={handleSubmit} disabled={isSubmitDisabled || loading}> <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" /> <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] lilita-one-regular ${isSubmitDisabled || loading ? "opacity-50" : ""}`}> {loading ? "Checking..." : "Submit"} </span> </button> )}
+                </div>
+            </footer>
         </div>
     );
 }

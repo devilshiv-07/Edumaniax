@@ -32,12 +32,11 @@ const InstructionsScreen = ({ onStartGame }) => {
           {/* Right Column (TEXT): Instructions & Learning Outcome */}
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-2 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You are given audio clips. Play those audio clips.</p>
-              <p className="mb-2">Your task will be to pick out the correct option for the following questions for each clip –</p>
+              <p className="mb-2">You will be given faces and situations to explore emotions.Your task will be to -</p>
               <ul className="list-disc list-inside mb-2 pl-4">
-                <li>Emotion of speaker</li>
-                <li>Behavior of listener</li>
-                <li>What speaker meant</li>
+                <li>Match the face to the correct emotion</li>
+                <li>Connect the emotion to the right situation</li>
+                <li>Complete a fill-in-the-blank reflection</li>
               </ul>
             </div>
             
@@ -46,7 +45,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Improves ability to recognize and understand emotions in real-life situations.
               </span>
             </div>
           </div>

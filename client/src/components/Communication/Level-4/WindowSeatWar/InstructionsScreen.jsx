@@ -32,12 +32,12 @@ const InstructionsScreen = ({ onStartGame }) => {
           {/* Right Column (TEXT): Instructions & Learning Outcome */}
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-2 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You are given audio clips. Play those audio clips.</p>
-              <p className="mb-2">Your task will be to pick out the correct option for the following questions for each clip –</p>
+              <p className="mb-2">You will be given a screen with a conflict scenario to read.</p>
+              <p className="mb-2">Your task will be to follow these steps –</p>
               <ul className="list-disc list-inside mb-2 pl-4">
-                <li>Emotion of speaker</li>
-                <li>Behavior of listener</li>
-                <li>What speaker meant</li>
+                <li>Read the dialogue between the characters</li>
+                <li>Review the possible resolution statements</li>
+                <li>Drag and drop the best options into the resolution box</li>
               </ul>
             </div>
             
@@ -46,7 +46,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Strengthens conflict resolution by practicing fair and cooperative problem-solving.
               </span>
             </div>
           </div>

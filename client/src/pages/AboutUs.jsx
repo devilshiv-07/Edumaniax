@@ -136,7 +136,7 @@ const AboutUs = () => {
     {
       title: "Real-World Relevance",
       description:
-        "Every skill and concept connects directly to practical applications students will use in their future careers.",
+        "Every skill and concept connects directly to practical applications that students will use in their future careers.",
       bgColor: "bg-[#A6FFC4]",
       iconBg: "bg-green-500",
       image: "different5.svg",
@@ -285,10 +285,10 @@ const AboutUs = () => {
         >
           <div className="text-center text-white mb-8">
             <p className="text-lg opacity-90">
-              We are a mission driven company that lives to empower students,
-              they think differently from
+             
+We are a mission-driven company dedicated to empowering students to reimagine 
               <br />
-              their education journey, and study more interactively
+              their education journey and embrace interactive learning.
             </p>
           </div>
 
@@ -640,12 +640,10 @@ const AboutUs = () => {
                   </div>
                   <div className="mb-6 sm:mb-8 lg:mb-0">
                     <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                      Our interactive tools, immersive story-based lessons, and
-                      fun gamification are designed to keep kids engaged. As
-                      they play games, collect badges and unlock concepts. With
-                      every lesson, they'll also see how their hard work
-                      improving their performance outcome while helping them in
-                      learning.
+                      Our interactive tools, immersive story-based lessons, and fun gamification
+                       are designed to keep kids engaged. As they play games, collect badges 
+                       and unlock concepts. With every lesson, they'll also see how their hard 
+                       work improving their performance outcome while helping them in learning.
                     </p>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import ScenarioContent from './ScenarioContent.jsx'; // Make sure this component
 const InstructionsScreen = ({ onStartGame }) => {
   return (
     // CHANGED: This is now a full-screen overlay with a semi-transparent background
-    <div className="fixed inset-0 bg-[#0A160E]/80 flex flex-col items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-[#0A160E]/80 flex flex-col items-center justify-start md:justify-center z-50 p-4 overflow-y-auto overflow-x-hidden">
       
       {/* Pop-up box with a relative position context for the absolute title */}
       <div className="relative w-full max-w-6xl lg:w-[90vw] h-auto bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/WxAZj0TxFZ.png)] bg-cover bg-no-repeat flex flex-col items-center py-16 px-4 md:px-10 ">
@@ -32,13 +32,18 @@ const InstructionsScreen = ({ onStartGame }) => {
           {/* Right Column (TEXT): Instructions & Learning Outcome */}
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left order-2 lg:order-2 mt-2">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">You are given audio clips. Play those audio clips.</p>
-              <p className="mb-2">Your task will be to pick out the correct option for the following questions for each clip –</p>
-              <ul className="list-disc list-inside mb-2 pl-4">
-                <li>Emotion of speaker</li>
-                <li>Behavior of listener</li>
-                <li>What speaker meant</li>
-              </ul>
+  <p className="mb-2">You will practice rewriting emails to make them clear, polite, and professional.</p>
+  <p>Read poorly written message or email.</p>
+  <ul className="list-disc list-inside mb-2 pl-4">
+    <li>Rewrite each email by improving:
+      <ul className="list-disc list-inside pl-6">
+        <li>Subject Line (clear and specific)</li>
+        <li>Greeting (appropriate and polite)</li>
+        <li>Message Body (organized and easy to follow)</li>
+        <li>Closing (respectful and professional)</li>
+      </ul>
+    </li>
+  </ul>
             </div>
             
             <div className="w-full max-w-sm mt-6 text-white bg-[url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-08-07/KoaHzD7HnK.png)] bg-cover bg-no-repeat p-4 rounded-lg">
@@ -46,7 +51,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Builds email etiquette, professionalism, and clarity in digital communication.
               </span>
             </div>
           </div>
