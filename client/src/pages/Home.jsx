@@ -2242,7 +2242,7 @@ const Home = () => {
                 transition={{ duration: 0.6 }}
               >
                 <h3 className="text-base sm:text-lg font-bold text-black mb-2 sm:mb-3">
-                  Get the special Curated Notes
+                  Get specially curated notes
                 </h3>
                 <p className="text-gray-700 mb-4 sm:mb-6 text-sm">
                   Choose from 100+ expert-made topic notes. Read it while doing

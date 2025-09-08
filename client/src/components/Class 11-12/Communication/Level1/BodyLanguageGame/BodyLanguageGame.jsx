@@ -1,355 +1,478 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import toast from "react-hot-toast";
-import { useCommunication } from "@/contexts/CommunicationContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import React, { useState, useEffect, useReducer } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Confetti from 'react-confetti';
+import useWindowSize from 'react-use/lib/useWindowSize';
+import { DndContext, DragOverlay, useSensor, useSensors, useDraggable, useDroppable, MouseSensor, TouchSensor, pointerWithin } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import IntroScreen from './IntroScreen'; // Assuming these are in the same directory
+import InstructionsScreen from './InstructionsScreen';
+import GameNav from './GameNav';
+import Checknow from '@/components/icon/GreenBudget/Checknow';
+import { notesCommunication9to10 } from "@/data/notesCommunication9to10.js";
 
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
+// --- NEW GAME DATA ---
 const candidates = [
-  {
-    id: "a",
-    name: "Candidate A",
-    video: "./nervous.mp4",
-    correctLabels: ["Nervous or unsure", "Disinterested"],
-  },
-  {
-    id: "b",
-    name: "Candidate B",
-    video: "./confident.mp4",
-
-    correctLabels: ["Engaged and confident", "Friendly and warm"],
-  },
-  {
-    id: "c",
-    name: "Candidate C",
-    video: "./aggressive.mp4",
-    correctLabels: ["Overpowering or aggressive", "Engaged and confident"],
-  },
+    {
+      id: "a",
+      name: "Candidate A",
+      video: "/nervous.mp4",
+      correctLabels: ["Nervous or unsure", "Disinterested"],
+    },
+    {
+      id: "b",
+      name: "Candidate B",
+      video: "/confident.mp4",
+      correctLabels: ["Engaged and confident", "Friendly and warm"],
+    },
+    {
+      id: "c",
+      name: "Candidate C",
+      video: "/aggressive.mp4",
+      correctLabels: ["Overpowering or aggressive", "Engaged and confident"],
+    },
 ];
 
 const labelOptions = [
-  "Nervous or unsure",
-  "Engaged and confident",
-  "Overpowering or aggressive",
-  "Disinterested",
-  "Friendly and warm",
+    "Nervous or unsure",
+    "Engaged and confident",
+    "Overpowering or aggressive",
+    "Disinterested",
+    "Friendly and warm",
 ];
+// --- END NEW GAME DATA ---
 
-export default function BodyLanguageGame() {
-  const { completeCommunicationChallenge } = useCommunication();
-  const [selections, setSelections] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState({});
-  const [showGame, setShowGame] = useState(false);
-  //for performance
-  const { updatePerformance } = usePerformance();
-  const [startTime, setStartTime] = useState(Date.now());
+const PERFECT_SCORE = candidates.length * 10; // 10 points per correctly identified candidate
+const PASSING_THRESHOLD = 0.7;
+const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'bodyLanguageChallengeState';
 
-  const handleDrop = (candidateId, label) => {
-    if (submitted) return;
-    setSelections((prev) => {
-      const current = prev[candidateId] || [];
-      if (current.includes(label) || current.length >= 2) return prev;
-      return {
-        ...prev,
-        [candidateId]: [...current, label],
-      };
-    });
-  };
-
-  const handleDragStart = (e, label) => {
-    e.dataTransfer.setData("label", label);
-  };
-
-  const checkAnswers = () => {
-    const res = {};
-    let allCorrect = true;
-
-    candidates.forEach(({ id, correctLabels }) => {
-      const userLabels = selections[id] || [];
-      const correct = userLabels.filter((l) => correctLabels.includes(l));
-      const isCorrect = correct.length === 2;
-
-      if (!isCorrect) allCorrect = false;
-
-      res[id] = {
-        correct: isCorrect,
-      };
-    });
-
-    setResult(res);
-    setSubmitted(true);
-
-    if (allCorrect) {
-      toast.success("🎉 Great job! You decoded all signals correctly!");
-      completeCommunicationChallenge(0, 0);
-
-      // ✅ Performance tracking
-      const endTime = Date.now();
-      const totalTimeSec = Math.floor((endTime - startTime) / 1000);
-      const studyTimeMinutes = Math.max(1, Math.round(totalTimeSec / 60));
-
-      const numberOfCandidates = candidates.length; // = 3
-      const avgResponseTimeSec = Math.floor(totalTimeSec / numberOfCandidates);
-
-      const accuracy = 100;
-      const finalScore = 10;
-      updatePerformance({
-        moduleName: "Communication",
-        topicName: "situationalAwareness",
-        completed: true,
-        studyTimeMinutes,
-        avgResponseTimeSec,
-        score: finalScore,
-        accuracy,
-      });
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text.replace(/^```(json)?/, "").replace(/```$/, "").trim();
     }
-  };
-
-  const resetGame = () => {
-    setSelections({});
-    setResult({});
-    setSubmitted(false);
-    setStartTime(Date.now());
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-100 via-pink-100 to-blue-100 p-6">
-      {!showGame ? (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="max-w-3xl mx-auto text-center p-10 rounded-[3rem] shadow-2xl border-[6px] border-white bg-gradient-to-br from-sky-100 via-white to-rose-100 relative overflow-hidden"
-        >
-          {/* 🎈 Floating Emojis */}
-          <motion.div
-            className="absolute top-4 left-6 text-3xl animate-bounce-slow"
-            animate={{ y: [0, -10, 0], x: [0, 5, 0] }}
-            transition={{ repeat: Infinity, duration: 3 }}
-          >
-            🎈
-          </motion.div>
-          <motion.div
-            className="absolute bottom-6 right-8 text-3xl animate-pulse"
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 4 }}
-          >
-            💬
-          </motion.div>
-
-          <motion.h1
-            className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 drop-shadow mb-2 pb-4 tracking-wide"
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-          >
-            🧠 Decode the Signal!
-          </motion.h1>
-
-          <motion.div
-            className="absolute top-4 right-6 text-3xl animate-bounce-slow"
-            animate={{ y: [0, -10, 0], x: [0, 5, 0] }}
-            transition={{ repeat: Infinity, duration: 3 }}
-          >
-            🎈
-          </motion.div>
-
-          <p className="text-xl text-purple-800 font-medium mb-6 leading-relaxed">
-            You're shadowing a mentor during a{" "}
-            <span className="text-pink-600 font-semibold">
-              campus internship interview
-            </span>
-            .
-            <br />
-            Your mission: Identify what each candidate’s{" "}
-            <strong>body language</strong> is really saying! 🕵️‍♀️
-          </p>
-
-          <div className="bg-white/70 border-2 border-dashed border-purple-300 rounded-xl shadow-md p-6 text-purple-800 text-base md:text-lg font-semibold space-y-2">
-            ✅ <strong>Your Task:</strong> <br />
-            🎥 Watch each candidate’s body language. <br />
-            🧩 Drag & drop the best labels to their video. <br />
-            📌 Each candidate has <strong>2 correct labels</strong>. <br />
-            🔄 Labels may apply to more than one candidate.
-          </div>
-
-          <motion.button
-            onClick={() => setShowGame(true)}
-            className="mt-10 bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white font-extrabold px-10 py-4 rounded-full text-xl shadow-xl tracking-wide"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            animate={{ scale: [1, 1.02, 1] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          >
-            🎮 Start Game
-          </motion.button>
-        </motion.div>
-      ) : (
-        <>
-          <div className="min-h-screen bg-gradient-to-br from-yellow-100 via-pink-100 to-blue-100 p-6">
-            <div className="text-center max-w-3xl mx-auto mb-3">
-              <motion.h1
-                className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 drop-shadow   pb-4 tracking-wide"
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 1.5,
-                  ease: "easeInOut",
-                }}
-              >
-                🧠 Decode the Signal!
-              </motion.h1>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              {candidates.map((c, index) => (
-                <motion.div
-                  key={c.id}
-                  whileHover={{ scale: 1.02 }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    const label = e.dataTransfer.getData("label");
-                    if (label) handleDrop(c.id, label);
-                  }}
-                  className="bg-gradient-to-br from-pink-100 via-yellow-100 to-purple-100 
-rounded-[2rem] shadow-[0_8px_16px_rgba(0,0,0,0.15)] 
-border-4 border-purple-700 
-p-5 text-center flex flex-col justify-between transition-all duration-300"
-                >
-                  {/* 🎥 Video */}
-                  <div className="relative">
-                    <video
-                      src={c.video}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      className="rounded-2xl w-full h-64 object-contain mb-4 bg-black border-4 border-purple-300"
-                    />
-                  </div>
-
-                  {/* 🧑‍💼 Name & Description */}
-                  <h2 className="text-2xl font-extrabold text-purple-800 mb-1  ">
-                    🧑‍💼 {c.name}
-                  </h2>
-
-                  {/* 🎯 Drop Zone */}
-                  <div className="bg-white/80 border-dashed border-4 border-purple-300 rounded-xl min-h-[90px] flex flex-wrap justify-center items-center gap-3 p-3 shadow-inner transition hover:shadow-purple-300 animate-in fade-in duration-500">
-                    {(selections[c.id] || []).length === 0 ? (
-                      <p className="text-purple-400 text-sm font-semibold animate-pulse">
-                        🧩 Drag a label here!
-                      </p>
-                    ) : (
-                      (selections[c.id] || []).map((label) => (
-                        <motion.span
-                          key={label}
-                          whileHover={{ scale: 1.1 }}
-                          className="bg-gradient-to-br from-yellow-200 via-pink-100 to-purple-200 border border-purple-400 text-purple-900 font-bold text-sm px-4 py-1 rounded-full shadow-md transition-all duration-200"
-                        >
-                          🎈 {label}
-                        </motion.span>
-                      ))
-                    )}
-                  </div>
-
-                  {/* 🎉 Feedback */}
-                  {submitted && (
-                    <div className="mt-4 text-lg font-bold">
-                      {result[c.id]?.correct ? (
-                        <motion.p
-                          className="text-green-600 animate-bounce"
-                          transition={{ type: "spring", stiffness: 200 }}
-                        >
-                          🏆 Yay! That’s Right!
-                        </motion.p>
-                      ) : (
-                        <motion.p
-                          className="text-red-500 animate-shake"
-                          transition={{ type: "spring", stiffness: 150 }}
-                        >
-                          😕 Oops! Try Again
-                        </motion.p>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-
-            {/* 🧠 Section Title */}
-            <motion.h3
-              className="text-center text-3xl md:text-4xl mt-12 font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 drop-shadow-md tracking-widest select-none"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, type: "spring" }}
-            >
-              🧩 Let’s Pick the Clues!
-            </motion.h3>
-
-            {/* 🕵️‍♀️ Subtext */}
-            <motion.p
-              className="text-center text-purple-700 text-lg md:text-xl mt-2 mb-5 italic"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 1 }}
-            >
-              Drag and drop the best-fitting label onto each candidate’s card
-              and also there are more than one correct option in each case. Use
-              your inner detective! 🕵️‍♀️
-            </motion.p>
-
-            {/* 🎈 Label Options */}
-            <motion.div
-              className="flex flex-wrap justify-center gap-4 mt-4 px-4"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.5, type: "spring" }}
-            >
-              {labelOptions.map((label, index) => (
-                <motion.div
-                  key={label}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, label)}
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.1, rotate: [0, 2, -2, 0] }}
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 2 + index * 0.2,
-                    ease: "easeInOut",
-                  }}
-                  className="bg-gradient-to-r from-pink-300 via-yellow-200 to-purple-200 text-purple-900 font-bold px-5 py-2 rounded-full shadow-xl text-base cursor-grab border-2 border-purple-400 hover:rotate-1 transition-transform duration-300"
-                >
-                  🎈 {label}
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* Submit & Retry Buttons */}
-            <div className="text-center mt-8 space-x-4">
-              <motion.button
-                className="bg-green-400 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-md text-lg transition-all duration-300"
-                onClick={checkAnswers}
-                disabled={submitted}
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.05 }}
-              >
-                🚀 Submit Answers
-              </motion.button>
-
-              {submitted && (
-                <motion.button
-                  className="bg-orange-400 hover:bg-orange-500 text-white font-semibold px-6 py-3 rounded-full shadow-md text-lg transition-all duration-300"
-                  onClick={resetGame}
-                  whileTap={{ scale: 0.95 }}
-                  whileHover={{ scale: 1.05 }}
-                >
-                  🔁 Try Again
-                </motion.button>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
+    if (text.startsWith("`") && text.endsWith("`")) {
+        text = text.slice(1, -1).trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
 }
+
+
+const Label = ({ label, isOverlay = false }) => (
+    <div className={`w-auto bg-cyan-700 rounded-3xl flex items-center justify-center transition-transform duration-200 p-2.5 ${isOverlay ? 'shadow-2xl scale-105' : 'hover:scale-105'}`}>
+        <span className="text-white text-center text-xs sm:text-sm font-medium inter-font leading-relaxed px-2">{label}</span>
+    </div>
+);
+
+const DraggableLabel = React.memo(({ label, activeId }) => {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: label });
+
+    const isBeingDragged = activeId === label;
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        visibility: isBeingDragged ? 'hidden' : 'visible',
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-grab touch-none">
+            <Label label={label} />
+        </div>
+    );
+});
+
+
+const CandidateCard = React.memo(({ candidate, selectedLabels, onRemoveLabel }) => {
+    const { setNodeRef, isOver } = useDroppable({ id: candidate.id });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className={`w-full bg-gray-800/30 border-2 rounded-xl p-4 flex flex-col gap-4 transition-all duration-300
+                ${isOver ? 'border-yellow-400 scale-105 shadow-lg shadow-yellow-400/20' : 'border-[#3F4B48]'}`}
+        >
+            <video
+                src={candidate.video}
+                autoPlay muted loop playsInline
+                className="rounded-lg w-full h-48 object-cover bg-black border border-gray-600"
+            />
+            <h2 className="text-xl font-bold text-center text-slate-100">{candidate.name}</h2>
+            <div className="bg-gray-900 rounded-lg border-2 border-dashed border-[#3F4B48] min-h-[100px] flex flex-wrap justify-center items-center gap-2 p-3">
+                {selectedLabels.length === 0 ? (
+                    <p className="text-slate-100/50 text-sm font-medium">Drop labels here</p>
+                ) : (
+                    selectedLabels.map(label => (
+                        <div key={label} className="transform transition-transform hover:scale-110" title="Click to remove" onClick={() => onRemoveLabel(candidate.id, label)}>
+                           <Label label={label} />
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+});
+
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <div className="relative w-48 h-48 md:w-56 md:h-56 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] lilita-one-regular text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onNavigateToSection, recommendedSectionTitle }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-[11px] font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-8 w-full max-w-md md:max-w-2xl flex justify-center">
+                    {recommendedSectionTitle && (
+                        <button onClick={onNavigateToSection} className="bg-[#068F36] text-black text-sm font-semibold rounded-lg py-3 px-10 md:px-6 hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg">
+                            Review "{recommendedSectionTitle}" Notes
+                        </button>
+                    )}
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex flex-wrap justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ answers, onBackToResults }) {
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center no-scrollbar">
+            <style>{scrollbarHideStyle}</style>
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 flex-shrink-0">Review Your Answers</h1>
+            <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto p-2 no-scrollbar">
+                {answers.map((ans, idx) => (
+                    <div key={idx} className={`p-4 rounded-xl flex flex-col ${ans.isCorrect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border space-y-3`}>
+                        <h3 className="text-lg font-bold text-yellow-300">{ans.candidateName}</h3>
+                        <video src={ans.video} muted autoPlay loop className="rounded-lg w-full h-auto bg-black" />
+                        <div className="mt-2">
+                            <p className={ans.isCorrect ? 'text-green-300 font-semibold' : 'text-red-300 font-semibold'}>Your Selections:</p>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {(ans.userAnswers.length > 0) ? ans.userAnswers.map(label => (
+                                    <span key={label} className="bg-gray-700 text-white text-sm px-3 py-1 rounded-full">{label}</span>
+                                )) : <span className="text-gray-400 italic">No labels selected.</span>}
+                            </div>
+                        </div>
+                        {!ans.isCorrect && (
+                            <div className="mt-2">
+                                <p className="text-green-400 font-semibold">Correct Labels:</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    {ans.correctAnswers.map(label => (
+                                        <span key={label} className="bg-green-800/50 text-white text-sm px-3 py-1 rounded-full">{label}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <button onClick={onBackToResults} className="mt-auto px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors flex-shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg">
+                Back to Results
+            </button>
+        </div>
+    );
+}
+
+
+const initialState = {
+    gameState: "intro",
+    score: 0,
+    answers: [],
+    insight: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: ""
+};
+
+function gameReducer(state, action) {
+    switch (action.type) {
+        case "RESTORE_STATE":
+            return action.payload;
+        case "SET_AI_INSIGHT":
+            return { ...state, insight: action.payload.insight, recommendedSectionId: action.payload.recommendedSectionId, recommendedSectionTitle: action.payload.recommendedSectionTitle };
+        case "SHOW_INSTRUCTIONS":
+            return { ...state, gameState: "instructions" };
+        case "START_GAME":
+            return { ...initialState, gameState: "playing" };
+        case "SUBMIT_ALL_ANSWERS": {
+            const { selections } = action.payload;
+            let newScore = 0;
+            const newAnswers = [];
+
+            candidates.forEach(candidate => {
+                const userLabels = selections[candidate.id] || [];
+                const correctLabels = candidate.correctLabels;
+
+                // --- NEW PARTIAL CREDIT LOGIC ---
+                // Calculate points per correct label for this candidate (e.g., 10 points / 2 labels = 5 points each)
+                const pointsPerLabel = 10 / correctLabels.length;
+                
+                // Count how many of the user's selected labels are actually correct
+                const correctHits = userLabels.filter(label => correctLabels.includes(label)).length;
+                
+                // Add the calculated partial score to the total
+                newScore += (correctHits * pointsPerLabel);
+                // --- END NEW LOGIC ---
+
+                // This part remains the same for the visual feedback (red/green card)
+                const isPerfectMatch = correctHits === correctLabels.length && userLabels.length === correctLabels.length;
+
+                newAnswers.push({
+                    candidateId: candidate.id,
+                    candidateName: candidate.name,
+                    video: candidate.video,
+                    userAnswers: userLabels,
+                    correctAnswers: correctLabels,
+                    isCorrect: isPerfectMatch, // isCorrect now just means a "perfect" score for that card
+                });
+            });
+
+            return {
+                ...state,
+                score: Math.round(newScore), // Round the score to be safe
+                answers: newAnswers,
+                gameState: "finished",
+            };
+        }
+        case "REVIEW_GAME":
+            return { ...state, gameState: "review" };
+        case "BACK_TO_FINISH":
+            return { ...state, gameState: "finished" };
+        case "RESET_GAME":
+            return { ...initialState, gameState: "playing" };
+        default:
+            return state;
+    }
+}
+
+const GameScreen = () => {
+    const navigate = useNavigate();
+    const [state, dispatch] = useReducer(gameReducer, initialState);
+    const [selections, setSelections] = useState({});
+    const [activeId, setActiveId] = useState(null);
+    const sensors = useSensors(
+        useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    );
+
+    useEffect(() => {
+        const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedStateJSON) {
+            try {
+                const savedState = JSON.parse(savedStateJSON);
+                dispatch({ type: 'RESTORE_STATE', payload: savedState });
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) {
+                console.error("Failed to parse saved game state:", error);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        if (state.gameState === "finished" && !state.insight) {
+            const generateInsight = async () => {
+                dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Analyzing your results...", recommendedSectionId: null, recommendedSectionTitle: "" } });
+                const incorrectAnswers = state.answers.filter(ans => !ans.isCorrect).map(ans => ({
+                    scenario: `For ${ans.candidateName}`,
+                    your_answer: ans.userAnswers.join(', ') || 'None',
+                    correct_answer: ans.correctAnswers.join(', '),
+                }));
+
+                if (incorrectAnswers.length === 0) {
+                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Perfect score! You're a body language expert!", recommendedSectionId: null, recommendedSectionTitle: "" } });
+                    return;
+                }
+                
+                const prompt = `You are an AI tutor. A student played a game about interpreting body language in an interview setting. Analyze their errors and provide targeted feedback. ### CONTEXT ### 1. **Student's Incorrect Answers:** ${JSON.stringify(incorrectAnswers, null, 2)} 2. **Available Note Sections:** ${JSON.stringify(notesCommunication9to10.map(n => ({ topicId: n.topicId, title: n.title, content: n.content.substring(0, 150) + '...' })), null, 2)} ### YOUR TASK ### 1. **DETECT:** Identify the main weakness (e.g., misinterpreting confidence for aggression, not recognizing signs of nervousness) and find the ONE best-matching note section. 2. **GENERATE:** Provide a short, encouraging insight (25-30 words) and suggest reviewing the note section by its title. ### OUTPUT FORMAT ### Return ONLY a raw JSON object. { "detectedTopicId": "The 'topicId' of the best section", "insight": "Your personalized feedback message." }`;
+
+                try {
+                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                    const aiReply = response.data.candidates[0].content.parts[0].text;
+                    const parsed = parsePossiblyStringifiedJSON(aiReply);
+                    if (parsed && parsed.insight && parsed.detectedTopicId) {
+                        const recommendedNote = notesCommunication9to10.find(note => note.topicId === parsed.detectedTopicId);
+                        dispatch({ type: "SET_AI_INSIGHT", payload: { insight: parsed.insight, recommendedSectionId: parsed.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "" } });
+                    } else { throw new Error("Failed to parse response from AI."); }
+                } catch (err) {
+                    console.error("Error fetching AI insight:", err);
+                    dispatch({ type: "SET_AI_INSIGHT", payload: { insight: "Good effort! Take a moment to review the module notes on non-verbal cues...", recommendedSectionId: 'non-verbal-communication', recommendedSectionTitle: "Non-Verbal Communication" } });
+                }
+            };
+            generateInsight();
+        }
+    }, [state.gameState, state.answers, state.insight]);
+
+    const handleDragStart = (event) => {
+        setActiveId(event.active.id);
+    };
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        setActiveId(null);
+        if (over) {
+            const candidateId = over.id;
+            const label = active.id;
+
+            setSelections((prev) => {
+                const current = prev[candidateId] || [];
+                if (current.includes(label) || current.length >= 2) return prev;
+                return { ...prev, [candidateId]: [...current, label] };
+            });
+        }
+    };
+    
+    const handleRemoveLabel = (candidateId, labelToRemove) => {
+        setSelections(prev => ({
+            ...prev,
+            [candidateId]: prev[candidateId].filter(label => label !== labelToRemove)
+        }));
+    };
+
+    const handleSubmit = () => {
+        dispatch({ type: 'SUBMIT_ALL_ANSWERS', payload: { selections } });
+    };
+
+    const handleStartGame = () => dispatch({ type: "START_GAME" });
+    const handlePlayAgain = () => {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        dispatch({ type: 'RESET_GAME' });
+        setSelections({});
+    };
+
+    const handleNavigateToSection = () => {
+        if (state.recommendedSectionId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+            navigate(`/communications/notes?grade=9-10&section=${state.recommendedSectionId}`);
+        }
+    };
+
+    if (state.gameState === "intro") {
+        return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
+    }
+    
+    if (state.gameState === "instructions") {
+        return <InstructionsScreen onStartGame={handleStartGame} />;
+    }
+
+    if (state.gameState === "finished") {
+        const accuracyScore = Math.round((state.score / PERFECT_SCORE) * 100);
+        const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
+        return isVictory
+            ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={() => navigate('/communications')} />
+            : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={handlePlayAgain} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />;
+    }
+
+    if (state.gameState === "review") {
+        return <ReviewScreen answers={state.answers} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
+    }
+
+    return (
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
+            <div className="w-full min-h-screen bg-[#0A160E] flex flex-col inter-font relative">
+                <style>{scrollbarHideStyle}</style>
+                <GameNav />
+                <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-y-auto no-scrollbar">
+                    <div className="w-full max-w-7xl flex flex-col items-center gap-4">
+                        <p className="text-center text-slate-300 mb-2">Drag and drop the best-fitting label onto each candidate’s card. There can be more than one correct option. Use your inner detective! 🕵️‍♀️</p>
+
+                        <div className="grid md:grid-cols-3 gap-6 w-full">
+                           {candidates.map(c => (
+                               <CandidateCard key={c.id} candidate={c} selectedLabels={selections[c.id] || []} onRemoveLabel={handleRemoveLabel} />
+                           ))}
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-4">
+                            {labelOptions.map(label => (
+                                <DraggableLabel key={label} label={label} activeId={activeId} />
+                            ))}
+                        </div>
+                        
+                    </div>
+                </main>
+                <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0">
+                    <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                        <button className="relative w-full h-full cursor-pointer" onClick={handleSubmit}>
+                            <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                            <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000]">
+                                Submit
+                            </span>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+            <DragOverlay>
+                {activeId ? <Label label={activeId} isOverlay={true} /> : null}
+            </DragOverlay>
+        </DndContext>
+    );
+};
+
+
+const BodyLanguageChallenge = () => {
+    return <GameScreen />;
+};
+
+export default BodyLanguageChallenge;

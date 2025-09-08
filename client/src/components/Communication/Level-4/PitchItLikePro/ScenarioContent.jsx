@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 // --- NEW DATA based on your request ---
 const scenarioData = {
     id: 1,
-    question: "Convince your school to allow an extra sports period.",
-    scenario: "Step 1: Choose your opening line.",
+    question: "Convince your principal to play soothing music between classes.",
+    scenario: "Challenge: Select the 4 most persuasive arguments.",
     options: [
-        "I believe an extra sports period would benefit all students.",
-        "We should have more fun. Period.",
-        "If we don't get this, we'll protest!"
+        "Studies show calming music can reduce anxiety by up to 30%.",
+        "Let’s play music only on Fridays when everyone’s tired.",
+        "Last year, our neighbor school started this, and fights in the hallway dropped.",
+        "Add loud rock music to energize students before class."
     ],
 };
 
@@ -75,7 +76,7 @@ const ScenarioContent = () => {
                     </p>
 
                     {/* Options container */}
-                    <div className="w-full max-w-lg mt-2 flex flex-col justify-start items-stretch gap-4">
+                    <div className="w-full max-w-lg mt-2 grid grid-cols-2 justify-start items-stretch gap-4">
                         {scenarioData.options.map((optionText, index) => (
                             <OptionItem
                                 key={index}

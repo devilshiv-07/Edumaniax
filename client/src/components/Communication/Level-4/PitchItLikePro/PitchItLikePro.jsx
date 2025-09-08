@@ -436,7 +436,6 @@ export default function PersuasionChallenge() {
                 <GameNav />
                 {gameState === "instructions" && <InstructionsScreen onStartGame={handleStartGame} />}
 
-                {/* --- CHANGE HERE for better centering and width control --- */}
                 <main className="flex-1 flex flex-col justify-start md:justify-center px-4 py-8  overflow-y-auto no-scrollbar">
                     <div className="w-full max-w-4xl mx-auto bg-gray-800/30 rounded-xl p-6 md:p-8 text-center">
                         <h2 className="text-slate-100 text-xl md:text-2xl font-medium">Convince your principal to play soothing music between classes.</h2>

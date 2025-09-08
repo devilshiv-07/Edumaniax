@@ -397,7 +397,7 @@ Return ONLY a raw JSON object.
 
     const handleExitGame = () => {
         setPopupVisible(false);
-        navigate('/courses'); // Or '/communications/games' as exit path
+        navigate('/courses'); 
     };
 
     const handleClosePopup = () => {
