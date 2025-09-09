@@ -15,9 +15,7 @@ const CTA2 = () => {
   const loggedInDescription = `Strengthen collaboration, empathy, and conflict resolution through games that model real-world social interactions.
 Students build teamwork, decision-making, and emotional regulation skills through peer-based challenges and guided reflection.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (

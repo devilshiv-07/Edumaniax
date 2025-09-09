@@ -15,9 +15,7 @@ const CTA = () => {
   const loggedInDescription = `Explore legal concepts through games that simulate real-life scenarios like courtroom trials, rights-based dilemmas, and legal reasoning.
 Students learn constitutional values, digital laws, and civic duties with interactive storytelling and gamified assessments.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (
