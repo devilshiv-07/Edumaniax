@@ -57,13 +57,6 @@ const modulesfor6to8 = [
         duration: "50 min",
         path: "/vision-builder",
       },
-      {
-        title: "Boss-Level Task: “My Leadership Poster”",
-        description:
-          "Objective: Design a poster that shows your leadership style and goals.",
-        duration: "55 min",
-        path: "/leadership-poster",
-      },
     ],
   },
   {
@@ -84,13 +77,6 @@ const modulesfor6to8 = [
         duration: "50 min",
         path: "/empathy-radar",
       },
-      {
-        title: "Boss-Level Task: “Kind Words Challenge”",
-        description:
-          "Objective: Write or record 3 examples of kind, clear communication you’ve used.",
-        duration: "55 min",
-        path: "/kind-words-challenge",
-      },
     ],
   },
   {
@@ -110,13 +96,6 @@ const modulesfor6to8 = [
           "Objective: Assign teammates to the right tasks and build team success.",
         duration: "45 min",
         path: "/team-architect",
-      },
-      {
-        title: "Boss-Level Task: “My Teamwork Story”",
-        description:
-          "Objective: Share a time you made a decision or helped your team.",
-        duration: "55 min",
-        path: "/teamwork-story",
       },
     ],
   },

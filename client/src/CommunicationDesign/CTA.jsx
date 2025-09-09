@@ -16,9 +16,7 @@ const CTA = () => {
   const loggedInDescription = `Build strong public speaking, creative writing, and debate skills through interactive communication games and storytelling challenges.
 Students enhance verbal communication, active listening, and persuasive speaking with scenario-based learning and AI-powered feedback.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (

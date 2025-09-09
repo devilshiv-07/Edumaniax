@@ -18,9 +18,7 @@ identify problems, pitch innovative ideas, and create virtual startups.
 They learn business planning, financial literacy, and leadership while
 developing real-world entrepreneurial skills.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (

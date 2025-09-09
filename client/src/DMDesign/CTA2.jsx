@@ -16,9 +16,7 @@ const CTA2 = () => {
   const loggedInDescription = `Master the fundamentals of digital marketing through games that cover SEO, social media management, content strategy, and branding.
 Students engage in simulated ad campaigns, perform keyword research, and track performance using in-game analytics tools.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (
