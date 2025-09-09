@@ -16,9 +16,7 @@ const CTA3 = () => {
   const loggedInDescription = `Explore environmental issues through immersive games that turn concepts like pollution control, renewable energy, and ecosystems into hands-on missions.
 Students take on the role of change-makers, designing solutions and making choices that impact virtual environments with real consequences.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (

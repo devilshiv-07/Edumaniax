@@ -6,7 +6,7 @@ const CTA = () => {
   const { user } = useAuth();
   const isLoggedIn = Boolean(user);
 
-  const buttonText = isLoggedIn ? "Purchase Now" : "Book your Free Demo!";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (

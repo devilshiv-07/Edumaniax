@@ -15,9 +15,7 @@ const CTA3 = () => {
   const loggedInDescription = `Boost creative thinking, problem-solving, and storytelling skills through hands-on creativity games and projects.
 Students explore innovative ideas, develop design thinking, and build confidence using scenario-based learning and AI-powered guidance.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (
