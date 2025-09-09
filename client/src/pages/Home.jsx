@@ -379,26 +379,6 @@ const TrialBookingModal = ({ isOpen, onClose }) => {
                     />
                   </div>
 
-                  {/* Email */}
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Email Address *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-sm"
-                      placeholder="Enter your email address"
-                    />
-                  </div>
-
                   {/* Phone Number */}
                   <div>
                     <label
@@ -419,13 +399,33 @@ const TrialBookingModal = ({ isOpen, onClose }) => {
                     />
                   </div>
 
+                  {/* Email */}
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-200 text-sm"
+                      placeholder="Enter your email address"
+                    />
+                  </div>
+
                   {/* Class */}
                   <div>
                     <label
                       htmlFor="class"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Class/Grade *
+                      Class/Grade
                     </label>
                     <select
                       id="class"
@@ -2182,7 +2182,7 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
               <button
                 onClick={() => navigate(user ? "/pricing" : "/courses")}
-                className="bg-white text-black font-semibold px-6 py-3 rounded-md transition duration-300 cursor-pointer text-sm sm:text-base hover:bg-gray-100"
+                className="text-white border border-white font-semibold px-6 py-3 rounded-md transition duration-300 cursor-pointer text-sm sm:text-base hover:bg-white hover:text-black"
               >
                 {user
                   ? hasActiveSubscription &&
@@ -2203,7 +2203,7 @@ const Home = () => {
               ) : (
                 <button
                   onClick={() => setIsTrialModalOpen(true)}
-                  className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
+                  className="border-2 border-white bg-white text-black font-semibold px-6 py-3 rounded-md cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
                 >
                   Book a trial
                 </button>

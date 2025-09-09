@@ -1,5 +1,5 @@
-import { prisma } from '../utils/prisma.js';
-import { createNotification } from './notificationController.js';
+import { prisma } from "../utils/prisma.js";
+import { createNotification } from "./notificationController.js";
 
 /**
  * Creates a new institutional inquiry and sends notification
@@ -13,14 +13,22 @@ export const createInstitutionalInquiry = async (req, res) => {
       organizationName,
       organizationType,
       studentCount,
-      message
+      message,
     } = req.body;
 
     // Validate required fields
-    if (!contactName || !contactEmail || !contactPhone || !organizationName || !organizationType || !studentCount || !message) {
+    if (
+      !contactName ||
+      !contactEmail ||
+      !contactPhone ||
+      !organizationName ||
+      !organizationType ||
+      !studentCount ||
+      !message
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: "All fields are required",
       });
     }
 
@@ -33,14 +41,14 @@ export const createInstitutionalInquiry = async (req, res) => {
         organizationName,
         organizationType,
         studentCount,
-        message
-      }
+        message,
+      },
     });
 
     // Create sales notification for institutional inquiry
     const notification = await prisma.salesNotification.create({
       data: {
-        type: 'INSTITUTIONAL_INQUIRY',
+        type: "INSTITUTIONAL_INQUIRY",
         message: `New institutional inquiry from ${contactName} at ${organizationName}`,
         data: JSON.stringify({
           inquiryId: inquiry.id,
@@ -50,27 +58,26 @@ export const createInstitutionalInquiry = async (req, res) => {
           organizationName,
           organizationType,
           studentCount,
-          message
+          message,
         }),
-        inquiryId: inquiry.id
-      }
+        inquiryId: inquiry.id,
+      },
     });
 
     res.status(201).json({
       success: true,
-      message: 'Inquiry submitted successfully',
+      message: "Inquiry submitted successfully",
       data: {
         inquiry,
-        notification
-      }
+        notification,
+      },
     });
-
   } catch (error) {
-    console.error('Error creating institutional inquiry:', error);
+    console.error("Error creating institutional inquiry:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to submit inquiry',
-      error: error.message
+      message: "Failed to submit inquiry",
+      error: error.message,
     });
   }
 };
@@ -84,32 +91,32 @@ export const getInquiries = async (req, res) => {
       status,
       startDate,
       endDate,
-      sort = 'createdAt',
-      order = 'desc',
+      sort = "createdAt",
+      order = "desc",
       page = 1,
       limit = 10,
-      search
+      search,
     } = req.query;
 
     // Build filter conditions
     let where = {};
 
-    if (status && status !== 'ALL') {
+    if (status && status !== "ALL") {
       where.status = status;
     }
 
     if (search) {
       where.OR = [
-        { contactName: { contains: search, mode: 'insensitive' } },
-        { organizationName: { contains: search, mode: 'insensitive' } },
-        { contactEmail: { contains: search, mode: 'insensitive' } }
+        { contactName: { contains: search, mode: "insensitive" } },
+        { organizationName: { contains: search, mode: "insensitive" } },
+        { contactEmail: { contains: search, mode: "insensitive" } },
       ];
     }
 
     if (startDate && endDate) {
       where.createdAt = {
         gte: new Date(startDate),
-        lte: new Date(endDate)
+        lte: new Date(endDate),
       };
     }
 
@@ -124,14 +131,16 @@ export const getInquiries = async (req, res) => {
     const inquiries = await prisma.institutionalInquiry.findMany({
       where,
       orderBy: {
-        [sort]: order.toLowerCase()
+        [sort]: order.toLowerCase(),
       },
       skip,
-      take
+      take,
     });
 
     // Log for debugging
-    console.log(`Found ${inquiries.length} inquiries out of ${totalCount} total`);
+    console.log(
+      `Found ${inquiries.length} inquiries out of ${totalCount} total`
+    );
 
     res.status(200).json({
       success: true,
@@ -141,15 +150,15 @@ export const getInquiries = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         totalPages: Math.ceil(totalCount / parseInt(limit)),
-        totalCount
-      }
+        totalCount,
+      },
     });
   } catch (error) {
-    console.error('Error getting inquiries:', error);
+    console.error("Error getting inquiries:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve inquiries',
-      error: error.message
+      message: "Failed to retrieve inquiries",
+      error: error.message,
     });
   }
 };
@@ -160,22 +169,17 @@ export const getInquiries = async (req, res) => {
 export const updateInquiry = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      status,
-      assignedTo,
-      followUpDate,
-      notes
-    } = req.body;
+    const { status, assignedTo, followUpDate, notes } = req.body;
 
     // Get the existing inquiry to track changes
     const existingInquiry = await prisma.institutionalInquiry.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!existingInquiry) {
       return res.status(404).json({
         success: false,
-        message: 'Inquiry not found'
+        message: "Inquiry not found",
       });
     }
 
@@ -186,14 +190,14 @@ export const updateInquiry = async (req, res) => {
         assignedTo: assignedTo || undefined,
         followUpDate: followUpDate ? new Date(followUpDate) : undefined,
         notes: notes || undefined,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     // Create notification for status change
     if (status && status !== existingInquiry.status) {
       await createNotification(
-        'INQUIRY_UPDATED',
+        "INQUIRY_UPDATED",
         `Inquiry status changed from ${existingInquiry.status} to ${status}`,
         updatedInquiry,
         id
@@ -202,15 +206,15 @@ export const updateInquiry = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Inquiry updated successfully',
-      data: updatedInquiry
+      message: "Inquiry updated successfully",
+      data: updatedInquiry,
     });
   } catch (error) {
-    console.error('Error updating inquiry:', error);
+    console.error("Error updating inquiry:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update inquiry',
-      error: error.message
+      message: "Failed to update inquiry",
+      error: error.message,
     });
   }
 };
@@ -230,21 +234,21 @@ export const getSalesAnalytics = async (req, res) => {
     // Get recent payment data
     const recentPayments = await prisma.payment.findMany({
       where: {
-        status: 'COMPLETED'
+        status: "COMPLETED",
       },
       include: {
         user: {
           select: {
             name: true,
-            email: true
-          }
+            email: true,
+          },
         },
-        subscription: true
+        subscription: true,
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: "desc",
       },
-      take: 10
+      take: 10,
     });
 
     // Get total revenue by plan type
@@ -257,18 +261,18 @@ export const getSalesAnalytics = async (req, res) => {
 
     // Get unread notification count
     const unreadNotificationsCount = await prisma.salesNotification.count({
-      where: { status: 'UNREAD' }
+      where: { status: "UNREAD" },
     });
 
     // Convert BigInt values to numbers for JSON serialization
-    const processedInquiryStatusCounts = inquiryStatusCounts.map(item => ({
+    const processedInquiryStatusCounts = inquiryStatusCounts.map((item) => ({
       ...item,
-      count: Number(item.count)
+      count: Number(item.count),
     }));
 
-    const processedRevenueByPlan = revenueByPlan.map(item => ({
+    const processedRevenueByPlan = revenueByPlan.map((item) => ({
       ...item,
-      total: Number(item.total)
+      total: Number(item.total),
     }));
 
     res.status(200).json({
@@ -277,15 +281,15 @@ export const getSalesAnalytics = async (req, res) => {
         inquiryStatusCounts: processedInquiryStatusCounts,
         recentPayments,
         revenueByPlan: processedRevenueByPlan,
-        unreadNotificationsCount
-      }
+        unreadNotificationsCount,
+      },
     });
   } catch (error) {
-    console.error('Error getting sales analytics:', error);
+    console.error("Error getting sales analytics:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve sales analytics',
-      error: error.message
+      message: "Failed to retrieve sales analytics",
+      error: error.message,
     });
   }
 };
@@ -297,7 +301,7 @@ export const handlePaymentWebhook = async (req, res) => {
   try {
     const { event, payload } = req.body;
 
-    if (event === 'payment.success') {
+    if (event === "payment.success") {
       // Process successful payment
       const paymentId = payload.payment.entity.id;
 
@@ -305,18 +309,18 @@ export const handlePaymentWebhook = async (req, res) => {
       const payment = await prisma.payment.update({
         where: { razorpayPaymentId: paymentId },
         data: {
-          status: 'COMPLETED',
-          updatedAt: new Date()
+          status: "COMPLETED",
+          updatedAt: new Date(),
         },
         include: {
           user: true,
-          subscription: true
-        }
+          subscription: true,
+        },
       });
 
       // Create notification for new payment
       await createNotification(
-        'NEW_PAYMENT',
+        "NEW_PAYMENT",
         `New payment of ₹${payment.amount} received for ${payment.planType} plan`,
         payment,
         null,
@@ -326,20 +330,27 @@ export const handlePaymentWebhook = async (req, res) => {
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Error processing payment webhook:', error);
+    console.error("Error processing payment webhook:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 export const createFreeTrialRequest = async (req, res) => {
   try {
-    const { fullName, email, phoneNumber, class: classGrade, state, city } = req.body;
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      class: classGrade,
+      state,
+      city,
+    } = req.body;
 
     // Validate required fields
-    if (!fullName || !email || !phoneNumber || !classGrade || !state || !city) {
+    if (!fullName || !phoneNumber) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required'
+        message: "All fields are required",
       });
     }
 
@@ -351,14 +362,14 @@ export const createFreeTrialRequest = async (req, res) => {
         phoneNumber,
         class: classGrade,
         state,
-        city
-      }
+        city,
+      },
     });
 
     // Create sales notification
     const notification = await prisma.salesNotification.create({
       data: {
-        type: 'FREE_TRIAL',
+        type: "FREE_TRIAL",
         message: `New free trial request from ${fullName}`,
         data: JSON.stringify({
           trialId: trialRequest.id,
@@ -367,27 +378,26 @@ export const createFreeTrialRequest = async (req, res) => {
           phoneNumber,
           class: classGrade,
           state,
-          city
+          city,
         }),
-        trialId: trialRequest.id
-      }
+        trialId: trialRequest.id,
+      },
     });
 
     res.status(201).json({
       success: true,
-      message: 'Free trial request submitted successfully',
+      message: "Free trial request submitted successfully",
       data: {
         trialRequest,
-        notification
-      }
+        notification,
+      },
     });
-
   } catch (error) {
-    console.error('Error creating free trial request:', error);
+    console.error("Error creating free trial request:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to submit free trial request',
-      error: error.message
+      message: "Failed to submit free trial request",
+      error: error.message,
     });
   }
 };
@@ -399,16 +409,16 @@ export const getFreeTrialRequests = async (req, res) => {
 
     // Build where clause
     const where = {};
-    if (status && status !== 'ALL') {
+    if (status && status !== "ALL") {
       where.status = status;
     }
     if (search) {
       where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search, mode: 'insensitive' } },
-        { state: { contains: search, mode: 'insensitive' } },
-        { city: { contains: search, mode: 'insensitive' } }
+        { fullName: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phoneNumber: { contains: search, mode: "insensitive" } },
+        { state: { contains: search, mode: "insensitive" } },
+        { city: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -416,11 +426,11 @@ export const getFreeTrialRequests = async (req, res) => {
     const [trialRequests, total] = await Promise.all([
       prisma.freeTrialRequest.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
-        take: parseInt(limit)
+        take: parseInt(limit),
       }),
-      prisma.freeTrialRequest.count({ where })
+      prisma.freeTrialRequest.count({ where }),
     ]);
 
     res.json({
@@ -430,16 +440,15 @@ export const getFreeTrialRequests = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
+        pages: Math.ceil(total / parseInt(limit)),
+      },
     });
-
   } catch (error) {
-    console.error('Error fetching free trial requests:', error);
+    console.error("Error fetching free trial requests:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch free trial requests',
-      error: error.message
+      message: "Failed to fetch free trial requests",
+      error: error.message,
     });
   }
 };
@@ -455,60 +464,59 @@ export const updateFreeTrialStatus = async (req, res) => {
         status,
         notes,
         followUpDate: followUpDate ? new Date(followUpDate) : null,
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
 
     res.json({
       success: true,
-      message: 'Free trial request updated successfully',
-      data: updatedTrial
+      message: "Free trial request updated successfully",
+      data: updatedTrial,
     });
-
   } catch (error) {
-    console.error('Error updating free trial request:', error);
+    console.error("Error updating free trial request:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update free trial request',
-      error: error.message
+      message: "Failed to update free trial request",
+      error: error.message,
     });
   }
 };
 
 export const getNotificationsByType = async (req, res) => {
   try {
-    const { type, status = 'UNREAD', limit = 50 } = req.query;
+    const { type, status = "UNREAD", limit = 50 } = req.query;
 
     const where = {};
-    if (type && type !== 'ALL') {
+    if (type && type !== "ALL") {
       where.type = type;
     }
-    if (status && status !== 'ALL') {
+    if (status && status !== "ALL") {
       where.status = status;
     }
 
     const notifications = await prisma.salesNotification.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: parseInt(limit),
       include: {
-        inquiry: type === 'INSTITUTIONAL_INQUIRY' ? true : false,
+        inquiry: type === "INSTITUTIONAL_INQUIRY" ? true : false,
         // Note: We can't include freeTrialRequest directly due to Prisma limitations
         // We'll need to handle this in the frontend by parsing the data field
-      }
+      },
     });
 
     // Parse the data field for free trial notifications
-    const processedNotifications = notifications.map(notification => {
-      if (notification.type === 'FREE_TRIAL' && notification.data) {
+    const processedNotifications = notifications.map((notification) => {
+      if (notification.type === "FREE_TRIAL" && notification.data) {
         try {
           const parsedData = JSON.parse(notification.data);
           return {
             ...notification,
-            parsedData
+            parsedData,
           };
         } catch (error) {
-          console.error('Error parsing notification data:', error);
+          console.error("Error parsing notification data:", error);
           return notification;
         }
       }
@@ -518,15 +526,14 @@ export const getNotificationsByType = async (req, res) => {
     res.json({
       success: true,
       data: processedNotifications,
-      count: processedNotifications.length
+      count: processedNotifications.length,
     });
-
   } catch (error) {
-    console.error('Error fetching notifications by type:', error);
+    console.error("Error fetching notifications by type:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch notifications',
-      error: error.message
+      message: "Failed to fetch notifications",
+      error: error.message,
     });
   }
 };
@@ -537,39 +544,39 @@ export const getNotificationsByType = async (req, res) => {
 export const deleteInquiry = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if inquiry exists
     const inquiry = await prisma.institutionalInquiry.findUnique({
-      where: { id }
+      where: { id },
     });
-    
+
     if (!inquiry) {
       return res.status(404).json({
         success: false,
-        message: 'Inquiry not found'
+        message: "Inquiry not found",
       });
     }
-    
+
     // Delete associated notifications first
     await prisma.salesNotification.deleteMany({
-      where: { inquiryId: id }
+      where: { inquiryId: id },
     });
-    
+
     // Delete the inquiry
     await prisma.institutionalInquiry.delete({
-      where: { id }
+      where: { id },
     });
-    
+
     res.status(200).json({
       success: true,
-      message: 'Inquiry deleted successfully'
+      message: "Inquiry deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting inquiry:', error);
+    console.error("Error deleting inquiry:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete inquiry',
-      error: error.message
+      message: "Failed to delete inquiry",
+      error: error.message,
     });
   }
 };
@@ -580,39 +587,39 @@ export const deleteInquiry = async (req, res) => {
 export const deleteFreeTrialRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if free trial request exists
     const freeTrial = await prisma.freeTrialRequest.findUnique({
-      where: { id }
+      where: { id },
     });
-    
+
     if (!freeTrial) {
       return res.status(404).json({
         success: false,
-        message: 'Free trial request not found'
+        message: "Free trial request not found",
       });
     }
-    
+
     // Delete associated notifications first
     await prisma.salesNotification.deleteMany({
-      where: { trialId: id }
+      where: { trialId: id },
     });
-    
+
     // Delete the free trial request
     await prisma.freeTrialRequest.delete({
-      where: { id }
+      where: { id },
     });
-    
+
     res.status(200).json({
       success: true,
-      message: 'Free trial request deleted successfully'
+      message: "Free trial request deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting free trial request:', error);
+    console.error("Error deleting free trial request:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete free trial request',
-      error: error.message
+      message: "Failed to delete free trial request",
+      error: error.message,
     });
   }
 };
@@ -625,23 +632,25 @@ export const verifyDataIntegrity = async (req, res) => {
     // Get counts of different entities
     const inquiryCount = await prisma.institutionalInquiry.count();
     const notificationCount = await prisma.salesNotification.count();
-    const institutionalNotificationCount = await prisma.salesNotification.count({
-      where: { type: 'INSTITUTIONAL_INQUIRY' }
-    });
+    const institutionalNotificationCount = await prisma.salesNotification.count(
+      {
+        where: { type: "INSTITUTIONAL_INQUIRY" },
+      }
+    );
     const freeTrialNotificationCount = await prisma.salesNotification.count({
-      where: { type: 'FREE_TRIAL' }
+      where: { type: "FREE_TRIAL" },
     });
 
     // Get sample inquiries
     const sampleInquiries = await prisma.institutionalInquiry.findMany({
       take: 5,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     // Get sample notifications
     const sampleNotifications = await prisma.salesNotification.findMany({
       take: 5,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     res.status(200).json({
@@ -651,33 +660,33 @@ export const verifyDataIntegrity = async (req, res) => {
           institutionalInquiries: inquiryCount,
           totalNotifications: notificationCount,
           institutionalNotifications: institutionalNotificationCount,
-          freeTrialNotifications: freeTrialNotificationCount
+          freeTrialNotifications: freeTrialNotificationCount,
         },
         sampleInquiries,
-        sampleNotifications
-      }
+        sampleNotifications,
+      },
     });
   } catch (error) {
-    console.error('Error verifying data integrity:', error);
+    console.error("Error verifying data integrity:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to verify data integrity',
-      error: error.message
+      message: "Failed to verify data integrity",
+      error: error.message,
     });
   }
 };
 
 export const getAllUsers = async (req, res) => {
   try {
-    console.log('getAllUsers called with params:', req.query);
-    
+    console.log("getAllUsers called with params:", req.query);
+
     const {
       page = 1,
       limit = 10,
-      search = '',
-      role = 'ALL',
-      sort = 'createdAt',
-      order = 'desc'
+      search = "",
+      role = "ALL",
+      sort = "createdAt",
+      order = "desc",
     } = req.query;
 
     // Build filter conditions
@@ -685,12 +694,12 @@ export const getAllUsers = async (req, res) => {
 
     if (search.trim()) {
       where.OR = [
-        { name: { contains: search.trim(), mode: 'insensitive' } },
-        { email: { contains: search.trim(), mode: 'insensitive' } }
+        { name: { contains: search.trim(), mode: "insensitive" } },
+        { email: { contains: search.trim(), mode: "insensitive" } },
       ];
     }
 
-    if (role && role !== 'ALL') {
+    if (role && role !== "ALL") {
       where.role = role;
     }
 
@@ -708,32 +717,32 @@ export const getAllUsers = async (req, res) => {
         id: true,
         name: true,
         email: true,
-            phonenumber: true,   
-    age: true,           
-    userClass: true, 
+        phonenumber: true,
+        age: true,
+        userClass: true,
         role: true,
         createdAt: true,
         // Remove lastLogin since it doesn't exist in your schema
         _count: {
           select: {
             payments: true,
-            subscriptions: true
-          }
-        }
+            subscriptions: true,
+          },
+        },
       },
       orderBy: {
-        [sort]: order.toLowerCase()
+        [sort]: order.toLowerCase(),
       },
       skip,
-      take
+      take,
     });
 
     // Get user statistics
     const userStats = await prisma.user.groupBy({
-      by: ['role'],
+      by: ["role"],
       _count: {
-        id: true
-      }
+        id: true,
+      },
     });
 
     res.status(200).json({
@@ -743,17 +752,17 @@ export const getAllUsers = async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: totalCount,
-        totalPages: Math.ceil(totalCount / parseInt(limit))
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
       },
-      statistics: userStats
+      statistics: userStats,
     });
   } catch (error) {
-    console.error('Error getting users:', error);
-    console.error('Error stack:', error.stack);
+    console.error("Error getting users:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve users',
-      error: error.message
+      message: "Failed to retrieve users",
+      error: error.message,
     });
   }
 };
