@@ -74,7 +74,7 @@ const AboutUs = () => {
 
   if (loading) return <AboutUsSkeleton />;
 
-  const buttonText = isLoggedIn ? "Purchase Now" : "Book your Free Demo!";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
   const buttonMarginClasses = isLoggedIn
     ? "ml-6 -mt-4 lg:ml-10 lg:mt-0 px-6 py-3" // Margins for "Purchase Now"
@@ -285,8 +285,8 @@ const AboutUs = () => {
         >
           <div className="text-center text-white mb-8">
             <p className="text-lg opacity-90">
-             
-We are a mission-driven company dedicated to empowering students to reimagine 
+              We are a mission-driven company dedicated to empowering students
+              to reimagine
               <br />
               their education journey and embrace interactive learning.
             </p>
@@ -640,10 +640,12 @@ We are a mission-driven company dedicated to empowering students to reimagine
                   </div>
                   <div className="mb-6 sm:mb-8 lg:mb-0">
                     <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-                      Our interactive tools, immersive story-based lessons, and fun gamification
-                       are designed to keep kids engaged. As they play games, collect badges 
-                       and unlock concepts. With every lesson, they'll also see how their hard 
-                       work improving their performance outcome while helping them in learning.
+                      Our interactive tools, immersive story-based lessons, and
+                      fun gamification are designed to keep kids engaged. As
+                      they play games, collect badges and unlock concepts. With
+                      every lesson, they'll also see how their hard work
+                      improving their performance outcome while helping
+                      them in learning.
                     </p>
                   </div>
                 </div>
@@ -656,7 +658,9 @@ We are a mission-driven company dedicated to empowering students to reimagine
                     />
                   </div>
                   <Link to={buttonLink}>
-                    <button className={`bg-[#068F36] hover:bg-green-700 text-white font-semibold rounded-md shadow-md transition text-lg ${buttonMarginClasses}`}>
+                    <button
+                      className={`bg-[#068F36] hover:bg-green-700 text-white font-semibold rounded-md shadow-md transition text-lg ${buttonMarginClasses}`}
+                    >
                       {buttonText}
                     </button>
                   </Link>

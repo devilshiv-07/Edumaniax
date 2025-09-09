@@ -17,9 +17,7 @@ const CTA2 = () => {
 AI-driven assessments track progress as students solve puzzles, complete challenges, and apply real-world tech skills.
 Each game is designed to build problem-solving, computational thinking, and digital fluency aligned with NEP 2020.`;
 
-  const buttonText = isLoggedIn
-    ? "Purchase Now"
-    : "Book your trial now! - It's Free";
+  const buttonText = isLoggedIn ? "Purchase Now" : "Start your free demo";
   const buttonLink = isLoggedIn ? "/pricing" : "/login";
 
   return (
