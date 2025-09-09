@@ -62,7 +62,7 @@ const IntroScreen = ({ onShowInstructions }) => {
       <audio ref={audioRef} loop src={bgMusic} />
 
       <Link
-        to="/environmental/games"
+        to="/communications/gamess"
         className="absolute top-4 left-4 w-[82px] h-[48px] sm:w-[101px] sm:h-[41px] 
          md:w-[120px] md:h-[50px] lg:w-[150px] lg:h-[60px] mt-11 md:ml-7 transition transform active:scale-95"
       >

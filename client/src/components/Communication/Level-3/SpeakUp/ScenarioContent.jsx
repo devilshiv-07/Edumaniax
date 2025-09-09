@@ -3,12 +3,11 @@ import React, { useState, useEffect } from 'react';
 // --- NEW DATA based on your request ---
 const scenarioData = {
     id: 1,
-    question: "Convince your school to allow an extra sports period.",
-    scenario: "Step 1: Choose your opening line.",
+    question: "A teammate keeps bossing you in a group project.",
     options: [
-        "I believe an extra sports period would benefit all students.",
-        "We should have more fun. Period.",
-        "If we don't get this, we'll protest!"
+        "Why are you always controlling everything?!",
+        "Whatever, do what you want.",
+        "I feel frustrated when you don’t let me share my ideas because I want to be part of the project. I need us to listen to each other."
     ],
 };
 
@@ -68,11 +67,6 @@ const ScenarioContent = () => {
                     <h2 className="text-slate-100 text-xl md:text-xl font-medium leading-snug md:leading-9">
                         {scenarioData.question}
                     </h2>
-
-                    {/* Scenario Description */}
-                    <p className="text-gray-300 text-sm md:text-base leading-relaxed font-regular">
-                        {scenarioData.scenario}
-                    </p>
 
                     {/* Options container */}
                     <div className="w-full max-w-lg mt-2 flex flex-col justify-start items-stretch gap-4">
