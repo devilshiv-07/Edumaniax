@@ -7,6 +7,7 @@ import GameNav from "./GameNav";
 import { useNavigate } from "react-router-dom";
 import { getLeadershipNotesRecommendation } from "@/utils/getLeadershipNotesRecommendation";
 import InstructionOverlay from "./InstructionOverlay";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
 
 const VisionBuilderGame = () => {
   const { completeLeadershipChallenge } = useLeadership();
@@ -41,6 +42,7 @@ const VisionBuilderGame = () => {
   const navigate = useNavigate();
   const [recommendedNotes, setRecommendedNotes] = useState([]);
   const [showInstructions, setShowInstructions] = useState(true); // New state for instructions overlay
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
 
   useEffect(() => {
     if (screen === "result" && isCorrect) {
@@ -199,7 +201,7 @@ Give at most **2 hints**, in short sentences. Use emojis and keep it encouraging
 
   // Next Challenge Handler
   const handleNextChallenge = () => {
-    navigate("/leadership-poster"); // ensure `useNavigate()` is defined
+    setIsPopupVisible(true);
   };
 
   // Trigger GIF when typing Vision or Goal1
@@ -324,6 +326,23 @@ Give at most **2 hints**, in short sentences. Use emojis and keep it encouraging
             </div>
           </div>
         )}
+        {/* ✅ Popup here */}
+        <LevelCompletePopup
+          isOpen={isPopupVisible}
+          onConfirm={() => {
+            setIsPopupVisible(false);
+            navigate("/communication-lab"); // your next level
+          }}
+          onCancel={() => {
+            setIsPopupVisible(false);
+            navigate("/leadership/games"); // or exit route
+          }}
+          onClose={() => setIsPopupVisible(false)}
+          title="Challenge Complete!"
+          message="Are you ready for the next challenge?"
+          confirmText="Next Challenge"
+          cancelText="Exit"
+        />
       </>
     );
   }

@@ -41,7 +41,8 @@ const getHeroImageForGrade = (userClass) => {
 // This function determines the CSS classes for the stats container based on grade.
 const getStatsContainerClasses = (userClass) => {
   // These classes define the layout and are common for all grades.
-  const baseLayoutClasses ="rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center  relative overflow-hidden";
+  const baseLayoutClasses =
+    "rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center  relative overflow-hidden";
 
   const styleForGrades6to8 = `bg-[#00B347] h-[300px] sm:h-[430px] w-full lg:w-[550px] ${baseLayoutClasses}`;
 
@@ -919,7 +920,7 @@ const StudentFeedbackCarousel = () => {
 
   const feedbackCards = [
     {
-      text: 'I like this type of quiz because it shows us the correct answer when we get it wrong, and if we don’t understand, it gives feedback at the end. That way, we can understand better and perform well on the test, maybe even get an A or B, because we learned along the way.',
+      text: "I like this type of quiz because it shows us the correct answer when we get it wrong, and if we don’t understand, it gives feedback at the end. That way, we can understand better and perform well on the test, maybe even get an A or B, because we learned along the way.",
       author: "",
       bgColor: "bg-purple-300",
       rotation: "rotate-1",
@@ -2137,91 +2138,90 @@ const Home = () => {
         </div>
 
         {/* Hero Section */}
-        {/* Hero Section */}
-<section className="flex flex-col w-full bg-[url('/heroBG.jpg')] bg-cover bg-center bg-no-repeat pt-20">
-  {/* Top Container: Text and Buttons */}
-  <div className="flex flex-col items-center text-center px-4 pt-8 sm:pt-12">
-    {/* Trust Badge */}
-    <div className="mb-4">
-      <div className="bg-black backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
-        <span className="text-white text-xs sm:text-sm flex items-center gap-2">
-          ⭐ Loved by 1K+ users worldwide
-        </span>
-      </div>
-    </div>
+        <section className="flex flex-col w-full bg-[url('/heroBG.jpg')] bg-cover bg-center bg-no-repeat pt-20">
+          {/* Top Container: Text and Buttons */}
+          <div className="flex flex-col items-center text-center px-4 pt-8 sm:pt-12">
+            {/* Trust Badge */}
+            <div className="mb-4">
+              <div className="bg-black backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+                <span className="text-white text-xs sm:text-sm flex items-center gap-2">
+                  ⭐ Loved by 1K+ users worldwide
+                </span>
+              </div>
+            </div>
 
-    {/* Main Heading */}
-    <div className="mb-4">
-      <h1
-        className="text-white text-3xl sm:text-4xl lg:text-5xl leading-tight"
-        style={{ fontFamily: '"Sigmar", sans-serif' }}
-      >
-        Master AI, Finance, Law
-      </h1>
-      <h1
-        className="text-white flex items-center justify-center text-3xl sm:text-4xl lg:text-5xl leading-tight"
-        style={{ fontFamily: '"Sigmar", sans-serif' }}
-      >
-        With a Twist of Fun
-        <img
-          className="w-8 h-8 sm:w-10 sm:h-10 ml-2"
-          src="/Fire.gif"
-          alt="fire"
-        />
-      </h1>
-    </div>
+            {/* Main Heading */}
+            <div className="mb-4">
+              <h1
+                className="text-white text-3xl sm:text-4xl lg:text-5xl leading-tight text-center"
+                style={{ fontFamily: '"Sigmar", sans-serif' }}
+              >
+                Turn Learning Into Play,
+              </h1>
+              <h1
+                className="text-white text-3xl sm:text-4xl lg:text-5xl leading-tight text-center"
+                style={{ fontFamily: '"Sigmar", sans-serif' }}
+              >
+                and Skills Into Certificates{" "}
+                <img
+                  className="inline-block align-middle w-8 h-8 sm:w-12 sm:h-12 ml-1 sm:ml-2"
+                  src="/Fire.gif"
+                  alt="fire"
+                />
+              </h1>
+            </div>
 
-    {/* Subtitle */}
-    <p className="text-white/90 tracking-wide text-sm sm:text-base max-w-2xl mx-auto mb-6">
-      Explore Artificial Intelligence, Machine Learning, Communication,
-      Coding, and more through interactive games, real-world challenges,
-      and bite-sized notes
-    </p>
+            {/* Subtitle */}
+            <p className="text-white/90 tracking-wide text-sm sm:text-base max-w-2xl mx-auto mb-6">
+              Explore AI , Finance, Law, Coding, and more Courses through
+              interactive games and effective notes. Gain certifications that
+              prepare you for tomorrow’s opportunities.
+            </p>
 
-    {/* CTA Buttons */}
-    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
-      <button
-        onClick={() => navigate(user ? "/pricing" : "/courses")}
-        className="bg-white text-black font-semibold px-6 py-3 rounded-md transition duration-300 cursor-pointer text-sm sm:text-base hover:bg-gray-100"
-      >
-        {user
-          ? hasActiveSubscription &&
-            (userPlan === "STARTER" || userPlan === "SOLO")
-            ? "Upgrade Plan"
-            : "Purchase Plan"
-          : "Get Started Free"}
-      </button>
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 sm:px-0">
+              <button
+                onClick={() => navigate(user ? "/pricing" : "/courses")}
+                className="bg-white text-black font-semibold px-6 py-3 rounded-md transition duration-300 cursor-pointer text-sm sm:text-base hover:bg-gray-100"
+              >
+                {user
+                  ? hasActiveSubscription &&
+                    (userPlan === "STARTER" || userPlan === "SOLO")
+                    ? "Upgrade Plan"
+                    : "Purchase Plan"
+                  : "Get Started Free"}
+              </button>
 
-      {/* Conditional second button */}
-      {user ? (
-        <button
-          onClick={() => navigate("/dashboard?section=modules")}
-          className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
-        >
-          Continue Reading
-        </button>
-      ) : (
-        <button
-          onClick={() => setIsTrialModalOpen(true)}
-          className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
-        >
-          Book a trial
-        </button>
-      )}
-    </div>
-  </div>
+              {/* Conditional second button */}
+              {user ? (
+                <button
+                  onClick={() => navigate("/dashboard?section=modules")}
+                  className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
+                >
+                  Continue Reading
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsTrialModalOpen(true)}
+                  className="border-2 border-white text-white font-semibold px-6 py-3 rounded-md hover:bg-white hover:text-black cursor-pointer transition duration-300 text-sm sm:text-base flex items-center justify-center gap-2"
+                >
+                  Book a trial
+                </button>
+              )}
+            </div>
+          </div>
 
-  {/* Bottom Container: Hero Illustration */}
-  <div className="flex-1 flex items-end justify-center w-full mt-6">
-    <div className="w-full max-w-md lg:max-w-lg">
-      <img
-        src={heroImage}
-        alt="Hero Illustration"
-        className="w-full h-auto object-contain"
-      />
-    </div>
-  </div>
-</section>
+          {/* Bottom Container: Hero Illustration */}
+          <div className="flex-1 flex items-end justify-center w-full mt-6">
+            <div className="w-full max-w-md lg:max-w-lg">
+              <img
+                src={heroImage}
+                alt="Hero Illustration"
+                className="w-full h-auto object-contain"
+              />
+            </div>
+          </div>
+        </section>
 
         {/* Why You'll Love It Section */}
         <section className="py-10 sm:py-20 bg-gray-50">
@@ -2499,7 +2499,9 @@ const Home = () => {
 
               {/* Image - order 2 on mobile, spans both rows on desktop */}
               <div className="order-2 lg:order-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
-                <div className={statsContainerClasses}>                  {/* Character illustration */}
+                <div className={statsContainerClasses}>
+                  {" "}
+                  {/* Character illustration */}
                   <div className="relative w-full pt-5 -mb-10 h-full z-10">
                     <img
                       src={statsGif}
