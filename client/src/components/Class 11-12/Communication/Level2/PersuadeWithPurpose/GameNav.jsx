@@ -9,7 +9,7 @@ import Heart from "@/components/icon/GreenBudget/Heart.jsx";
 // --- Asset Imports (ensure path is correct) ---
 import bgMusic from "/financeGames6to8/bgMusic.mp3";
 
-const GAME_DURATION_SECONDS = 7 * 60; // 7 minutes
+const GAME_DURATION_SECONDS = 6 * 60; // 7 minutes
 
 const GameNav = ({ onTimeUp }) => {
     const audioRef = useRef(null);

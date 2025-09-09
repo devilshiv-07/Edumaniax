@@ -1,15 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-// --- Icon Components (ensure paths are correct) ---
 import BackButton from "@/components/icon/GreenBudget/BackButton";
 import Vol from "@/components/icon/GreenBudget/Vol.jsx";
 import Heart from "@/components/icon/GreenBudget/Heart.jsx";
-
-// --- Asset Imports (ensure path is correct) ---
 import bgMusic from "/financeGames6to8/bgMusic.mp3";
 
-const GAME_DURATION_SECONDS = 7 * 60; // 7 minutes
+const GAME_DURATION_SECONDS = 6 * 60; 
 
 const GameNav = ({ onTimeUp }) => {
     const audioRef = useRef(null);
@@ -28,7 +24,6 @@ const GameNav = ({ onTimeUp }) => {
         return () => clearInterval(intervalId);
     }, [timeLeft, onTimeUp]);
 
-    // Listener for global audio events
     useEffect(() => {
         const handlePause = () => {
             if (audioRef.current && !audioRef.current.paused) {
