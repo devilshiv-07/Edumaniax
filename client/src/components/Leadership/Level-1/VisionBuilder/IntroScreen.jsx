@@ -46,7 +46,7 @@ const IntroScreen = () => {
   };
 
   const confirmExit = () => {
-    navigate("/finance/games");
+    navigate("/leadership/games");
   };
 
   const cancelExit = () => {
