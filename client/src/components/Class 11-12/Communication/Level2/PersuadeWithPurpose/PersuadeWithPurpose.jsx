@@ -11,8 +11,6 @@ import GameNav from './GameNav';
 import Checknow from '@/components/icon/GreenBudget/Checknow';
 import { notesCommunication11to12 } from "@/data/notesCommunication11to12.js";
 
-// --- MODIFICATION START: Added 'source' property to each card ---
-// This helps the review screen identify the correct section for each card.
 const cardData = {
     intro: [
         { id: 1, text: "Clubs like these already exist in top international schools.", type: "Ethos", source: "intro" },
@@ -36,7 +34,6 @@ const cardData = {
         { id: 15, text: "90% participation shows strong demand.", type: "Logos", source: "conclusion" },
     ],
 };
-// --- MODIFICATION END ---
 
 const allCards = [...cardData.intro, ...cardData.body, ...cardData.conclusion];
 const zoneConfig = {
@@ -195,7 +192,6 @@ function LosingScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onN
     );
 }
 
-// --- MODIFICATION START: New enhanced ReviewScreen component ---
 function ReviewScreen({ answers, onBackToResults }) {
     const CheckIcon = () => <svg className="w-5 h-5 text-green-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>;
     const CrossIcon = () => <svg className="w-5 h-5 text-red-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>;
@@ -268,7 +264,6 @@ function ReviewScreen({ answers, onBackToResults }) {
         </div>
     );
 }
-// --- MODIFICATION END ---
 
 
 const initialState = {
@@ -354,7 +349,7 @@ function gameReducer(state, action) {
     }
 }
 
-const PitchPerfectGame = () => {
+const PersuadewithPurpose = () => {
     const navigate = useNavigate();
     const [state, dispatch] = useReducer(gameReducer, initialState);
     const [activeCard, setActiveCard] = useState(null);
@@ -521,4 +516,4 @@ const PitchPerfectGame = () => {
     );
 };
 
-export default PitchPerfectGame;
+export default PersuadewithPurpose;

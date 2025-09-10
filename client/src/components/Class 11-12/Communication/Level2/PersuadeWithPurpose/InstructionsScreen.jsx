@@ -19,21 +19,24 @@ const InstructionsScreen = ({ onStartGame }) => {
 
         <div className="flex flex-col lg:flex-row items-center lg:items-start w-full gap-8 md:gap-12 p-6 md:p-10">
         
-          <div className="w-full lg:w-3/5 flex justify-center p-6 rounded-xl">
+          <div className="w-full lg:w-3/5 flex justify-center  rounded-xl">
             <ScenarioContent />
           </div>
 
           <div className="w-full lg:w-2/5 flex flex-col items-center lg:items-start text-center lg:text-left">
             <div className="lilita text-base md:text-lg leading-relaxed text-white">
-              <p className="mb-2">🧩 Drag & drop cards into Intro, Body, and Conclusion zones</p>
-              <p className="mb-2">🎯 Pick:</p>
+              <p className="mb-2">You will take on the role of pitching a new club idea to the Principal using persuasive strategies.</p>
+              <p className="mb-2">Your task will be to follow these steps –</p>
               <ul className="list-disc list-inside mb-2 pl-4">
-                <li>3 cards for Introduction</li>
-                <li>3 cards for Body</li>
-                <li>2 cards for Conclusion</li>
-                <li>🎯 Try to mix Ethos, Pathos, and Logos 🎉</li>
+                <li>Read the scenario prompt at the top of the screen</li>
+                <li>Drag and drop cards into each section of the pitch:
+                  <ul className="list-disc list-inside pl-6">
+                    <li>Introduction → Choose 3 cards</li>
+                    <li>Body → Choose 3 cards</li>
+                    <li>Conclusion / Appeal → Choose 2 cards</li>
+                  </ul>
+                </li>
               </ul>
-              <p className="mb-2">⏰ You’ll have 7 minutes to complete the challenge!</p>
             </div>
             
             <div className="w-full max-w-sm mt-8 bg-yellow-500 bg-cover bg-no-repeat p-4 rounded-lg text-white">
@@ -41,7 +44,7 @@ const InstructionsScreen = ({ onStartGame }) => {
                 LEARNING OUTCOME:
               </span>
               <span className="block mt-1 font-sans text-sm md:text-base leading-snug">
-                Active listening
+                Apply persuasive techniques effectively by balancing credibility, emotion, and logic in your communication.
               </span>
             </div>
           </div>

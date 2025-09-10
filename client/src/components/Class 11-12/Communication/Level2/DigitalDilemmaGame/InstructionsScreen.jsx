@@ -4,7 +4,7 @@ import ScenarioContent from './ScenarioContent.jsx';
 
 const InstructionsScreen = ({ onStartGame }) => {
   return (
-    <div className="fixed inset-0 bg-[#0A160E]/80 flex items-start lg:items-center justify-center z-50 p-4 overflow-x-hidden overflow-y-auto">
+    <div className="fixed inset-0 bg-[#0A160E]/20 flex items-start lg:items-center justify-center z-50 p-4 overflow-x-hidden overflow-y-auto">
       <div className="relative w-full max-w-6xl bg-[#0F2D1E] border-2 border-[#053C21] shadow-2xl">
         
         <div className="absolute w-12 h-12 -top-5 -right-5 md:w-16 md:h-16 lg:-top-6 lg:-right-6 z-20">
@@ -19,7 +19,7 @@ const InstructionsScreen = ({ onStartGame }) => {
 
         <div className="flex flex-col lg:flex-row items-center lg:items-start w-full gap-8 md:gap-12 p-6 md:p-10">
         
-          <div className="w-full lg:w-3/5 flex justify-center p-6 rounded-xl">
+          <div className="w-full lg:w-3/5 flex justify-center  rounded-xl">
             <ScenarioContent />
           </div>
 
