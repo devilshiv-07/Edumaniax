@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import bgVid from "/financeGames6to8/bgVid.mp4";
+import bgVid from "/financeGames6to8/bgVid2.mp4";
 import bgMusic from "/financeGames6to8/bgMusic.mp3";
 import btnExit from "/financeGames6to8/btn-exit.svg";
 import btnAudio from "/financeGames6to8/btnAudio.svg";
@@ -149,7 +149,7 @@ const IntroScreen = () => {
     `,
           }}
         >
-          Challenge 1
+          Challenge 2
         </h2>
 
         <BottomProgressLoader />
