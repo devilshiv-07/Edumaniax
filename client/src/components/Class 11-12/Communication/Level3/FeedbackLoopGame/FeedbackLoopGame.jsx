@@ -1,430 +1,509 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useReducer } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Confetti from 'react-confetti';
+import useWindowSize from 'react-use/lib/useWindowSize';
 import { useCommunication } from "@/contexts/CommunicationContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import { usePerformance } from "@/contexts/PerformanceContext";
 
+// --- RE-USED COMPONENTS FROM THE ORIGINAL STRUCTURE ---
+import IntroScreen from './IntroScreen';
+import InstructionsScreen from './InstructionsScreen';
+import GameNav from './GameNav';
+
+// Placeholder imports - ensure paths are correct
+import Checknow from '@/components/icon/GreenBudget/Checknow';
+
+// --- CHANGE: Import notes data for grades 11-12 ---
+import { notesCommunication11to12 } from "@/data/notesCommunication11to12.js";
+
+// --- GAME DATA & CONSTANTS FOR FEEDBACK LOOP ---
+const SCENARIO = {
+    title: "Feedback Loop Challenge",
+    context: "You're part of a design team. Your teammate’s recent presentation lacked structure and clarity. They've asked you for your honest feedback. Your goal is to provide constructive criticism that helps them improve without discouraging them.",
+};
+
+const TONES = ["Constructive", "Harsh/Blunt", "Overly Soft", "Balanced"];
+const PERFECT_SCORE = 3; // 1 point for Praise, 1 for Suggestion, 1 for Tone
+const PASSING_THRESHOLD = 0.75; // 75% to win (at least 2/3 criteria met)
 const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'feedbackLoopGameState';
 
-const FeedbackLoop = () => {
-    const { completeCommunicationChallenge } = useCommunication();
-    const [step, setStep] = useState(1);
-    const [hasStarted, setHasStarted] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(480); // 8 minutes
-    const [finalMessage, setFinalMessage] = useState("");
-    const [selectedTones, setSelectedTones] = useState([]);
-    const [gameDone, setGameDone] = useState(false);
-    const [feedback, setFeedback] = useState("");
-    const [evaluating, setEvaluating] = useState(false);
-    //for performance
-    const { updatePerformance } = usePerformance();
-    const [startTime,setStartTime] = useState(Date.now());
+// --- HELPER FUNCTIONS & STYLES ---
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
 
-
-    useEffect(() => {
-        if (hasStarted && timeLeft > 0) {
-            const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-        if (timeLeft === 0) setStep(3);
-    }, [hasStarted, timeLeft]);
-
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${s < 10 ? "0" : ""}${s}`;
-    };
-
-    const handleRestart = () => {
-        setStep(1);
-        setFinalMessage("");
-        setSelectedTones([]);
-        setHasStarted(false);
-        setTimeLeft(480);
-        setGameDone(false);
-        setFeedback("");
-        setStartTime(Date.now());
-    };
-
-    const toggleTone = (tone) => {
-        setSelectedTones((prev) =>
-            prev.includes(tone) ? [] : [tone]
-        );
-    };
-
-    const handleToneSubmit = () => {
-        if (selectedTones.includes("Balanced") || selectedTones.includes("Constructive")) {
-            setStep(3);
-            setFeedback("");
-        } else {
-            setFeedback("❌ Try to use a different tone.");
-        }
-    };
-
-    const submitFinal = async () => {
-        if (!finalMessage.trim()) {
-            setFeedback("⚠️ Please write your message before submitting.");
-            return;
-        }
-
-        setEvaluating(true);
-        setFeedback("⏳ AI is evaluating your feedback...");
-
-        const prompt = `You are a communication coach evaluating a student's feedback to a teammate whose presentation lacked structure.
-
-Evaluate if the feedback message includes all 3 of the following:
-1. Praise – at least one specific positive observation.
-2. Suggestion – at least one respectful improvement point.
-3. Tone – overall tone must be constructive and balanced.
-
-Return only a valid JSON object:
-{
-  "praise": true/false,
-  "suggestion": true/false,
-  "tone": true/false
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
 }
 
-❗Do not include any markdown, explanation, extra text, or commentary. Only return the JSON object.
-
-Here is the student's feedback message:
-"${finalMessage}"`;
-
-        try {
-            const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${APIKEY}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                    }),
-                }
-            );
-
-            const data = await res.json();
-            let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            rawText = rawText.trim();
-
-            // Remove markdown if AI still includes code block
-            if (rawText.startsWith("```")) {
-                rawText = rawText.replace(/```(?:json)?|```/g, "").trim();
-            }
-
-            const result = JSON.parse(rawText);
-            const { praise, suggestion, tone } = result;
-            const rawScore = [praise, suggestion, tone].filter(Boolean).length;
-            const score = (rawScore / 3) * 10; // scale to 10
-            const accuracy = (rawScore / 3) * 100; // scale to 100
-
-            if (score === 3) {
-                setFeedback("✅ You gave feedback like a leader—honest, helpful, and respectful.");
-                setGameDone(true);
-                completeCommunicationChallenge(2, 2); // ✅ Challenge complete
-
-                const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-
-                updatePerformance({
-                    moduleName: "Communication",
-                    topicName: "emotionalIntelligence",
-                    avgResponseTimeSec: timeTaken,
-                    studyTimeMinutes: Math.ceil(timeTaken / 60),
-                    completed: true,
-                    score,       // out of 10
-                    accuracy,    // out of 100
-                });
-            }
-            else if (!praise) {
-                setFeedback("🧠 Include at least one specific praise point before suggesting changes. Revise your message and try again.");
-            } else if (!suggestion) {
-                setFeedback("📌 Add a clear suggestion to help your peer improve. Revise your message and try again.");
-            } else if (!tone) {
-                setFeedback("⚠️ Make sure your tone is balanced and constructive. Revise your message and try again.");
-            }
-        } catch (error) {
-            console.error("Gemini API error:", error);
-            setFeedback("❌ Error evaluating feedback. Please try again.");
-        } finally {
-            setEvaluating(false);
-        }
-    };
-    const tones = ["Constructive", "Harsh/Blunt", "Overly Soft", "Balanced"];
-
+function LevelCompletePopup({ onCancel, onClose, isOpen }) {
+    if (!isOpen) return null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-yellow-50 p-6 text-gray-800 font-sans">
-            <div className="max-w-5xl mx-auto rounded-[3rem] p-1 bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 shadow-2xl">
-                <div className="bg-white/50 backdrop-blur-md rounded-[3rem] px-6 sm:px-12 py-10 sm:py-14 border border-white/30">
-
-                    <motion.h1
-                        className="relative text-6xl sm:text-7xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-400 drop-shadow-[0_0_25px_rgba(255,180,255,0.6)] pb-5 mb-5 tracking-tight"
-                        animate={{ scale: [1, 1.05, 1], rotate: [0, 1, -1, 0], y: [0, -5, 0] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000]">
+            <style>{`
+                @keyframes scale-in-popup {
+                    0% { transform: scale(0.9); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scale-in-popup { animation: scale-in-popup 0.3s ease-out forwards; }
+            `}</style>
+            <div className="relative bg-[#131F24] border-2 border-[#FFCC00] rounded-2xl p-6 md:p-8 text-center shadow-2xl w-11/12 max-w-md mx-auto animate-scale-in-popup">
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors p-2 rounded-full"
+                    aria-label="Close"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="lilita-one-regular text-2xl md:text-3xl text-yellow-400 mb-3">
+                    Awesome! Challenge Complete.
+                </h2>
+                <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
+                    Would you like to explore other modules?
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="px-8 py-3 bg-red-600 text-lg text-white lilita-one-regular rounded-md hover:bg-red-700 transition-colors border-b-4 border-red-800 active:border-transparent shadow-lg"
                     >
-                        <span className="inline-block animate-pulse-slow"> Feedback Loop</span>
-
-                        {/* Sparkle effect */}
-                        <span className="absolute -top-4 left-1/4 w-4 h-4 bg-yellow-300 rounded-full blur-sm animate-ping" />
-                        <span className="absolute -bottom-2 right-1/4 w-3 h-3 bg-pink-400 rounded-full blur-[2px] animate-pulse" />
-                    </motion.h1>
-                    {hasStarted && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                            className="relative text-center text-xl sm:text-2xl font-semibold text-indigo-700 mb-8 bg-white/20 backdrop-blur-md  py-3 rounded-full shadow-lg border border-white/30 flex justify-center"
-                        >
-                            <motion.span
-                                animate={{ rotate: [0, -10, 10, 0] }}
-                                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                                className="inline-block mr-2"
-                            >
-                                ⏳
-                            </motion.span>
-                            <span className="text-gray-800">Time Left : </span>
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-red-400 to-yellow-400 font-extrabold tracking-wide animate-pulse">
-                                {" "}{formatTime(timeLeft)}
-                            </span>
-                        </motion.div>
-                    )}
-
-
-                    {!hasStarted && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative text-center space-y-8 max-w-4xl mx-auto p-10 sm:p-14 bg-white/30 backdrop-blur-xl rounded-[3rem] shadow-[0_0_60px_rgba(255,200,250,0.4)] border border-white/20"
-                        >
-                            <motion.div
-                                animate={{ y: [0, -10, 0] }}
-                                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                                className="text-2xl sm:text-3xl font-bold text-pink-600 drop-shadow-lg"
-                            >
-                                Give Constructive Feedback
-                            </motion.div>
-
-                            <p className="text-lg sm:text-xl text-gray-800 font-medium leading-relaxed">
-                                🎯 <strong className="text-purple-700">Task Brief:</strong> You're part of a design team. Your teammate’s presentation lacked structure. They’ve asked for your honest feedback — and you’ll receive feedback in return too. Make it <span className="underline decoration-pink-400 decoration-wavy">specific</span>, <span className="underline decoration-purple-400 decoration-wavy">respectful</span>, and <span className="underline decoration-indigo-400 decoration-wavy">helpful</span>.
-                            </p>
-
-                            <p className="text-indigo-800 text-lg font-semibold">
-                                ⏱️ Estimated time: <span className="text-pink-700 font-bold">8 minutes</span>
-                            </p>
-
-                            <motion.button
-                                onClick={() => setHasStarted(true)}
-                                whileTap={{ scale: 0.92 }}
-                                whileHover={{ scale: 1.1 }}
-                                className="bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 animate-pulse text-white py-3 px-12 rounded-full font-extrabold text-2xl shadow-lg hover:shadow-2xl transition-all duration-300"
-                            >
-                                🚀 Begin the Journey
-                            </motion.button>
-                        </motion.div>
-                    )}
-
-                    {hasStarted && step === 1 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative text-center mt-12 space-y-8 bg-white/30 backdrop-blur-xl border-[3px] border-purple-400 rounded-[3rem] p-10 sm:p-14 shadow-[0_0_40px_rgba(200,150,255,0.4)] max-w-3xl mx-auto"
-                        >
-                            {/* Decorative floating sparkle */}
-                            <motion.div
-                                className="absolute -top-3 -right-3 w-5 h-5 bg-yellow-300 rounded-full blur-md"
-                                animate={{ y: [0, -6, 0], opacity: [1, 0.6, 1] }}
-                                transition={{ duration: 2, repeat: Infinity }}
-                            />
-
-                            <h2 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 via-pink-600 to-yellow-500 animate-pulse tracking-tight drop-shadow-md">
-                                ✍️ Give Feedback
-                            </h2>
-
-                            <p className="text-lg sm:text-xl text-gray-700 font-medium">
-                                Share 3–4 lines of <span className="text-purple-600 font-semibold">specific</span>, <span className="text-pink-500 font-semibold">respectful</span>, and <span className="text-yellow-600 font-semibold">constructive</span> feedback.
-                            </p>
-
-                            <p className="text-md sm:text-lg text-gray-700 font-medium">
-                                ✅ Your feedback should include:
-                                <br />
-                                <span className="text-green-600">• Praise</span> – one clear positive point,{" "}
-                                <span className="text-yellow-600">• Suggestion</span> – one respectful improvement,{" "}
-                                <span className="text-purple-600">• Tone</span> – keep it constructive & balanced.
-                            </p>
-
-                            <textarea
-                                rows={5}
-                                className="w-full rounded-2xl p-5 text-gray-800 bg-white/70 border-2 border-pink-300 focus:ring-4 focus:ring-purple-200 outline-none shadow-inner transition-all duration-200 placeholder:text-gray-500 placeholder:italic"
-                                placeholder="E.g., Your visuals were great! One suggestion would be to structure your points more clearly."
-                                value={finalMessage}
-                                onChange={(e) => setFinalMessage(e.target.value)}
-                            />
-
-                            <motion.button
-                                whileHover={{ scale: 1.07 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => setStep(2)}
-                                disabled={finalMessage.trim().length < 20}
-                                className={`px-8 py-3 text-xl font-bold text-white rounded-full shadow-xl transition-all duration-300 ${finalMessage.trim().length < 20
-                                    ? "bg-green-300 cursor-not-allowed opacity-50"
-                                    : "bg-gradient-to-r from-green-400 via-green-500 to-emerald-500 hover:from-green-500 hover:to-green-600"
-                                    }`}
-                            >
-                                ➡️ Next
-                            </motion.button>
-
-
-                        </motion.div>
-                    )}
-
-
-                    {hasStarted && step === 2 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="text-center mt-12 space-y-8 bg-white/30 backdrop-blur-xl border-[3px] border-pink-400 rounded-[3rem] p-10 sm:p-14 shadow-[0_0_40px_rgba(255,150,200,0.3)] max-w-4xl mx-auto"
-                        >
-                            <h2 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-400 animate-pulse drop-shadow">
-                                🎭 Choose Your Tone
-                            </h2>
-
-                            <p className="text-lg sm:text-xl text-gray-700 font-medium">
-                                Pick the tone that best matches your feedback style 🎤
-                            </p>
-
-                            <div className="flex flex-wrap justify-center gap-3">
-                                {tones.map((tone) => (
-                                    <motion.button
-                                        key={tone}
-                                        whileHover={{ scale: 1.08, rotate: [0, 2, -2, 0] }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => toggleTone(tone)}
-                                        className={`px-6 py-2 rounded-full font-semibold tracking-wide shadow-md transition-all duration-300 text-lg ${selectedTones.includes(tone)
-                                            ? "bg-gradient-to-r from-green-400 to-green-500 text-white border-2 border-green-700"
-                                            : "bg-yellow-100 hover:bg-yellow-200 border border-yellow-400 text-yellow-900"
-                                            }`}
-                                    >
-                                        ✨ {tone}
-                                    </motion.button>
-                                ))}
-                            </div>
-
-                            {feedback && (
-                                <p className="text-sm text-red-600 animate-pulse mt-2">{feedback}</p>
-                            )}
-
-                            <motion.button
-                                whileHover={{ scale: 1.07 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleToneSubmit}
-                                className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-10 py-3 rounded-full font-extrabold text-lg shadow-xl transition-all duration-300"
-                            >
-                                ✅ Submit Tone
-                            </motion.button>
-                        </motion.div>
-                    )}
-
-
-                    {hasStarted && step === 3 && !gameDone && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative text-center mt-12 space-y-8 bg-white/30 backdrop-blur-xl border-[3px] border-indigo-300 rounded-[3rem] p-10 sm:p-14 shadow-[0_0_50px_rgba(150,150,255,0.3)] max-w-3xl mx-auto"
-                        >
-                            {/* Floating sparkles */}
-                            <motion.span
-                                className="absolute -top-3 left-1/3 w-4 h-4 bg-purple-300 rounded-full blur-md"
-                                animate={{ y: [0, -8, 0], opacity: [0.8, 0.3, 0.8] }}
-                                transition={{ repeat: Infinity, duration: 3 }}
-                            />
-                            <motion.span
-                                className="absolute -bottom-3 right-1/4 w-3 h-3 bg-pink-400 rounded-full blur-sm"
-                                animate={{ y: [0, 6, 0], opacity: [0.9, 0.4, 0.9] }}
-                                transition={{ repeat: Infinity, duration: 2.5 }}
-                            />
-
-                            <h2 className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 animate-pulse drop-shadow-md">
-                                🧠 Final Evaluation
-                            </h2>
-
-                            <p className="text-xl font-medium text-gray-800">
-                                Let’s find out how impactful your feedback was!
-                            </p>
-
-                            <p className="text-sm sm:text-base font-semibold text-red-700 bg-red-100 border border-red-300 px-4 py-2 rounded-xl shadow-sm animate-pulse">
-                                🔍 <span className="text-red-800 font-bold">AI Feedback:</span> {feedback}
-                            </p>
-                            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-                                <motion.button
-                                    onClick={submitFinal}
-                                    whileTap={{ scale: 0.95 }}
-                                    whileHover={{ scale: 1.07 }}
-                                    disabled={evaluating}
-                                    className={`px-10 py-3 rounded-full text-lg font-bold text-white shadow-xl transition-all duration-300 ${evaluating
-                                        ? "bg-gray-400 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 hover:from-green-500 hover:to-teal-600"
-                                        }`}
-                                >
-                                    {evaluating ? "⏳ Evaluating..." : "🚀 Submit Feedback"}
-                                </motion.button>
-
-                                <motion.button
-                                    whileHover={{ scale: 1.07 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleRestart}
-                                    className="bg-gradient-to-r from-pink-500 via-pink-600 to-red-500 text-white px-10 py-3 rounded-full font-bold text-lg shadow-xl transition-all duration-300"
-                                >
-                                    Try Again
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    )}
-
-
-                    {gameDone && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative text-center mt-14 space-y-8 bg-white/30 backdrop-blur-xl border-[3px] border-green-300 rounded-[3rem] p-10 sm:p-14 shadow-[0_0_60px_rgba(150,255,150,0.3)] max-w-3xl mx-auto"
-                        >
-                            {/* Confetti sparkles */}
-                            <motion.span
-                                className="absolute -top-3 left-1/3 w-4 h-4 bg-yellow-300 rounded-full blur-md"
-                                animate={{ y: [0, -8, 0], opacity: [0.8, 0.3, 0.8] }}
-                                transition={{ repeat: Infinity, duration: 3 }}
-                            />
-                            <motion.span
-                                className="absolute -bottom-3 right-1/4 w-3 h-3 bg-green-400 rounded-full blur-sm"
-                                animate={{ y: [0, 6, 0], opacity: [0.9, 0.4, 0.9] }}
-                                transition={{ repeat: Infinity, duration: 2.5 }}
-                            />
-
-                            <h2 className="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-lime-400 to-yellow-400 animate-pulse drop-shadow-lg tracking-tight">
-                                🎉 Game Complete!
-                            </h2>
-
-                            <p className="text-xl sm:text-2xl font-medium text-gray-800">
-                                {feedback}
-                            </p>
-
-                            <motion.button
-                                whileHover={{ scale: 1.07 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleRestart}
-                                className="bg-gradient-to-r from-pink-500 via-pink-600 to-rose-500 text-white px-10 py-3 rounded-full font-extrabold text-lg shadow-xl transition-all duration-300"
-                            >
-                                🔄 Play Again
-                            </motion.button>
-                        </motion.div>
-                    )}
-
+                        Exit Game
+                    </button>
                 </div>
             </div>
         </div>
     );
+}
+
+// --- SUB-COMPONENTS (SCREENS) ---
+
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center overflow-y-auto no-scrollbar p-4">
+                <div className="relative w-48 h-48 md:w-52 md:h-52 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onNavigateToSection, recommendedSectionTitle }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-[11px] font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+                {recommendedSectionTitle && (
+                    <div className="mt-8 w-full max-w-md md:max-w-2xl flex justify-center">
+                        <button onClick={onNavigateToSection} className="bg-[#068F36] text-black text-sm font-semibold rounded-lg py-3 px-10 md:px-6 hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg">
+                            Review "{recommendedSectionTitle}" Notes
+                        </button>
+                    </div>
+                )}
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex flex-wrap justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ response, feedback, onBackToResults }) {
+    const rawScore = [feedback.praise, feedback.suggestion, feedback.tone].filter(Boolean).length;
+    const scoreText = `${rawScore}/${PERFECT_SCORE}`;
+    const isPerfect = rawScore === PERFECT_SCORE;
+
+    const criteria = [
+        { label: "Included specific praise", passed: feedback.praise },
+        { label: "Offered a clear suggestion", passed: feedback.suggestion },
+        { label: "Maintained a constructive tone", passed: feedback.tone },
+    ];
+
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
+            <style>{scrollbarHideStyle}</style>
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 shrink-0">Review Your Answer</h1>
+            <div className="w-full max-w-4xl space-y-4 overflow-y-auto p-2 no-scrollbar">
+                <div className={`p-4 rounded-xl flex flex-col ${isPerfect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-bold text-yellow-300">{SCENARIO.title}</h3>
+                        <span className={`font-bold text-lg ${isPerfect ? 'text-green-300' : 'text-red-300'}`}>Score: {scoreText}</span>
+                    </div>
+                    
+                    <div className="bg-gray-800/50 p-3 rounded-lg text-gray-200 text-sm space-y-2 mb-4">
+                        <p><strong className="text-cyan-400">Your Message:</strong> {response.message}</p>
+                        <p><strong className="text-cyan-400">Your Selected Tone:</strong> {response.selectedTone}</p>
+                    </div>
+
+                    <div className="bg-gray-900/60 p-3 rounded-lg">
+                        <h4 className="font-bold text-cyan-300 mb-2">Feedback Breakdown:</h4>
+                        <ul className="space-y-1 text-sm">
+                            {criteria.map((item, index) => (
+                                <li key={index} className="flex items-center">
+                                    <span className={`mr-2 font-bold text-xl ${item.passed ? 'text-green-400' : 'text-red-400'}`}>
+                                        {item.passed ? '✓' : '✗'}
+                                    </span>
+                                    <span className={item.passed ? 'text-gray-300' : 'text-gray-400 line-through'}>
+                                        {item.label}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <button onClick={onBackToResults} className="mt-auto px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg">
+                Back to Results
+            </button>
+        </div>
+    );
+}
+
+// --- STATE MANAGEMENT (useReducer) ---
+const initialState = {
+    gameState: "intro", // "intro", "instructions", "playing", "finished", "review"
+    response: { message: "", selectedTone: "" },
+    feedback: null,
+    insight: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: "",
+    startTime: Date.now(),
 };
 
+function gameReducer(state, action) {
+    switch (action.type) {
+        case "RESTORE_STATE":
+            return action.payload;
+        case "SHOW_INSTRUCTIONS":
+            return { ...state, gameState: "instructions" };
+        case "START_GAME":
+            return { ...initialState, gameState: "playing", startTime: Date.now() };
+        case "UPDATE_MESSAGE":
+            return { ...state, response: { ...state.response, message: action.payload } };
+        case "SELECT_TONE":
+            return { ...state, response: { ...state.response, selectedTone: action.payload } };
+        case "FINISH_GAME_AND_SET_RESULTS":
+            return {
+                ...state,
+                gameState: "finished",
+                feedback: action.payload.feedback,
+                insight: action.payload.insight,
+                recommendedSectionId: action.payload.recommendedSectionId,
+                recommendedSectionTitle: action.payload.recommendedSectionTitle,
+            };
+        case "REVIEW_GAME":
+            return { ...state, gameState: "review" };
+        case "BACK_TO_FINISH":
+            return { ...state, gameState: "finished" };
+        case "RESET_GAME":
+            return { ...initialState, gameState: "playing", startTime: Date.now() };
+        default:
+            return state;
+    }
+}
 
-export default FeedbackLoop;
+// --- MAIN GAME COMPONENT - FEEDBACK LOOP CHALLENGE ---
+
+export default function FeedbackLoopGame() {
+    const navigate = useNavigate();
+    const { completeCommunicationChallenge } = useCommunication();
+    const { updatePerformance } = usePerformance();
+    const [state, dispatch] = useReducer(gameReducer, initialState);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [gameKey, setGameKey] = useState(Date.now());
+
+    useEffect(() => {
+        const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedStateJSON) {
+            try {
+                const savedState = JSON.parse(savedStateJSON);
+                dispatch({ type: 'RESTORE_STATE', payload: savedState });
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) {
+                console.error("Failed to parse saved game state:", error);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+        }
+    }, []);
+
+    const handleSubmit = async () => {
+        setIsAnalyzing(true);
+
+        const prompt = `You are a communication coach evaluating a student's feedback message.
+### CONTEXT ###
+1.  **Student's Message:** "${state.response.message}"
+2.  **Student's Self-Identified Tone:** "${state.response.selectedTone}"
+3.  **Evaluation Criteria:**
+    -   **Praise:** Does the message contain at least one specific positive observation?
+    -   **Suggestion:** Does the message offer at least one respectful, actionable improvement point?
+    -   **Tone:** Is the overall tone constructive and balanced (not overly harsh or too soft)?
+4.  **Available Note Sections:** ${JSON.stringify(notesCommunication11to12.map(n => ({ topicId: n.topicId, title: n.title, content: n.content.substring(0, 150) + '...' })), null, 2)}
+### YOUR TASK ###
+1.  **SCORE:** Evaluate the message against the 3 criteria.
+2.  **DETECT:** Identify the main weakness (e.g., "lacked praise," "suggestion was unclear", "tone was too blunt"). Find the ONE best-matching note section from the list to help them. If perfect, default to 'constructive-criticism'.
+3.  **GENERATE:** Provide a short, encouraging insight (25-30 words).
+### OUTPUT FORMAT ###
+Return ONLY a raw JSON object.
+{
+  "scores": { "praise": true/false, "suggestion": true/false, "tone": true/false },
+  "detectedTopicId": "The 'topicId' of the best section",
+  "insight": "Your personalized feedback message."
+}`;
+
+        try {
+            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+            const aiReply = response.data.candidates[0].content.parts[0].text;
+            const parsed = parsePossiblyStringifiedJSON(aiReply);
+
+            if (parsed && parsed.scores && parsed.insight) {
+                const recommendedNote = notesCommunication11to12.find(note => note.topicId === parsed.detectedTopicId);
+                
+                const totalScore = [parsed.scores.praise, parsed.scores.suggestion, parsed.scores.tone].filter(Boolean).length;
+                const timeTakenSec = Math.floor((Date.now() - state.startTime) / 1000);
+                const accuracy = (totalScore / PERFECT_SCORE) * 100;
+                const isVictory = accuracy >= PASSING_THRESHOLD * 100;
+
+                updatePerformance({
+                    moduleName: "Communication", topicName: "emotionalIntelligence",
+                    score: Math.round((totalScore / PERFECT_SCORE) * 10),
+                    accuracy: accuracy, avgResponseTimeSec: timeTakenSec,
+                    studyTimeMinutes: Math.ceil(timeTakenSec / 60),
+                    completed: isVictory,
+                });
+                
+                if (isVictory) {
+                    completeCommunicationChallenge(2, 2);
+                }
+
+                dispatch({
+                    type: "FINISH_GAME_AND_SET_RESULTS",
+                    payload: {
+                        feedback: parsed.scores,
+                        insight: parsed.insight,
+                        recommendedSectionId: parsed.detectedTopicId,
+                        recommendedSectionTitle: recommendedNote ? recommendedNote.title : ""
+                    }
+                });
+            } else { throw new Error("Failed to parse response from AI."); }
+        } catch (err) {
+            console.error("Error fetching AI insight:", err);
+            dispatch({
+                type: "FINISH_GAME_AND_SET_RESULTS",
+                payload: {
+                    feedback: { praise: false, suggestion: false, tone: false },
+                    insight: "Couldn't score the message. Please try again later.",
+                    recommendedSectionId: 'constructive-criticism',
+                    recommendedSectionTitle: "Giving Constructive Criticism"
+                }
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handlePlayAgain = () => {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        dispatch({ type: 'RESET_GAME' });
+        setGameKey(Date.now());
+    };
+
+    const handleNavigateToSection = () => {
+        if (state.recommendedSectionId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+            navigate(`/communications/notes?grade=11-12&section=${state.recommendedSectionId}`);
+        }
+    };
+    
+    const handleTimeUp = () => {
+        dispatch({
+            type: "FINISH_GAME_AND_SET_RESULTS",
+            payload: {
+                feedback: { praise: false, suggestion: false, tone: false },
+                insight: "Time ran out! Clear communication often requires quick, thoughtful responses. Let's try again.",
+                recommendedSectionId: 'effective-communication',
+                recommendedSectionTitle: "Effective Communication"
+            }
+        });
+    };
+
+    const handleContinueClick = () => setPopupVisible(true);
+    const handleExitGame = () => navigate('/courses');
+    const handleClosePopup = () => setPopupVisible(false);
+
+    // --- RENDER LOGIC ---
+
+    if (state.gameState === "intro") {
+        return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
+    }
+
+    if (state.gameState === "instructions") {
+        return <InstructionsScreen onStartGame={() => dispatch({ type: "START_GAME" })} />;
+    }
+
+    if (state.gameState === "finished") {
+        const totalScore = Object.values(state.feedback).filter(Boolean).length;
+        const accuracyScore = Math.round((totalScore / PERFECT_SCORE) * 100);
+        const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
+
+        return (
+            <>
+                {isVictory
+                    ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={handleContinueClick} />
+                    : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={handlePlayAgain} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />
+                }
+                <LevelCompletePopup
+                    isOpen={isPopupVisible}
+                    onCancel={handleExitGame}
+                    onClose={handleClosePopup}
+                />
+            </>
+        );
+    }
+    
+    if (state.gameState === "review") {
+        return <ReviewScreen response={state.response} feedback={state.feedback} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
+    }
+
+    const { response } = state;
+    const isSubmitDisabled = response.message.trim().length < 20 || !response.selectedTone;
+
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] flex flex-col inter-font relative overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            
+            <GameNav key={gameKey} onTimeUp={handleTimeUp} durationInSeconds={8 * 60}/>
+            
+            <main className="flex-1 w-full flex flex-col items-center justify-center p-4 z-10">
+                <div className="w-full max-w-4xl bg-black/30 backdrop-blur-sm border-2 border-yellow-500/30 rounded-2xl shadow-2xl shadow-yellow-500/10 transition-all duration-300">
+                    <div className="w-full bg-gradient-to-br from-[#1a2a32] to-[#111827] rounded-2xl p-6 md:p-8">
+                        
+                        {/* Scenario Details Section */}
+                        <div className="mb-6 text-white">
+                            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
+                                <h2 className="text-base font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                                    <span className="text-xl">🧠</span> Context
+                                </h2>
+                                <p className="text-gray-300 text-sm">{SCENARIO.context}</p>
+                            </div>
+                        </div>
+
+                        {/* Input Section */}
+                        <div className="space-y-6">
+                            {/* Textarea for message */}
+                             <div>
+                                <label className="block text-lg font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+                                    <span className="text-xl">✍️</span> Compose Your Feedback
+                                </label>
+                                <textarea
+                                    rows={5}
+                                    placeholder="E.g., Your visuals were great! To make it stronger, maybe structure the key points more clearly..."
+                                    value={response.message}
+                                    onChange={(e) => dispatch({ type: 'UPDATE_MESSAGE', payload: e.target.value })}
+                                    className="w-full p-3 rounded-lg border-2 border-gray-600 bg-[#131F24] text-white text-base shadow-inner transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/50 outline-none"
+                                />
+                                <p className="text-xs text-gray-400 mt-2">Min 20 characters. Remember to include praise and a suggestion.</p>
+                            </div>
+                            
+                            {/* Tone selection */}
+                            <div>
+                                <p className="text-lg font-semibold text-cyan-300 mb-3 flex items-center gap-2">
+                                    <span className="text-xl">🎭</span> Select The Tone You Used
+                                </p>
+                                <div className="flex flex-wrap gap-3">
+                                    {TONES.map(tone => (
+                                        <button
+                                            key={tone}
+                                            onClick={() => dispatch({ type: 'SELECT_TONE', payload: tone })}
+                                            className={`px-5 py-2 text-sm rounded-full font-bold transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 transform ${response.selectedTone === tone
+                                                ? 'bg-yellow-500 border-yellow-700 text-black scale-105 shadow-lg shadow-yellow-500/20'
+                                                : 'bg-gray-700 hover:bg-gray-600 border-gray-900 text-white'
+                                            }`}
+                                        >
+                                            {tone}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            
+            <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0 z-10">
+                <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                    <button className="relative w-full h-full cursor-pointer" onClick={handleSubmit} disabled={isSubmitDisabled || isAnalyzing}>
+                        <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                        <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita-one-regular text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] ${(isSubmitDisabled || isAnalyzing) ? "opacity-50" : ""}`}>
+                            {isAnalyzing ? 'Analyzing...' : 'Finish'}
+                        </span>
+                    </button>
+                </div>
+            </footer>
+        </div>
+    );
+}

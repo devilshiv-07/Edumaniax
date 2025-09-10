@@ -354,10 +354,8 @@ const DigitalDilemmaChallenge = () => {
             <style>{scrollbarHideStyle}</style>
             <GameNav />
 
-            {/* CHANGE: Main content is now vertically and horizontally centered */}
+            
             <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-y-auto no-scrollbar">
-
-                {/* CHANGE: Timer display is removed from here */}
 
                 {state.gamePhase === 'decision' && (
                     <div className="w-full max-w-5xl flex flex-col gap-4 p-4 bg-gray-800/50 border border-gray-700 rounded-xl">
