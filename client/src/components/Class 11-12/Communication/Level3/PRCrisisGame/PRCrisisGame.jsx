@@ -1,432 +1,559 @@
-import React, { useState, useEffect } from "react";
-import Confetti from "react-confetti";
-import { useWindowSize } from '@react-hook/window-size';
+import React, { useState, useEffect, useReducer, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Confetti from 'react-confetti';
+import useWindowSize from 'react-use/lib/useWindowSize';
 import { useCommunication } from "@/contexts/CommunicationContext";
-import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import { usePerformance } from "@/contexts/PerformanceContext";
 
-import { motion } from "framer-motion";
+// --- RE-USED COMPONENTS (Assuming they exist in the same folder or are imported correctly) ---
+import IntroScreen from './IntroScreen'; // Assuming you have this component
+import InstructionsScreen from './InstructionsScreen'; // Assuming you have this component
+import GameNav from './GameNav'; // Assuming you have this component
 
-const KidButton = ({ text, icon, onClick, active }) => (
-    <button
-        onClick={onClick}
-        className={`transition-all duration-300 ease-in-out rounded-full px-5 py-3 text-md font-bold flex items-center justify-center gap-2 shadow-md border-2 ${active
-            ? "bg-green-200 border-green-600 scale-105"
-            : "bg-white hover:bg-pink-100 border-pink-300"
-            } hover:shadow-lg hover:scale-105`}
-    >
-        <span className="text-lg">{icon}</span> {text}
-    </button>
-);
-const PRCrisisGame = () => {
-    const { completeCommunicationChallenge } = useCommunication();
-    const { width, height } = useWindowSize();
-    const [step, setStep] = useState(0);
-    const [statement, setStatement] = useState("");
-    const [decisions, setDecisions] = useState({
-        reaction: null,
-        tone: null,
-        closing: null,
-    });
-    const [feedback, setFeedback] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(10 * 60); // 10 minutes
-    const [gameDone, setGameDone] = useState(false);
-    const [hasStarted, setHasStarted] = useState(false);
-    //for performance
-    const { updatePerformance } = usePerformance();
-    const [startTime,setStartTime] = useState(Date.now());
+// Placeholder imports - ensure paths are correct
+import Checknow from '@/components/icon/GreenBudget/Checknow'; // User's custom component
+
+// --- UPDATED: Import the notes data for grades 11-12 ---
+import { notesCommunication11to12 } from "@/data/notesCommunication11to12.js"; // Ensure this path is correct
 
 
-    useEffect(() => {
-        const { reaction, tone, closing } = decisions;
+// --- GAME DATA & CONSTANTS ---
+const SCENARIO = {
+    title: "PR Crisis: The Unfortunate Post",
+    context: "A recent post from a school club was perceived as insensitive, causing distress among some students. As the student spokesperson, you need to address the situation publicly. Choose the correct strategic approach, then write a 5-6 line official statement.",
+};
 
-        if (reaction && tone && closing) {
-            const passed =
-                reaction === "ack" &&
-                tone === "professional" &&
-                closing === "apology";
+const CHOICES = {
+    reaction: [
+        { id: "ack", text: "Acknowledge the Issue", icon: "🧸" },
+        { id: "silent", text: "Delete & Hide", icon: "🗑️" },
+        { id: "blame", text: "Blame Others", icon: "💥" },
+    ],
+    tone: [
+        { id: "professional", text: "Professional & Understanding", icon: "🌈" },
+        { id: "dismissive", text: "Dismissive", icon: "🥶" },
+        { id: "casual", text: "Too Casual", icon: "😎" },
+    ],
+    closing: [
+        { id: "apology", text: "Apologize & Offer Next Steps", icon: "🛠️" },
+        { id: "defend", text: "Defend Intentions", icon: "🛡️" },
+        { id: "blame_again", text: "Shift Blame", icon: "👎" },
+    ],
+};
+const CORRECT_CHOICES = {
+    reaction: 'ack',
+    tone: 'professional',
+    closing: 'apology'
+};
 
-            setFeedback(
-                passed
-                    ? "✅ Great job! You handled the PR crisis with empathy and accountability."
-                    : "⚠️ Not quite. Try to acknowledge, stay professional, and offer a solution."
-            );
+const PERFECT_SCORE = 10; // 3 points for choices, 7 for message
+const PASSING_THRESHOLD = 0.75; // 75% to win
+const APIKEY = import.meta.env.VITE_API_KEY;
+const SESSION_STORAGE_KEY = 'prCrisisChallengeGameState';
 
-            if (passed) {
-                completeCommunicationChallenge(2, 1); // ✅ Call here
-                setTimeout(() => {
-                    setFeedback("");
-                    setStep(2); // Move to next game step
-                }, 2000);
-            }
-        }
-    }, [decisions]);
+// --- HELPER FUNCTIONS & STYLES ---
+const scrollbarHideStyle = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
 
+function parsePossiblyStringifiedJSON(text) {
+    if (typeof text !== "string") return null;
+    text = text.trim();
+    if (text.startsWith("```")) {
+        text = text.replace(/^```(json)?/, "").replace(/```$/, "").trim();
+    }
+    try {
+        return JSON.parse(text);
+    } catch (err) {
+        console.error("Failed to parse JSON:", err);
+        return null;
+    }
+}
 
-    const handleDecision = (category, choice) => {
-        setDecisions((prev) => ({ ...prev, [category]: choice }));
-    };
-
-    const handleStatementSubmit = () => {
-        const lower = statement.toLowerCase();
-
-        const acknowledgeWords = [
-            "sorry", "apologize", "regret", "acknowledge", "recognize", "own", "take responsibility", "mistake", "accountable"
-        ];
-        const empathyWords = [
-            "empathy", "understand", "feel", "aware", "sensitive", "respect", "inclusive", "concern", "care", "compassion", "valuing", "listening"
-        ];
-        const actionWords = [
-            "step", "solution", "process", "review", "improve", "plan", "change", "will", "action", "actions", "strict",
-            "address", "fix", "resolve", "ensure", "prevent", "revisit", "respond", "evaluate", "commit"
-        ];
-
-        const hasAcknowledgement = acknowledgeWords.some(word => lower.includes(word));
-        const hasEmpathy = empathyWords.some(word => lower.includes(word));
-        const hasAction = actionWords.some(word => lower.includes(word));
-
-        const passed = hasAcknowledgement && hasEmpathy && hasAction;
-
-        setFeedback(
-            passed
-                ? "✅ Great job! Your message shows responsibility, empathy, and next steps."
-                : "⚠️ Try again. Make sure your message includes: acknowledgement, empathy, and a plan of action."
-        );
-
-        if (passed) {
-            const correctCount = 3;
-            const scaledScore = Math.round((correctCount / 3) * 10);
-            const accuracy = Math.round((correctCount / 3) * 100);
-            const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
-
-            updatePerformance({
-                moduleName: "Communication",
-                topicName: "situationalAwareness",
-                score: scaledScore,
-                accuracy,
-                avgResponseTimeSec: timeTakenSec,
-                studyTimeMinutes: Math.ceil(timeTakenSec / 60),
-                completed: true,
-
-            });
-        }
-
-        setGameDone(passed);
-    };
-
-
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    };
-
-    const restartGame = () => {
-        setStep(0);
-        setHasStarted(false);
-        setDecisions({ reaction: "", tone: "", closing: "" });
-        setStatement("");
-        setFeedback("");
-        setGameDone(false);
-        setTimeLeft(10 * 60);
-        setStartTime(Date.now());
-    };
-
-    useEffect(() => {
-        if (!hasStarted || gameDone) return;
-
-        const intervalId = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    clearInterval(intervalId); // use intervalId instead of timer
-                    setGameDone(true);
-                    setFeedback("⏰ Time’s up! Try again.");
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        return () => clearInterval(intervalId);
-    }, [hasStarted, gameDone]);
-
+function LevelCompletePopup({ onCancel, onClose, isOpen }) {
+    if (!isOpen) return null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-50 to-yellow-50 p-6 text-gray-800 font-sans">
-            <div className="max-w-5xl mx-auto rounded-[3rem] p-1 bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 shadow-2xl">
-                <div className="bg-white/50 backdrop-blur-md rounded-[3rem] px-6 sm:px-12 py-10 sm:py-14 border border-white/30">
-                    <motion.h1
-                        className="relative text-6xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-400 drop-shadow-[0_3px_6px_rgba(255,100,200,0.5)] mb-3 tracking-tight"
-                        animate={{ scale: [1, 1.05, 1], rotate: [0, 1.5, -1.5, 0] }}
-                        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000]">
+            <style>{`
+                @keyframes scale-in-popup {
+                    0% { transform: scale(0.9); opacity: 0; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .animate-scale-in-popup { animation: scale-in-popup 0.3s ease-out forwards; }
+            `}</style>
+            <div className="relative bg-[#131F24] border-2 border-[#FFCC00] rounded-2xl p-6 md:p-8 text-center shadow-2xl w-11/12 max-w-md mx-auto animate-scale-in-popup">
+                <button
+                    onClick={onClose}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors p-2 rounded-full"
+                    aria-label="Close"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="lilita-one-regular text-2xl md:text-3xl text-yellow-400 mb-3">
+                    Awesome! Challenge Complete.
+                </h2>
+                <p className="font-['Inter'] text-base md:text-lg text-white mb-8">
+                    Would you like to explore other modules?
+                </p>
+                <div className="flex justify-center items-center gap-4">
+                    <button
+                        onClick={onCancel}
+                        className="px-8 py-3 bg-red-600 text-lg text-white lilita-one-regular rounded-md hover:bg-red-700 transition-colors border-b-4 border-red-800 active:border-transparent shadow-lg"
                     >
-                        🎭 <span className="inline-block animate-pulse-fast">Handle a PR Crisis</span>
-                        {/* Sparkles ✨ */}
-                        <span className="absolute top-4 left-1/4 text-yellow-300 text-xl animate-bounce">✨</span>
-                        <span className="absolute top-2 right-1/3 text-pink-200 text-2xl animate-spin-slow">🌟</span>
-                        <span className="absolute bottom-3 left-[60%] text-purple-200 text-xl animate-bounce">💫</span>
-                    </motion.h1>
-
-                    <div className="flex justify-center items-center gap-6 mb-2 flex-wrap">
-                        <div className="text-center text-xl font-bold text-indigo-700 bg-indigo-100 px-6 py-3 rounded-full shadow-md inline-block animate-pulse border-2 border-indigo-300  ">
-                            ⏳ Time Left: <span className="text-pink-600 tracking-wide">{formatTime(timeLeft)}</span>
-                        </div>
-                    </div>
-
-                    {step === 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8 }}
-                            className="max-w-3xl mx-auto p-10 space-y-6 bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 border-4 border-purple-300 rounded-[2.5rem] shadow-2xl text-center"
-                        >
-                            <p className="text-lg text-gray-800 leading-relaxed italic bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-md">
-                                🎯 A social media post from your student club has unintentionally offended some students.
-                                You’re the student spokesperson. The Principal asks you to post a written response.
-                            </p>
-                            <motion.button
-                                onClick={() => {
-                                    setStep(1);
-                                    setHasStarted(true);
-                                    setTimeLeft(10 * 60);  // Reset timer to 10 minutes
-                                    setGameDone(false);    // Reset game state
-                                    setFeedback("");       // Clear old feedback
-                                }}
-
-                                whileTap={{ scale: 0.95 }}
-                                whileHover={{ scale: 1.07 }}
-                                className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white py-3 px-10 rounded-full font-bold text-lg shadow-xl transition"
-                            >
-                                🚀 Start Scenario
-                            </motion.button>
-                        </motion.div>
-                    )}
-
-                    {step === 1 && (
-                        <div className="relative max-w-4xl mx-auto space-y-8 bg-gradient-to-br from-yellow-50 via-pink-50 to-purple-100 p-10 rounded-[2.5rem] shadow-2xl mt-10 border-[3px] border-pink-300 backdrop-blur-md overflow-hidden">
-
-                            {/* Glowing background blobs */}
-                            <div className="absolute top-[-40px] left-[-40px] w-40 h-40 bg-pink-200 opacity-30 blur-3xl rounded-full animate-pulse-slow" />
-                            <div className="absolute bottom-[-30px] right-[-30px] w-36 h-36 bg-yellow-200 opacity-30 blur-2xl rounded-full animate-pulse" />
-                            <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[200px] h-[200px] bg-purple-200 rounded-full blur-[80px] opacity-20 animate-pulse-slow" />
-
-                            <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-400 animate-bounce">
-                                🎨 Let's Fix the Oopsie!
-                            </h2>
-
-                            <p className="text-center text-lg font-medium text-purple-700 bg-white/70 p-4 rounded-2xl border-l-4 border-yellow-400 shadow-lg backdrop-blur-sm">
-                                🚨 A club post made some students upset. You’re the student spokesperson! 💬
-                                <br className="hidden sm:block" />
-                                Choose the right reaction, tone, and message to fix it with kindness and care. 💌✨
-                            </p>
-
-                            {/* 🎮 Game Steps */}
-                            <div className="space-y-8">
-
-                                {/* Step 1 */}
-                                <div>
-                                    <h3 className="text-xl font-bold text-indigo-600 mb-2">1️⃣ First reaction ?</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <KidButton
-                                            text="Acknowledge the issue"
-                                            icon="🧸"
-                                            active={decisions.reaction === "ack"}
-                                            onClick={() => handleDecision("reaction", "ack")}
-                                        />
-                                        <KidButton
-                                            text="Delete the post and go silent Delete & Hide"
-                                            icon="🗑️"
-                                            active={decisions.reaction === "silent"}
-                                            onClick={() => handleDecision("reaction", "silent")}
-                                        />
-                                        <KidButton
-                                            text="Say “Everyone’s too sensitive these days”"
-                                            icon="💥"
-                                            active={decisions.reaction === "blame"}
-                                            onClick={() => handleDecision("reaction", "blame")}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Step 2 */}
-                                <div>
-                                    <h3 className="text-xl font-bold text-indigo-600 mb-2">2️⃣ How should it sound?</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <KidButton
-                                            text="Professional, understanding"
-                                            icon="🌈"
-                                            active={decisions.tone === "professional"}
-                                            onClick={() => handleDecision("tone", "professional")}
-                                        />
-                                        <KidButton
-                                            text="Dismissive"
-                                            icon="🥶"
-                                            active={decisions.tone === "dismissive"}
-                                            onClick={() => handleDecision("tone", "dismissive")}
-                                        />
-                                        <KidButton
-                                            text="Too casual"
-                                            icon="😎"
-                                            active={decisions.tone === "casual"}
-                                            onClick={() => handleDecision("tone", "casual")}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Step 3 */}
-                                <div>
-                                    <h3 className="text-xl font-bold text-indigo-600 mb-2">3️⃣ Closing statement</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <KidButton
-                                            text="Apologize and offer next steps"
-                                            icon="🛠️"
-                                            active={decisions.closing === "apology"}
-                                            onClick={() => handleDecision("closing", "apology")}
-                                        />
-                                        <KidButton
-                                            text="Defend intentions"
-                                            icon="🛡️"
-                                            active={decisions.closing === "defend"}
-                                            onClick={() => handleDecision("closing", "defend")}
-                                        />
-                                        <KidButton
-                                            text="Blame someone else"
-                                            icon="👎"
-                                            active={decisions.closing === "blame"}
-                                            onClick={() => handleDecision("closing", "blame")}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 📝 Feedback */}
-                            {feedback && (
-                                <div className="text-center text-xl font-semibold text-pink-600 mt-6 animate-fade-in">
-                                    {feedback}
-                                </div>
-                            )}
-                            <div className="text-center mt-8">
-                                <button
-                                    onClick={restartGame}
-                                    className="bg-gradient-to-r from-pink-400 via-purple-400 to-yellow-400 hover:from-pink-500 hover:to-yellow-500 text-white font-bold py-3 px-8 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105 animate-bounce"
-                                >
-                                    🔄 Restart
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-
-                    {step === 2 && !gameDone && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 40 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="max-w-3xl mx-auto space-y-6 bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 p-8 rounded-[2.5rem] shadow-[0_20px_60px_rgba(255,150,200,0.3)] mt-6 backdrop-blur-md border border-indigo-300 relative overflow-hidden"
-                        >
-                            {/* Blobs for artistic background */}
-                            <div className="absolute top-[-30px] left-[-40px] w-40 h-40 bg-pink-300 rounded-full blur-3xl opacity-30 animate-pulse-slow" />
-                            <div className="absolute bottom-[-20px] right-[-30px] w-32 h-32 bg-yellow-300 rounded-full blur-2xl opacity-20 animate-pulse" />
-
-                            {/* Title */}
-                            <h2 className="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 drop-shadow">
-                                📝 Craft Your Magical Message!
-                            </h2>
-
-                            <p className="text-md text-center text-gray-700 italic">
-                                ✨ Your message should show ❤️ Empathy, 🙏 Responsibility & 💡 Solutions!
-                            </p>
-
-                            {/* Textarea */}
-                            <textarea
-                                rows={5}
-                                className="w-full p-4 rounded-2xl border-2 border-indigo-300 bg-white/80 shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 text-gray-800 transition placeholder:text-indigo-300"
-                                placeholder="🌟 Write your 4–5 line response here..."
-                                value={statement}
-                                onChange={(e) => setStatement(e.target.value)}
-                            />
-
-                            {/* Buttons */}
-                            <div className="flex flex-col sm:flex-row justify-center gap-6 mt-4">
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleStatementSubmit}
-                                    className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-bold py-3 px-8 rounded-full shadow-xl transition-all duration-300"
-                                >
-                                    ✅ Submit Response
-                                </motion.button>
-
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={restartGame}
-                                    className="bg-gradient-to-r from-pink-400 via-purple-400 to-yellow-400 hover:from-pink-500 hover:to-yellow-500 text-white font-bold py-3 px-8 rounded-full shadow-xl transition-all duration-300"
-                                >
-                                    🔄 Start Over
-                                </motion.button>
-                            </div>
-
-                            {/* Feedback */}
-                            {feedback && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className={`text-center mt-6 text-lg font-semibold ${feedback.includes("Great") ? "text-green-600" : "text-red-500"
-                                        }`}
-                                >
-                                    {feedback}
-                                </motion.div>
-                            )}
-                        </motion.div>
-                    )}
-
-
-                    {gameDone && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="relative text-center mt-10 bg-gradient-to-br from-green-100 via-pink-50 to-yellow-100 p-8 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.1)] max-w-3xl mx-auto space-y-6 overflow-hidden mb-2"
-                        >
-
-                            <Confetti width={width} height={height} numberOfPieces={300} recycle={false} />
-                            {/* Title */}
-                            <motion.h2
-                                initial={{ scale: 0.95 }}
-                                animate={{ scale: [1, 1.1, 1] }}
-                                transition={{ repeat: Infinity, duration: 2 }}
-                                className="text-4xl pb-3 font-extrabold bg-gradient-to-r from-green-500 via-purple-500 to-pink-500 text-transparent bg-clip-text drop-shadow-lg"
-                            >
-                                🎉 Hooray, You Did It!
-                            </motion.h2>
-
-                            {/* Feedback */}
-                            <motion.p
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 }}
-                                className="text-xl font-semibold text-purple-800 leading-relaxed"
-                            >
-                                {feedback}
-                            </motion.p>
-
-                            {/* Play Again Button */}
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={restartGame}
-                                className="bg-gradient-to-r from-pink-400 via-purple-400 to-yellow-400 hover:from-pink-500 hover:to-yellow-500 text-white font-bold py-3 px-8 rounded-full shadow-xl transition-all duration-300"
-                            >
-                                🔄 Play Again!
-                            </motion.button>
-                        </motion.div>
-                    )}
-
+                        Exit Game
+                    </button>
                 </div>
             </div>
         </div>
     );
+}
+
+
+// --- SUB-COMPONENTS (SCREENS) ---
+
+function VictoryScreen({ onContinue, onViewFeedback, accuracyScore, insight }) {
+    const { width, height } = useWindowSize();
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+            <div className="flex-1 flex flex-col items-center justify-center text-center overflow-y-auto no-scrollbar p-4">
+                <div className="relative w-48 h-48 md:w-52 md:h-52 shrink-0">
+                    <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+                    <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+                </div>
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold">Challenge Complete!</h2>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-xl">
+                    <div className="flex-1 bg-[#09BE43] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-[#09BE43] text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full h-20 rounded-lg flex items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-xs font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={onContinue} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function LosingScreen({ onPlayAgain, onViewFeedback, insight, accuracyScore, onNavigateToSection, recommendedSectionTitle }) {
+    return (
+        <div className="w-full h-screen bg-[#0A160E] flex flex-col overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-4 overflow-y-auto no-scrollbar">
+                <img src="/financeGames6to8/game-over-game.gif" alt="Game Over" className="w-48 h-auto md:w-56 mb-6 shrink-0" />
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center">Oops! That was close!</p>
+                <p className="text-yellow-400 lilita-one-regular text-2xl sm:text-3xl font-semibold text-center mb-6">Wanna Retry?</p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 w-full max-w-md md:max-w-2xl">
+                    <div className="flex-1 bg-red-500 rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Total Accuracy</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center py-3 px-5">
+                            <img src="/financeGames6to8/accImg.svg" alt="Target Icon" className="w-6 h-6 mr-2" />
+                            <span className="text-red-500 text-2xl font-extrabold">{accuracyScore}%</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center">
+                        <p className="text-black text-sm font-bold my-2 uppercase">Insight</p>
+                        <div className="bg-[#131F24] w-full min-h-[5rem] rounded-lg flex flex-grow items-center justify-center px-4 text-center">
+                            <span className="text-[#FFCC00] inter-font text-[11px] font-normal">{insight}</span>
+                        </div>
+                    </div>
+                </div>
+                {recommendedSectionTitle && (
+                    <div className="mt-8 w-full max-w-md md:max-w-2xl flex justify-center">
+                        <button onClick={onNavigateToSection} className="bg-[#068F36] text-black text-sm font-semibold rounded-lg py-3 px-10 md:px-6 hover:bg-green-700 transition-all transform border-b-4 border-green-800 active:border-transparent shadow-lg">
+                            Review "{recommendedSectionTitle}" Notes
+                        </button>
+                    </div>
+                )}
+            </div>
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex flex-wrap justify-center gap-4 shrink-0">
+                <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={onViewFeedback} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+                <img src="/financeGames6to8/retry.svg" alt="Retry" onClick={onPlayAgain} className="cursor-pointer h-9 md:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+            </div>
+        </div>
+    );
+}
+
+function ReviewScreen({ response, feedback, onBackToResults }) {
+    const score = feedback.task1 || "0/10";
+    const isPerfect = score === "10/10";
+
+    const findChoiceText = (category, id) => {
+        const choice = CHOICES[category].find(c => c.id === id);
+        return choice ? choice.text : 'Not Selected';
+    };
+
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] text-white p-4 md:p-6 flex flex-col items-center">
+            <style>{scrollbarHideStyle}</style>
+            <h1 className="text-3xl md:text-4xl font-bold lilita-one-regular mb-6 text-yellow-400 shrink-0">Review Your Answer</h1>
+            <div className="w-full max-w-4xl space-y-4 overflow-y-auto p-2 no-scrollbar">
+                <div className={`p-4 rounded-xl flex flex-col ${isPerfect ? 'bg-green-900/70 border-green-700' : 'bg-red-900/70 border-red-700'} border`}>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-bold text-yellow-300">{SCENARIO.title}</h3>
+                        <span className={`font-bold text-lg ${isPerfect ? 'text-green-300' : 'text-red-300'}`}>Score: {score}</span>
+                    </div>
+                    <p className="text-gray-400 italic mb-3">{SCENARIO.context}</p>
+                    <div className="bg-gray-800/50 p-3 rounded-lg text-gray-200 text-sm space-y-3">
+                        <div>
+                            <strong className="text-cyan-400">Your Strategic Choices:</strong>
+                            <ul className="list-disc list-inside pl-2 mt-1">
+                                <li><strong>Reaction:</strong> {findChoiceText('reaction', response.reaction)}</li>
+                                <li><strong>Tone:</strong> {findChoiceText('tone', response.tone)}</li>
+                                <li><strong>Closing:</strong> {findChoiceText('closing', response.closing)}</li>
+                            </ul>
+                        </div>
+                        <p><strong className="text-cyan-400">Your Message:</strong> {response.message}</p>
+                    </div>
+                </div>
+            </div>
+            <button onClick={onBackToResults} className="mt-auto px-8 py-3 bg-yellow-600 text-lg text-white lilita-one-regular rounded-md hover:bg-yellow-700 transition-colors shrink-0 border-b-4 border-yellow-800 active:border-transparent shadow-lg">
+                Back to Results
+            </button>
+        </div>
+    );
+}
+
+// --- STATE MANAGEMENT (useReducer) ---
+const initialState = {
+    gameState: "intro", // "intro", "instructions", "playing", "finished", "review"
+    step: 1, // 1 for choices, 2 for message
+    response: { reaction: null, tone: null, closing: null, message: "" },
+    feedback: null,
+    insight: "",
+    recommendedSectionId: null,
+    recommendedSectionTitle: "",
+    startTime: Date.now(),
 };
 
-export default PRCrisisGame;
+function gameReducer(state, action) {
+    switch (action.type) {
+        case "RESTORE_STATE":
+            return action.payload;
+        case "SHOW_INSTRUCTIONS":
+            return { ...state, gameState: "instructions" };
+        case "START_GAME":
+            return { ...initialState, gameState: "playing", startTime: Date.now() };
+        case "SET_STEP":
+            return { ...state, step: action.payload };
+        case "UPDATE_CHOICE":
+            return { ...state, response: { ...state.response, [action.payload.category]: action.payload.choice } };
+        case "UPDATE_MESSAGE":
+            return { ...state, response: { ...state.response, message: action.payload } };
+        case "FINISH_GAME_AND_SET_RESULTS": {
+            return {
+                ...state,
+                gameState: "finished",
+                feedback: action.payload.feedback,
+                insight: action.payload.insight,
+                recommendedSectionId: action.payload.recommendedSectionId,
+                recommendedSectionTitle: action.payload.recommendedSectionTitle,
+            };
+        }
+        case "REVIEW_GAME":
+            return { ...state, gameState: "review" };
+        case "BACK_TO_FINISH":
+            return { ...state, gameState: "finished" };
+        case "RESET_GAME":
+            return { ...initialState, gameState: "playing", startTime: Date.now() };
+        default:
+            return state;
+    }
+}
+
+// --- MAIN GAME COMPONENT ---
+
+export default function PRCrisisChallenge() {
+    const navigate = useNavigate();
+    const { completeCommunicationChallenge } = useCommunication();
+    const { updatePerformance } = usePerformance();
+    const [state, dispatch] = useReducer(gameReducer, initialState);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isPopupVisible, setPopupVisible] = useState(false);
+    const [gameKey, setGameKey] = useState(Date.now());
+
+    useEffect(() => {
+        const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (savedStateJSON) {
+            try {
+                const savedState = JSON.parse(savedStateJSON);
+                dispatch({ type: 'RESTORE_STATE', payload: savedState });
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) {
+                console.error("Failed to parse saved game state:", error);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            }
+        }
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
+        setIsAnalyzing(true);
+        const { response } = state;
+
+        const step1Score =
+            (response.reaction === CORRECT_CHOICES.reaction ? 1 : 0) +
+            (response.tone === CORRECT_CHOICES.tone ? 1 : 0) +
+            (response.closing === CORRECT_CHOICES.closing ? 1 : 0);
+
+        const prompt = `You are an AI tutor evaluating a student's PR crisis statement.
+### CONTEXT ###
+1.  **Student's Written Statement:** "${response.message}"
+2.  **Scoring Criteria for the Statement (Max 7 points):**
+    -   Contains a sincere apology and takes responsibility: +2 points
+    -   Shows empathy and acknowledges the feelings of those affected: +2 points
+    -   Provides clear, concrete next steps or actions to be taken: +3 points
+3.  **Available Note Sections:** ${JSON.stringify(notesCommunication11to12.map(n => ({ topicId: n.topicId, title: n.title, content: n.content.substring(0, 150) + '...' })), null, 2)}
+### YOUR TASK ###
+1.  **SCORE:** Evaluate the statement against the criteria and provide a score out of 7.
+2.  **DETECT:** Identify the main weakness (e.g., "lacked empathy," "no clear action plan") and find the ONE best-matching note section. If it's perfect, default to 'crisis-communication'.
+3.  **GENERATE:** Provide a short, encouraging insight (25-30 words).
+### OUTPUT FORMAT ###
+Return ONLY a raw JSON object.
+{
+  "scores": { "task1": "X/7" },
+  "detectedTopicId": "The 'topicId' of the best section",
+  "insight": "Your personalized feedback message."
+}`;
+
+        try {
+            const aiResponse = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+            const aiReply = aiResponse.data.candidates[0].content.parts[0].text;
+            const parsed = parsePossiblyStringifiedJSON(aiReply);
+
+            if (parsed && parsed.scores && parsed.insight) {
+                const step2Score = Number(parsed.scores.task1.split('/')[0]);
+                const totalScore = step1Score + step2Score;
+                
+                const recommendedNote = notesCommunication11to12.find(note => note.topicId === parsed.detectedTopicId);
+                const timeTakenSec = Math.floor((Date.now() - state.startTime) / 1000);
+                const accuracy = Math.round((totalScore / PERFECT_SCORE) * 100);
+                const isVictory = accuracy >= PASSING_THRESHOLD * 100;
+
+                updatePerformance({
+                    moduleName: "Communication", topicName: "situationalAwareness",
+                    score: totalScore,
+                    accuracy: accuracy, avgResponseTimeSec: timeTakenSec,
+                    studyTimeMinutes: Math.ceil(timeTakenSec / 60),
+                    completed: isVictory,
+                });
+                
+                if (isVictory) {
+                    completeCommunicationChallenge(2, 1);
+                }
+
+                dispatch({
+                    type: "FINISH_GAME_AND_SET_RESULTS",
+                    payload: {
+                        feedback: { task1: `${totalScore}/${PERFECT_SCORE}` },
+                        insight: parsed.insight,
+                        recommendedSectionId: parsed.detectedTopicId,
+                        recommendedSectionTitle: recommendedNote ? recommendedNote.title : ""
+                    }
+                });
+            } else { throw new Error("Failed to parse response from AI."); }
+        } catch (err) {
+            console.error("Error fetching AI insight:", err);
+            const totalScore = step1Score; // At least give score for step 1
+            dispatch({
+                type: "FINISH_GAME_AND_SET_RESULTS",
+                payload: {
+                    feedback: { task1: `${totalScore}/${PERFECT_SCORE}` },
+                    insight: "Couldn't score the message due to an error. Please try again.",
+                    recommendedSectionId: 'crisis-communication',
+                    recommendedSectionTitle: "Crisis Communication"
+                }
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }, [state, updatePerformance, completeCommunicationChallenge, navigate]);
+
+
+    const handlePlayAgain = () => {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        dispatch({ type: 'RESET_GAME' });
+        setGameKey(Date.now());
+    };
+
+    const handleNavigateToSection = () => {
+        if (state.recommendedSectionId) {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
+            navigate(`/communications/notes?grade=11-12&section=${state.recommendedSectionId}`);
+        }
+    };
+    
+    const handleTimeUp = () => {
+        dispatch({
+            type: "FINISH_GAME_AND_SET_RESULTS",
+            payload: {
+                feedback: { task1: "0/10" },
+                insight: "Time's up! In a crisis, quick and thoughtful responses are key. Let's try that again.",
+                recommendedSectionId: 'crisis-communication',
+                recommendedSectionTitle: "Crisis Communication"
+            }
+        });
+    };
+
+    const handleFooterButtonClick = () => {
+        if (state.step === 1) {
+            dispatch({ type: 'SET_STEP', payload: 2 });
+        } else if (state.step === 2) {
+            handleSubmit();
+        }
+    };
+
+    const handleContinueClick = () => setPopupVisible(true);
+    const handleExitGame = () => navigate('/courses');
+    const handleClosePopup = () => setPopupVisible(false);
+
+    // --- RENDER LOGIC ---
+
+    if (state.gameState === "intro") {
+        return <IntroScreen onShowInstructions={() => dispatch({ type: "SHOW_INSTRUCTIONS" })} />;
+    }
+
+    if (state.gameState === "instructions") {
+        return <InstructionsScreen onStartGame={() => dispatch({ type: "START_GAME" })} />;
+    }
+
+    if (state.gameState === "finished") {
+        const totalScore = Number((state.feedback.task1 || "0/10").split('/')[0]);
+        const accuracyScore = Math.round((totalScore / PERFECT_SCORE) * 100);
+        const isVictory = accuracyScore >= PASSING_THRESHOLD * 100;
+
+        return (
+            <>
+                {isVictory
+                    ? <VictoryScreen accuracyScore={accuracyScore} insight={state.insight} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onContinue={handleContinueClick} />
+                    : <LosingScreen accuracyScore={accuracyScore} insight={state.insight} onPlayAgain={handlePlayAgain} onViewFeedback={() => dispatch({ type: 'REVIEW_GAME' })} onNavigateToSection={handleNavigateToSection} recommendedSectionTitle={state.recommendedSectionTitle} />
+                }
+                <LevelCompletePopup
+                    isOpen={isPopupVisible}
+                    onCancel={handleExitGame}
+                    onClose={handleClosePopup}
+                />
+            </>
+        );
+    }
+    
+    if (state.gameState === "review") {
+        return <ReviewScreen response={state.response} feedback={state.feedback} onBackToResults={() => dispatch({ type: "BACK_TO_FINISH" })} />;
+    }
+
+    const { response, step } = state;
+    const isStep1Complete = response.reaction && response.tone && response.closing;
+    const isStep2Complete = response.message.trim() !== "";
+
+    const isFooterButtonDisabled = (step === 1 && !isStep1Complete) || (step === 2 && (!isStep2Complete || isAnalyzing));
+    const footerButtonText = isAnalyzing ? 'Analyzing...' : (step === 1 ? 'Proceed' : 'Finish');
+
+    return (
+        <div className="w-full min-h-screen bg-[#0A160E] flex flex-col inter-font relative overflow-hidden">
+            <style>{scrollbarHideStyle}</style>
+            
+            <GameNav key={gameKey} onTimeUp={handleTimeUp} durationInSeconds={10 * 60}/>
+            
+            <main className="flex-1 w-full flex flex-col items-center justify-center p-4 z-10">
+                <div className="w-full max-w-4xl bg-black/30 backdrop-blur-sm border-2 border-yellow-500/30 rounded-2xl shadow-2xl shadow-yellow-500/10 transition-all duration-300">
+                    <div className="w-full bg-gradient-to-br from-[#1a2a32] to-[#111827] rounded-2xl p-6 md:p-8">
+                        
+                        <div className="mb-6 text-white">
+                            <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 max-w-3xl mx-auto">
+                                <h2 className="text-base font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                                    <span className="text-xl">🧠</span> Context
+                                </h2>
+                                <p className="text-gray-300 text-sm">{SCENARIO.context}</p>
+                            </div>
+                        </div>
+
+                        {step === 1 && (
+                             <div className="space-y-6 animate-fade-in">
+                                {Object.entries(CHOICES).map(([category, options]) => (
+                                     <div key={category}>
+                                         <h3 className="text-lg font-semibold text-cyan-300 mb-3 flex items-center gap-2 capitalize">
+                                            {category === 'reaction' ? '1️⃣ First Reaction?' : category === 'tone' ? '2️⃣ How should it sound?' : '3️⃣ Closing Statement'}
+                                         </h3>
+                                         <div className="flex flex-wrap gap-3">
+                                             {options.map(option => (
+                                                 <button
+                                                     key={option.id}
+                                                     onClick={() => dispatch({ type: 'UPDATE_CHOICE', payload: { category, choice: option.id } })}
+                                                     className={`px-4 py-2 text-sm rounded-full font-bold transition-all duration-200 border-b-4 active:border-b-0 active:translate-y-1 transform flex items-center gap-2 ${response[category] === option.id
+                                                         ? 'bg-yellow-500 border-yellow-700 text-black scale-105 shadow-lg shadow-yellow-500/20'
+                                                         : 'bg-gray-700 hover:bg-gray-600 border-gray-900 text-white'
+                                                     }`}
+                                                 >
+                                                    <span>{option.icon}</span> {option.text}
+                                                 </button>
+                                             ))}
+                                         </div>
+                                     </div>
+                                ))}
+                             </div>
+                        )}
+
+                        {step === 2 && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label className="block text-lg font-semibold text-cyan-300 mb-2 flex items-center gap-2">
+                                        <span className="text-xl">📩</span> Compose Your Official Statement
+                                    </label>
+                                    <textarea
+                                        rows={5}
+                                        placeholder="Write your 4-5 line response here. Remember: Empathy, Responsibility & Solutions..."
+                                        value={response.message}
+                                        onChange={(e) => dispatch({ type: 'UPDATE_MESSAGE', payload: e.target.value })}
+                                        className="w-full p-3 rounded-lg border-2 border-gray-600 bg-[#131F24] text-white text-base shadow-inner transition-all focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                    />
+                                </div>
+                                <div className="text-center">
+                                    <button
+                                        onClick={() => dispatch({ type: 'SET_STEP', payload: 1 })}
+                                        className="text-sm text-gray-400 hover:text-white underline"
+                                    >
+                                        ← Back to choices
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </main>
+            
+            {state.gameState === 'playing' && (
+                <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0 z-10">
+                    <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
+                        <button className="relative w-full h-full cursor-pointer" onClick={handleFooterButtonClick} disabled={isFooterButtonDisabled}>
+                            <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" />
+                            <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 lilita-one-regular text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] ${isFooterButtonDisabled ? "opacity-50" : ""}`}>
+                                {footerButtonText}
+                            </span>
+                        </button>
+                    </div>
+                </footer>
+            )}
+        </div>
+    );
+}

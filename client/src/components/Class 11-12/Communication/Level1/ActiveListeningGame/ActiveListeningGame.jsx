@@ -8,24 +8,21 @@ import axios from 'axios';
 import { useCommunication } from "@/contexts/CommunicationContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 
-// --- Data for AI-powered recommendations ---
-import { notesCommunication9to10 } from "@/data/notesCommunication9to10.js";
+import { notesCommunication11to12 } from "@/data/notesCommunication11to12.js";
 
-// --- Icon Components (assuming they exist) ---
+// --- Icon & Page Components (ensure paths are correct) ---
 import Checknow from '@/components/icon/GreenBudget/Checknow';
-import BackButton from "@/components/icon/GreenBudget/BackButton";
-import Vol from "@/components/icon/GreenBudget/Vol.jsx";
-import Heart from "@/components/icon/GreenBudget/Heart.jsx";
 import ThinkingCloud from "@/components/icon/ThinkingCloud";
-
-// --- Asset Imports ---
-import bgMusic from "/financeGames6to8/bgMusic.mp3";
+import GameNav from "./GameNav";
+import IntroScreen from './IntroScreen';
+import InstructionsScreen from './InstructionsScreen';
 
 // --- Helper for hiding scrollbar & parsing JSON ---
 const scrollbarHideStyle = `
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;
+
 function parsePossiblyStringifiedJSON(text) {
     if (typeof text !== "string") return null;
     text = text.trim();
@@ -36,11 +33,10 @@ function parsePossiblyStringifiedJSON(text) {
 
 // --- Game Constants ---
 const APIKEY = import.meta.env.VITE_API_KEY;
-const GAME_DURATION_SECONDS = 7 * 60;
 const SESSION_STORAGE_KEY = 'activeListeningGameState';
 const PASSING_THRESHOLD = 70; // 70% accuracy to win
 
-const emotionOptions = [ "Angry", "Embarrassed", "Anxious", "Frustrated", "Disappointed", "Confident" ];
+const emotionOptions = ["Angry", "Embarrassed", "Anxious", "Frustrated", "Disappointed", "Confident"];
 const correctEmotions = ["Anxious", "Frustrated", "Disappointed"];
 
 // --- MODEL ANSWERS FOR REVIEW SCREEN ---
@@ -51,33 +47,67 @@ const MODEL_ANSWERS = {
 };
 
 // =============================================================================
-//  GameNav & AudioPlayer Components
+//  Sub-Components
 // =============================================================================
-const GameNav = ({ onTimeUp }) => {
-    const audioRef = useRef(null);
-    const [isPlaying, setIsPlaying] = useState(true);
-    const [timeLeft, setTimeLeft] = useState(GAME_DURATION_SECONDS);
-    const wasPlayingRef = useRef(true);
-    useEffect(() => { if (timeLeft <= 0) { if (onTimeUp) onTimeUp(); return; } const intervalId = setInterval(() => { setTimeLeft(prev => prev - 1); }, 1000); return () => clearInterval(intervalId); }, [timeLeft, onTimeUp]);
-    useEffect(() => { const handlePause = () => { if (audioRef.current && !audioRef.current.paused) { wasPlayingRef.current = true; audioRef.current.pause(); setIsPlaying(false); } else { wasPlayingRef.current = false; } }; const handlePlay = () => { if (audioRef.current && wasPlayingRef.current) { audioRef.current.play().catch(e => console.error("BG Audio Playback failed", e)); setIsPlaying(true); } }; window.addEventListener('pause-background-audio', handlePause); window.addEventListener('play-background-audio', handlePlay); return () => { window.removeEventListener('pause-background-audio', handlePause); window.removeEventListener('play-background-audio', handlePlay); }; }, []);
-    const formatTime = (seconds) => { const minutes = Math.floor(seconds / 60); const remainingSeconds = seconds % 60; return `${String(minutes)}:${String(remainingSeconds).padStart(2, '0')}`; };
-    const toggleAudio = () => { if (!audioRef.current) return; try { if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); wasPlayingRef.current = false; } else { audioRef.current.play(); setIsPlaying(true); wasPlayingRef.current = true; } } catch (err) { console.error("Audio play failed:", err); } };
-    useEffect(() => { const playAudio = async () => { if (!audioRef.current) return; try { await audioRef.current.play(); setIsPlaying(true); wasPlayingRef.current = true; } catch (err) { console.warn("Autoplay failed, user gesture required."); setIsPlaying(false); wasPlayingRef.current = false; } }; playAudio(); }, []);
-    return ( <div className="w-full h-[10.5vh] bg-[#28343A] flex items-center justify-between px-[2vw] relative z-10 shrink-0"> <audio ref={audioRef} loop src={bgMusic} /> <Link to="/communications/games" className="transition transform hover:scale-110 opacity-95 hover:opacity-100"> <BackButton className="w-16 md:w-28" /> </Link> <span className="lilita ml-[7vw] md:ml-[11vw] lg:ml-[7vw] [text-shadow:0_5px_0_#000] [text-stroke:1px_black] text-[15px] md:text-[28px] lg:text-4xl text-[#ffcc00] tracking-[0.05vw]"> Active Listening </span> <div className="flex items-center space-x-4 lg:space-x-8"> <div className="relative h-[100px] flex items-center justify-center"> <Heart className="w-16 md:w-28" /> <span className="absolute text-white font-bold text-base sm:text-base md:text-xl lg:text-2xl lilita tracking-[0.05vw] top-[49%] left-[65%] -translate-x-1/2 -translate-y-1/2"> {formatTime(timeLeft)} </span> </div> <button onClick={toggleAudio} className={`transition transform active:scale-95 hover:scale-110 ${isPlaying ? 'opacity-100' : 'opacity-90'}`}> <Vol isPlaying={isPlaying} className="w-16 md:w-28" /> </button> </div> </div> );
-};
 
 function AudioPlayerCharacter({ audioSrc, onPlaybackStop = () => {} }) {
     const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    useEffect(() => { const audioElement = audioRef.current; if (audioElement) { audioElement.pause(); audioElement.currentTime = 0; setIsPlaying(false); } }, [audioSrc]);
-    const handleAudioEnded = () => { setIsPlaying(false); onPlaybackStop(); };
-    const togglePlayPause = async () => { const audioElement = audioRef.current; if (!audioElement) return; if (isPlaying) { audioElement.pause(); setIsPlaying(false); onPlaybackStop(); } else { window.dispatchEvent(new CustomEvent('pause-background-audio')); try { await audioElement.play(); setIsPlaying(true); } catch (error) { console.error(`Audio play failed for src: "${audioSrc}".`, error); setIsPlaying(false); onPlaybackStop(); } } };
-    return ( <div className="flex items-end justify-center"> <audio ref={audioRef} onEnded={handleAudioEnded} preload="auto" style={{ display: 'none' }}> <source src={audioSrc} type="audio/mpeg" /> </audio> <img src="/feedbackcharacter.gif" alt="Character" className="w-[3.5rem] md:w-[4.8rem] h-auto object-contain shrink-0" /> <div className="relative mb-8 md:ml-2"> <ThinkingCloud className="w-[220px] h-auto md:w-[260px]" /> <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-5"> <button onClick={togglePlayPause} className="cursor-pointer flex-shrink-0 focus:outline-none rounded-full w-7"> <img src={isPlaying ? "/communicationGames6to8/pause.svg" : "/communicationGames6to8/play.svg"} alt={isPlaying ? "Pause" : "Play"} className="w-9 h-9 md:w-11 md:h-11 transition-transform duration-200 hover:scale-105 active:scale-95" /> </button> <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-9 md:h-11" /> </div> </div> </div> );
+
+    useEffect(() => {
+        const audioElement = audioRef.current;
+        if (audioElement) {
+            audioElement.pause();
+            audioElement.currentTime = 0;
+            setIsPlaying(false);
+        }
+    }, [audioSrc]);
+
+    const handleAudioEnded = () => {
+        setIsPlaying(false);
+        onPlaybackStop();
+    };
+
+    const togglePlayPause = async () => {
+        const audioElement = audioRef.current;
+        if (!audioElement) return;
+
+        if (isPlaying) {
+            audioElement.pause();
+            setIsPlaying(false);
+            onPlaybackStop();
+        } else {
+            window.dispatchEvent(new CustomEvent('pause-background-audio'));
+            try {
+                await audioElement.play();
+                setIsPlaying(true);
+            } catch (error) {
+                console.error(`Audio play failed for src: "${audioSrc}".`, error);
+                setIsPlaying(false);
+                onPlaybackStop();
+            }
+        }
+    };
+
+    return (
+        <div className="flex items-end justify-center">
+            <audio ref={audioRef} onEnded={handleAudioEnded} preload="auto" style={{ display: 'none' }}>
+                <source src={audioSrc} type="audio/mpeg" />
+            </audio>
+            <img src="/feedbackcharacter.gif" alt="Character" className="w-[3.5rem] md:w-[4.8rem] h-auto object-contain shrink-0" />
+            <div className="relative mb-8 md:ml-2">
+                <ThinkingCloud className="w-[220px] h-auto md:w-[260px]" />
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full flex items-center justify-center gap-5">
+                    <button onClick={togglePlayPause} className="cursor-pointer flex-shrink-0 focus:outline-none rounded-full w-7">
+                        <img src={isPlaying ? "/communicationGames6to8/pause.svg" : "/communicationGames6to8/play.svg"} alt={isPlaying ? "Pause" : "Play"} className="w-9 h-9 md:w-11 md:h-11 transition-transform duration-200 hover:scale-105 active:scale-95" />
+                    </button>
+                    <img src="/communicationGames6to8/audio.svg" alt="Audio waveform" className="h-9 md:h-11" />
+                </div>
+            </div>
+        </div>
+    );
 }
 
-// =============================================================================
-//  End-Screen & Review Screen Components
-// =============================================================================
 function VictoryScreen({ onRestart, onViewFeedback, onContinue, accuracyScore, insight }) {
     const { width, height } = useWindowSize();
     return (
@@ -211,7 +241,8 @@ export default function ActiveListeningGame() {
     const { updatePerformance } = usePerformance();
 
     const [gameState, setGameState] = useState({
-        screen: 1, endScreen: null, gameKey: Date.now(),
+        screen: 'intro',
+        endScreen: null, gameKey: Date.now(),
         concerns: "", selectedEmotions: [], response: "",
         gameResults: null, insight: "Analyzing your results...",
         recommendedSectionId: null, recommendedSectionTitle: "",
@@ -221,8 +252,12 @@ export default function ActiveListeningGame() {
     useEffect(() => {
         const savedStateJSON = sessionStorage.getItem(SESSION_STORAGE_KEY);
         if (savedStateJSON) {
-            try { setGameState(JSON.parse(savedStateJSON)); sessionStorage.removeItem(SESSION_STORAGE_KEY);
-            } catch (error) { sessionStorage.removeItem(SESSION_STORAGE_KEY); }
+            try {
+                setGameState(JSON.parse(savedStateJSON));
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            } catch (error) {
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            }
         }
     }, []);
 
@@ -244,22 +279,26 @@ export default function ActiveListeningGame() {
     
     const handleRestart = () => {
         setGameState({
-            screen: 1, endScreen: null, gameKey: Date.now(), concerns: "", selectedEmotions: [],
+            screen: 'intro',
+            endScreen: null, gameKey: Date.now(), concerns: "", selectedEmotions: [],
             response: "", gameResults: null, insight: "Analyzing your results...",
             recommendedSectionId: null, recommendedSectionTitle: "",
             accuracyScore: 0, loading: false, startTime: Date.now()
         });
     };
+
+    const handleShowInstructions = () => setGameState(prev => ({ ...prev, screen: 'instructions' }));
+    const handleStartGame = () => setGameState(prev => ({ ...prev, screen: 1, startTime: Date.now() }));
     const resumeBackgroundMusic = () => window.dispatchEvent(new CustomEvent('play-background-audio'));
     const handleViewFeedback = () => setGameState(prev => ({ ...prev, screen: 'review' }));
     const handleBackToResults = () => setGameState(prev => ({ ...prev, screen: prev.endScreen }));
     const handleContinue = () => navigate('/communications/games');
     const handleNavigateToSection = () => {
-        if (gameState.recommendedSectionId) {
-            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(gameState));
-            navigate(`/communications/notes?grade=9-10&section=${gameState.recommendedSectionId}`);
-        }
-    };
+    if (gameState.recommendedSectionId) {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(gameState));
+        navigate(`/communications/notes?grade=11-12&section=${gameState.recommendedSectionId}`);
+    }
+};
     const toggleEmotion = (emotion) => {
         setGameState(prev => ({...prev, selectedEmotions: prev.selectedEmotions.includes(emotion) ? prev.selectedEmotions.filter((e) => e !== emotion) : prev.selectedEmotions.length < 3 ? [...prev.selectedEmotions, emotion] : prev.selectedEmotions }));
     };
@@ -301,12 +340,11 @@ export default function ActiveListeningGame() {
             completeCommunicationChallenge(0, 1);
             setGameState(prev => ({...prev, screen: 'victory', endScreen: 'victory', insight: "Fantastic job! You perfectly balanced empathy with a clear plan of action.", accuracyScore: accuracy, gameResults: results, loading: false}));
         } else {
-            const insightPrompt = `An AI tutor analyzing a student's active listening failure. Their scores: Concerns Summary ${aiScores.concernsScore}/3, Emotion ID ${emotionScore}/3, Empathetic Response ${aiScores.responseScore}/4. Note options: ${JSON.stringify(notesCommunication9to10.map(n => ({ topicId: n.topicId, title: n.title })), null, 2)}. ### TASK ### Based on their lowest score, DETECT their main weakness, find the BEST note section, and GENERATE a 25-word encouraging insight recommending that note by title. ### OUTPUT ### Return ONLY a JSON object: { "detectedTopicId": "...", "insight": "..." }`;
+            const insightPrompt = `An AI tutor analyzing a student's active listening failure. Their scores: Concerns Summary ${aiScores.concernsScore}/3, Emotion ID ${emotionScore}/3, Empathetic Response ${aiScores.responseScore}/4. Note options: ${JSON.stringify(notesCommunication11to12.map(n => ({ topicId: n.topicId, title: n.title })), null, 2)}. ### TASK ### Based on their lowest score, DETECT their main weakness, find the BEST note section, and GENERATE a 25-word encouraging insight recommending that note by title. ### OUTPUT ### Return ONLY a JSON object: { "detectedTopicId": "...", "insight": "..." }`;
             try {
-                const insightRes = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: insightPrompt }] }] });
                 const parsedInsight = parsePossiblyStringifiedJSON(insightRes.data.candidates[0].content.parts[0].text);
-                const recommendedNote = notesCommunication9to10.find(note => note.topicId === parsedInsight.detectedTopicId);
-                setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: parsedInsight.insight, recommendedSectionId: parsedInsight.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "", accuracyScore: accuracy, gameResults: results, loading: false }));
+                const recommendedNote = notesCommunication11to12.find(note => note.topicId === parsedInsight.detectedTopicId);
+                setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: parsedInsight.insight, recommendedSectionId: parsedInsight.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "", accuracyScore: accuracy, gameResults: results, loading: false }));                setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: parsedInsight.insight, recommendedSectionId: parsedInsight.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "", accuracyScore: accuracy, gameResults: results, loading: false }));
             } catch (insightError) {
                 setGameState(prev => ({ ...prev, screen: 'loss', endScreen: 'loss', insight: "Good effort! Active listening is tough. Reviewing the notes can help sharpen your skills.", recommendedSectionId: "active-listening", recommendedSectionTitle: "Active Listening", accuracyScore: accuracy, gameResults: results, loading: false }));
             }
@@ -317,7 +355,13 @@ export default function ActiveListeningGame() {
     const isNextDisabled = concerns.trim() === '' || selectedEmotions.length === 0;
     const isSubmitDisabled = response.trim() === '';
 
-    if (screen === 'review' || screen === 'victory' || screen === 'loss') {
+    // --- RENDER LOGIC ---
+
+    if (screen === 'intro') {
+        return <IntroScreen onShowInstructions={handleShowInstructions} />;
+    }
+
+    if (['review', 'victory', 'loss'].includes(screen)) {
         return (
             <div className="w-full h-screen bg-[#0A160E]">
                 {screen === 'review' && <ReviewScreen onBackToResults={handleBackToResults} results={gameResults} />}
@@ -330,7 +374,8 @@ export default function ActiveListeningGame() {
     return (
         <div className="w-full h-screen bg-[#0A160E] flex flex-col inter-font relative text-white">
             <GameNav key={gameKey} onTimeUp={handleTimeUp} />
-            {screen === 1 && (
+            
+            {(screen === 1 || screen === 'instructions') && (
                 <main className="flex-1 w-full flex flex-col pt-4 px-4 overflow-hidden">
                     <div className="flex-1 flex justify-center items-center overflow-auto no-scrollbar py-4">
                         <div className="w-full max-w-3xl bg-[rgba(32,47,54,0.3)] rounded-xl p-4 md:p-6 space-y-6">
@@ -350,6 +395,7 @@ export default function ActiveListeningGame() {
                     <div className="shrink-0 flex justify-center"> <AudioPlayerCharacter key={gameKey} audioSrc="./voices/level1_challenge2.mp3" onPlaybackStop={resumeBackgroundMusic} /> </div>
                 </main>
             )}
+
             {screen === 2 && (
                 <main className="flex-1 w-full flex flex-col items-center justify-center p-4 overflow-auto no-scrollbar">
                      <div className="w-full max-w-2xl bg-[rgba(32,47,54,0.3)] rounded-xl p-4 md:p-6 space-y-6">
@@ -361,12 +407,19 @@ export default function ActiveListeningGame() {
                     </div>
                 </main>
             )}
+            
             <footer className="w-full h-[10vh] bg-[#28343A] flex justify-center items-center px-4 shrink-0">
                 <div className="w-full max-w-xs lg:w-[15vw] h-[7vh] lg:h-[8vh]">
-                    {screen === 1 && ( <button className="relative w-full h-full cursor-pointer" onClick={handleProceedToScreen2} disabled={isNextDisabled}><Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" /><span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] lilita-one-regular ${isNextDisabled ? "opacity-50" : ""}`}> Next </span> </button> )}
+                    {(screen === 1 || screen === 'instructions') && ( <button className="relative w-full h-full cursor-pointer" onClick={handleProceedToScreen2} disabled={isNextDisabled}> <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" /> <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] lilita-one-regular ${isNextDisabled ? "opacity-50" : ""}`}> Next </span> </button> )}
                     {screen === 2 && ( <button className="relative w-full h-full cursor-pointer" onClick={handleSubmit} disabled={isSubmitDisabled || loading}> <Checknow topGradientColor="#09be43" bottomGradientColor="#068F36" width="100%" height="100%" /> <span className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-base md:text-xl lg:text-[2.8vh] text-white [text-shadow:0_3px_0_#000] lilita-one-regular ${isSubmitDisabled || loading ? "opacity-50" : ""}`}> {loading ? "Checking..." : "Submit"} </span> </button> )}
                 </div>
             </footer>
+
+            {screen === 'instructions' && (
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+                    <InstructionsScreen onStartGame={handleStartGame} />
+                </div>
+            )}
         </div>
     );
 }
