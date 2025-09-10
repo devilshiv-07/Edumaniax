@@ -130,7 +130,7 @@ const IntroScreen = () => {
     `,
           }}
         >
-          The Vision Builder
+          The Empathy Communicator
         </h1>
 
         <h2
