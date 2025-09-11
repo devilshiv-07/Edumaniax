@@ -17,7 +17,7 @@ const GameNav = () => {
     setShowSettings(false); // close settings popup if open
   };
 
-  const handleYes = () => navigate("/finance/games");
+  const handleYes = () => navigate("/leadership/games");
   const handleNo = () => setShowConfirm(false);
 
   const toggleAudio = async () => {
