@@ -9,7 +9,7 @@ import IntroScreen from './IntroScreen'; // Assuming these are in the same direc
 import InstructionsScreen from './InstructionsScreen';
 import GameNav from './GameNav';
 import Checknow from '@/components/icon/GreenBudget/Checknow';
-import { notesCommunication9to10 } from "@/data/notesCommunication9to10.js";
+import { notesCommunication11to12 } from "@/data/notesCommunication11to12.js";
 
 const scrollbarHideStyle = `
   .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -347,14 +347,14 @@ const GameScreen = () => {
                     return;
                 }
                 
-                const prompt = `You are an AI tutor. A student played a game about interpreting body language in an interview setting. Analyze their errors and provide targeted feedback. ### CONTEXT ### 1. **Student's Incorrect Answers:** ${JSON.stringify(incorrectAnswers, null, 2)} 2. **Available Note Sections:** ${JSON.stringify(notesCommunication9to10.map(n => ({ topicId: n.topicId, title: n.title, content: n.content.substring(0, 150) + '...' })), null, 2)} ### YOUR TASK ### 1. **DETECT:** Identify the main weakness (e.g., misinterpreting confidence for aggression, not recognizing signs of nervousness) and find the ONE best-matching note section. 2. **GENERATE:** Provide a short, encouraging insight (25-30 words) and suggest reviewing the note section by its title. ### OUTPUT FORMAT ### Return ONLY a raw JSON object. { "detectedTopicId": "The 'topicId' of the best section", "insight": "Your personalized feedback message." }`;
+                const prompt = `You are an AI tutor. A student played a game about interpreting body language in an interview setting. Analyze their errors and provide targeted feedback. ### CONTEXT ### 1. **Student's Incorrect Answers:** ${JSON.stringify(incorrectAnswers, null, 2)} 2. **Available Note Sections:** ${JSON.stringify(notesCommunication11to12.map(n => ({ topicId: n.topicId, title: n.title, content: n.content.substring(0, 150) + '...' })), null, 2)} ### YOUR TASK ### 1. **DETECT:** Identify the main weakness (e.g., misinterpreting confidence for aggression, not recognizing signs of nervousness) and find the ONE best-matching note section. 2. **GENERATE:** Provide a short, encouraging insight (25-30 words) and suggest reviewing the note section by its title. ### OUTPUT FORMAT ### Return ONLY a raw JSON object. { "detectedTopicId": "The 'topicId' of the best section", "insight": "Your personalized feedback message." }`;
 
                 try {
                     const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
                     const aiReply = response.data.candidates[0].content.parts[0].text;
                     const parsed = parsePossiblyStringifiedJSON(aiReply);
                     if (parsed && parsed.insight && parsed.detectedTopicId) {
-                        const recommendedNote = notesCommunication9to10.find(note => note.topicId === parsed.detectedTopicId);
+                        const recommendedNote = notesCommunication11to12.find(note => note.topicId === parsed.detectedTopicId);
                         dispatch({ type: "SET_AI_INSIGHT", payload: { insight: parsed.insight, recommendedSectionId: parsed.detectedTopicId, recommendedSectionTitle: recommendedNote ? recommendedNote.title : "" } });
                     } else { throw new Error("Failed to parse response from AI."); }
                 } catch (err) {
@@ -406,7 +406,7 @@ const GameScreen = () => {
     const handleNavigateToSection = () => {
         if (state.recommendedSectionId) {
             sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(state));
-            navigate(`/communications/notes?grade=9-10&section=${state.recommendedSectionId}`);
+            navigate(`/communications/notes?grade=11-12&section=${state.recommendedSectionId}`);
         }
     };
 
