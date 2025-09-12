@@ -30,8 +30,7 @@ const BottomProgressLoader = () => {
 
       {/* Tip Content */}
       <div className="text-center text-sm sm:text-base md:text-lg text-gray-200 drop-shadow-sm mb-4">
-        Leading with innovation means embracing change and encouraging
-        creativity in your team.
+        Ethics and Integrity are the foundation of true leadership.
       </div>
 
       {/* Progress Container */}
