@@ -313,6 +313,7 @@ import Pricing from "./pages/Pricing";
 import Register from "./pages/Register";
 import CreditCardSimulator from "./components/Finance Management/Activities/Level 2/CreditCardSimulator/CreditCardSimulator";
 import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSim/InvestmentSimulator";
+import Certificate from "./pages/Certificate";
 
 const INTRO_EXPIRY_HOURS = 0.5; // Change this to 1 for 1 hour, 0.1 for 6 minutes, etc.
 
@@ -568,6 +569,7 @@ function AppContent() {
           <Route path="/payment" element={<Payment />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/certification" element={<Certificate />} />
           <Route path="/finance/games" element={<Finance />} />
 
           <Route path="/finance/notes/section-1" element={<Section1 />} />
