@@ -35,6 +35,7 @@ model User {
   selChallenges              SELChallenge[]
   subscriptions              Subscription[]
   topicPerformances          TopicPerformance[]
+  certifications             Certification[]
 }
 
 model OtpVerification {
@@ -332,4 +333,19 @@ enum NotificationType {
   INSTITUTIONAL_INQUIRY
   PAYMENT
   GENERAL
+}
+
+model Certification {
+  id                String   @id @default(cuid())
+  userId            String
+  userName          String
+  moduleName        String
+  userClass         String
+  earnedDate        DateTime @default(now())
+  expiryDate        DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleName, userClass])
 }
