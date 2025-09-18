@@ -16,11 +16,11 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# Expose the port the app runs on
-EXPOSE 8080
+# Expose the port
+EXPOSE 3000
 
 # Set environment variable for port
-ENV PORT=8080
+ENV PORT=3000
 
 # Start the application
 CMD ["npm", "start"]
