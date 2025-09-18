@@ -1,11 +1,7 @@
-
-
-
-
-
 import { useEffect, useRef, useState } from "react";
 import { Menu, ChevronDown, BookOpen, TrendingUp, Target } from "lucide-react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 
 import Section1dm from "./LegalAwareness/Module1";
@@ -14,7 +10,6 @@ import Section3dm from "./LegalAwareness/Module3";
 import Section4dm from "./LegalAwareness/Module4";
 import Section5dm from "./LegalAwareness/Module5";
 import Section6dm from "./LegalAwareness/Module6";
-
 
 import Module1 from "./LegalAwareness/9-10Section1";
 import Module2 from "./LegalAwareness/9-10Section2";
@@ -29,8 +24,6 @@ import Senior4 from "./LegalAwareness/11-12Section4";
 import Senior5 from "./LegalAwareness/11-12Section5";
 import Senior6 from "./LegalAwareness/11-12Section6";
 import Senior7 from "./LegalAwareness/11-12Section7";
-
-
 
 const gradeOptions = [
   { value: "6-8", label: "8th and Below" },
@@ -63,12 +56,9 @@ const notesSidebar11to12 = [
   { id: "s-5", title: "Module 5: Legal Terminologies" },
   { id: "s-6", title: "Module 6: Landmark Cases" },
   { id: "s-7", title: "Module 7: AI & Future of Law" },
-
 ];
 
-
-
-const DigitalMarketingFullNotes = () => {
+const LegalAwarenessFullNotes = () => {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeId, setActiveId] = useState(null);
@@ -77,6 +67,22 @@ const DigitalMarketingFullNotes = () => {
 
   const topicRefs = useRef({});
   const visibleTopics = useRef(new Set());
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const gradeFromUrl = searchParams.get("grade");
+    const sectionFromUrl = searchParams.get("section");
+
+    if (gradeFromUrl && gradeFromUrl !== selectedGrade) {
+      handleGradeSelect(gradeFromUrl, false);
+    }
+
+    if (sectionFromUrl && notesVisible) {
+      setTimeout(() => {
+        scrollTo(sectionFromUrl);
+      }, 300);
+    }
+  }, [searchParams, notesVisible, selectedGrade]);
 
   useEffect(() => {
     topicRefs.current = {};
@@ -148,12 +154,14 @@ const DigitalMarketingFullNotes = () => {
     setShowSidebar(false);
   };
 
-  const handleGradeSelect = (grade) => {
+  const handleGradeSelect = (grade, shouldScrollToTop = true) => {
     setSelectedGrade(grade);
     setShowDropdown(false);
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 100);
+    if (shouldScrollToTop) {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100);
+    }
   };
 
   const getCurrentSidebar = () => {
@@ -162,7 +170,6 @@ const DigitalMarketingFullNotes = () => {
     if (selectedGrade === "11-12") return notesSidebar11to12;
     return [];
   };
-
 
   const renderGradeNotes = () => {
     if (selectedGrade === "6-8") {
@@ -188,7 +195,6 @@ const DigitalMarketingFullNotes = () => {
             <div className="overflow-x-auto">
               <Section6dm topicRefs={topicRefs} />
             </div>
-
           </div>
         </>
       );
@@ -212,20 +218,33 @@ const DigitalMarketingFullNotes = () => {
             <div className="overflow-x-auto">
               <Module5 topicRefs={topicRefs} />
             </div>
-
           </div>
         </>
       );
     } else if (selectedGrade === "11-12") {
       return (
         <div className="space-y-10">
-          <div className="overflow-x-auto"><Senior1 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior2 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior3 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior4 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior5 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior6 topicRefs={topicRefs} /></div>
-          <div className="overflow-x-auto"><Senior7 topicRefs={topicRefs} /></div>
+          <div className="overflow-x-auto">
+            <Senior1 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior2 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior3 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior4 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior5 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior6 topicRefs={topicRefs} />
+          </div>
+          <div className="overflow-x-auto">
+            <Senior7 topicRefs={topicRefs} />
+          </div>
         </div>
       );
     }
@@ -250,16 +269,17 @@ const DigitalMarketingFullNotes = () => {
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 xl:mt-15 leading-tight">
                 Welcome to Legal Awareness!
                 <br />
-
               </h1>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                  Understand your rights, laws, and the justice system that protects them
+                  Understand your rights, laws, and the justice system that
+                  protects them
                 </span>
               </h2>
 
               <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
-                Explore powerful lessons designed to make you an informed and empowered citizen.
+                Explore powerful lessons designed to make you an informed and
+                empowered citizen.
               </p>
               <div className="relative inline-block">
                 <button
@@ -269,7 +289,7 @@ const DigitalMarketingFullNotes = () => {
                   <span>
                     {selectedGrade
                       ? gradeOptions.find((g) => g.value === selectedGrade)
-                        ?.label
+                          ?.label
                       : "Select Grade Level"}
                   </span>
                   <ChevronDown
@@ -312,24 +332,25 @@ const DigitalMarketingFullNotes = () => {
 
             <aside
               className={`fixed md:static z-30  top-[4.5rem] left-0 md:top-0 h-full md:h-500px min-w-[260px] max-w-[280px] bg-white p-4 border-r 
-              shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${showSidebar
+              shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${
+                showSidebar
                   ? "translate-x-0"
                   : "-translate-x-full md:translate-x-0"
-                }`}
+              }`}
             >
               <h2 className="text-xl font-bold text-green-700 mb-6 px-2">
                 Legal Awareness
-
               </h2>
               <ul className="space-y-3">
                 {notesSidebar6to8.map((section) => (
                   <li
                     key={section.id}
                     data-scroll-id={section.id}
-                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20 ${activeId === section.id
+                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20 ${
+                      activeId === section.id
                         ? "bg-green-100 text-[#09be43] font-semibold border-l-4 border-[#09be43]"
                         : "hover:bg-green-50 text-gray-800"
-                      }`}
+                    }`}
                     onClick={() => scrollTo(section.id)}
                   >
                     <div className="text-[14px] font-medium leading-5 break-words whitespace-normal">
@@ -367,24 +388,25 @@ const DigitalMarketingFullNotes = () => {
 
             <aside
               className={`fixed md:static z-30  top-[4.5rem] left-0 md:top-0 h-full md:h-500px min-w-[260px] max-w-[280px] bg-white p-4 border-r 
-              shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${showSidebar
+              shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${
+                showSidebar
                   ? "translate-x-0"
                   : "-translate-x-full md:translate-x-0"
-                }`}
+              }`}
             >
               <h2 className="text-xl font-bold text-green-700 mb-6 px-2">
                 Legal Awareness
-
               </h2>
               <ul className="space-y-3">
                 {notesSidebar9to10.map((section) => (
                   <li
                     key={section.id}
                     data-scroll-id={section.id}
-                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20${activeId === section.id
+                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20${
+                      activeId === section.id
                         ? "bg-green-100 text-[#09be43] font-semibold border-l-4 border-[#09be43]"
                         : "hover:bg-green-50 text-gray-800"
-                      }`}
+                    }`}
                     onClick={() => scrollTo(section.id)}
                   >
                     <div className="text-[14px] font-medium leading-5 break-words whitespace-normal">
@@ -421,8 +443,9 @@ const DigitalMarketingFullNotes = () => {
             {/* SIDEBAR: 11–12 */}
             <aside
               className={`fixed md:static z-30  top-[4.5rem] left-0 md:top-0 h-full md:h-500px min-w-[260px] max-w-[280px] bg-white p-4 border-r 
-        shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-                }`}
+        shadow-lg overflow-y-auto transform transition-transform duration-300 ease-in-out ${
+          showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
             >
               <h2 className="text-xl font-bold text-green-700 mb-6 px-2">
                 Legal Awareness
@@ -432,10 +455,11 @@ const DigitalMarketingFullNotes = () => {
                   <li
                     key={section.id}
                     data-scroll-id={section.id}
-                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20 ${activeId === section.id
+                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all duration-200 text-sm shadow-sm shadow-green-700/20 ${
+                      activeId === section.id
                         ? "bg-green-100 text-[#09be43] font-semibold border-l-4 border-[#09be43]"
                         : "hover:bg-green-50 text-gray-800"
-                      }`}
+                    }`}
                     onClick={() => scrollTo(section.id)}
                   >
                     <div className="text-[14px] font-medium leading-5 break-words whitespace-normal">
@@ -456,9 +480,8 @@ const DigitalMarketingFullNotes = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
 
-export default DigitalMarketingFullNotes;
+export default LegalAwarenessFullNotes;
