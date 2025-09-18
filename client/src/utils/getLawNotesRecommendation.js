@@ -1,6 +1,6 @@
 // utils/getLawNotesRecommendation.js
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { notesLaw6to8 } from "@/data/notesLaw6to8";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
 
