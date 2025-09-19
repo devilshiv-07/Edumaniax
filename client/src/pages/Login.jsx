@@ -110,7 +110,7 @@ const Login = () => {
     setError("");
     try {
       await sendOtpForLogin(phone);
-      setResendTimer(30); // reset timer
+      setResendTimer(120); // reset timer
     } catch {
       setError("Failed to resend OTP. Please try again.");
     } finally {
