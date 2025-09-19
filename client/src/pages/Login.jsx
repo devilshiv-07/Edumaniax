@@ -16,7 +16,7 @@ const Login = () => {
   const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
   const [rememberMe, setRememberMe] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [resendTimer, setResendTimer] = useState(30); // 30 seconds cooldown
+  const [resendTimer, setResendTimer] = useState(120); // 120 seconds cooldown
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
