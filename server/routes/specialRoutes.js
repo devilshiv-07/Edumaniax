@@ -13,6 +13,7 @@ import {
   deleteFreeTrialRequest,
   verifyDataIntegrity,
   getAllUsers,
+  updateUserRole,
   
 } from '../controllers/salesController.js';
 import { 
@@ -60,6 +61,7 @@ router.get('/notifications-by-type', authenticateUser, checkRole(['ADMIN', 'SALE
 
 
 router.get('/users', authenticateUser, checkRole(['ADMIN', 'SALES']), getAllUsers);
+router.put('/users/:id/role', authenticateUser, checkRole(['ADMIN', 'SALES']), updateUserRole);
 
 
 // Data verification route (for debugging)

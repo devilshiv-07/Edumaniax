@@ -766,3 +766,64 @@ export const getAllUsers = async (req, res) => {
     });
   }
 };
+
+export const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    console.log(`Updating user role for ID: ${id}, new role: ${role}`);
+
+    // Validate role
+    const validRoles = ['USER', 'SALES', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role. Must be one of: USER, SALES, ADMIN'
+      });
+    }
+
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update user role
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { role },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phonenumber: true,
+        role: true,
+        userClass: true,
+        createdAt: true
+      }
+    });
+
+    console.log(`Successfully updated user role: ${updatedUser.name} -> ${role}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'User role updated successfully',
+      data: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user role',
+      error: error.message
+    });
+  }
+};

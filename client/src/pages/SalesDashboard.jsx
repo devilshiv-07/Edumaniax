@@ -68,7 +68,7 @@ const [isEditingUserRole, setIsEditingUserRole] = useState(false);
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/inquiries?page=${currentPage}&limit=10&status=${statusFilter}&search=${searchTerm}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/inquiries?page=${currentPage}&limit=50&status=${statusFilter}&search=${searchTerm}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -99,7 +99,7 @@ const [isEditingUserRole, setIsEditingUserRole] = useState(false);
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/free-trial?page=${currentPage}&limit=10&status=${statusFilter}&search=${searchTerm}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/free-trial?page=${currentPage}&limit=50&status=${statusFilter}&search=${searchTerm}`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -129,7 +129,7 @@ const [isEditingUserRole, setIsEditingUserRole] = useState(false);
   // Fetch analytics data
   const fetchAnalytics = useCallback(async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/analytics`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/analytics`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -161,7 +161,7 @@ const [isEditingUserRole, setIsEditingUserRole] = useState(false);
     setLoading(true);
     const response = await fetch(
       // Make sure this is 'users' not 'saleusers'
-      `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/users?page=${currentPage}&limit=10&role=${roleFilter}&search=${searchTerm}`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/users?page=${currentPage}&limit=50&role=${roleFilter}&search=${searchTerm}`,
       {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -192,7 +192,7 @@ const [isEditingUserRole, setIsEditingUserRole] = useState(false);
 const updateUserRole = async (userId, newRole) => {
   try {
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/users/${userId}/role`,
+      `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/users/${userId}/role`,
       {
         method: 'PUT',
         headers: {
@@ -228,7 +228,7 @@ const updateUserRole = async (userId, newRole) => {
     // Poll for notifications
     const pollNotifications = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/notifications?page=1&limit=10`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/notifications?page=1&limit=10`, {
 
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -346,7 +346,7 @@ const updateUserRole = async (userId, newRole) => {
   const updateInquiryStatus = async (id, status) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/inquiries/${id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/inquiries/${id}`,
         {
           method: 'PUT',
           headers: {
@@ -376,7 +376,7 @@ const updateUserRole = async (userId, newRole) => {
   const updateFreeTrialStatus = async (id, status) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/free-trial/${id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/free-trial/${id}`,
         {
           method: 'PUT',
           headers: {
@@ -406,7 +406,7 @@ const updateUserRole = async (userId, newRole) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/inquiries/${id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/inquiries/${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -440,7 +440,7 @@ const updateUserRole = async (userId, newRole) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/free-trial/${id}`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/free-trial/${id}`,
         {
           method: 'DELETE',
           headers: {
@@ -1034,7 +1034,7 @@ const updateUserRole = async (userId, newRole) => {
                             type="button"
                             onClick={async () => {
                               try {
-                                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/special/inquiries/${selectedInquiry.id}`, {
+                                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/special/inquiries/${selectedInquiry.id}`, {
                                   method: 'PUT',
                                   headers: {
                                     'Content-Type': 'application/json',
