@@ -376,7 +376,7 @@ const LegalQuiz = () => {
             <img
               src="/financeGames6to8/next-challenge.svg"
               alt="Next Challenge"
-              onClick={() => console.log("Next challenge clicked")}
+              onClick={handleNextChallenge}
               className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
             />
           </div>

@@ -3,95 +3,17 @@ import { Heart, Star, Zap, Trophy, RotateCcw, Play, Pause } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLaw } from "@/contexts/LawContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
-// Confetti component
-const Confetti = ({ isActive }) => {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!isActive) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const confetti = [];
-    const colors = [
-      "#ff6b6b",
-      "#4ecdc4",
-      "#45b7d1",
-      "#96ceb4",
-      "#ffeaa7",
-      "#dda0dd",
-      "#98d8c8",
-    ];
-
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-
-    for (let i = 0; i < 100; i++) {
-      confetti.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height - canvas.height,
-        w: Math.random() * 4 + 2,
-        h: Math.random() * 4 + 2,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        speed: Math.random() * 3 + 2,
-        angle: Math.random() * 2 * Math.PI,
-        angularSpeed: Math.random() * 0.2 - 0.1,
-      });
-    }
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      confetti.forEach((p, index) => {
-        p.y += p.speed;
-        p.x += Math.sin(p.angle) * 0.5;
-        p.angle += p.angularSpeed;
-
-        ctx.save();
-        ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
-        ctx.rotate(p.angle);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-
-        if (p.y > canvas.height) {
-          confetti[index] = {
-            x: Math.random() * canvas.width,
-            y: -10,
-            w: Math.random() * 4 + 2,
-            h: Math.random() * 4 + 2,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            speed: Math.random() * 3 + 2,
-            angle: Math.random() * 2 * Math.PI,
-            angularSpeed: Math.random() * 0.2 - 0.1,
-          };
-        }
-      });
-
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-  }, [isActive]);
-
-  if (!isActive) return null;
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 pointer-events-none z-50"
-      style={{ width: "100%", height: "100%" }}
-    />
-  );
-};
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
+import { useNavigate } from "react-router-dom";
+import { getLawNotesRecommendation } from "@/utils/getLawNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 
 const CatchYourRightsGame = () => {
   const { completeLawChallenge } = useLaw();
   const [gameState, setGameState] = useState("menu"); // menu, playing, paused, gameOver, completed
-  const [level, setLevel] = useState(1);
+  const [level, setLevel] = useState(2);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [fallingItems, setFallingItems] = useState([]);
@@ -100,7 +22,6 @@ const CatchYourRightsGame = () => {
   const [powerUps, setPowerUps] = useState({ slowTime: 0, autoSort: 0 });
   const [slowTimeActive, setSlowTimeActive] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [levelStatements, setLevelStatements] = useState([]);
   const [usedStatements, setUsedStatements] = useState(new Set());
   const [correctlySorted, setCorrectlySorted] = useState(0);
@@ -111,17 +32,26 @@ const CatchYourRightsGame = () => {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const navigate = useNavigate();
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     if (gameState === "completed" || gameState === "gameOver") {
       const endTime = Date.now();
       const timeSpentMillis = endTime - startTime;
       const studyTimeMinutes = Math.round(timeSpentMillis / 60000);
-      const totalPlayed = level === 1 ? 10 : 15;
+      const totalPlayed = 10;
       const avgResponseTimeSec =
         correctlySorted > 0 ? timeSpentMillis / correctlySorted / 1000 : 0;
 
-      const scaledScore = Math.min(10, parseFloat(((score / (totalPlayed * 3)) * 10).toFixed(2)));
+      const scaledScore = Math.min(
+        10,
+        parseFloat(((score / (totalPlayed * 3)) * 10).toFixed(2))
+      );
 
       updatePerformance({
         moduleName: "Law",
@@ -131,13 +61,10 @@ const CatchYourRightsGame = () => {
         avgResponseTimeSec: parseFloat(avgResponseTimeSec.toFixed(2)),
         studyTimeMinutes,
         completed: gameState === "completed",
-
       });
       setStartTime(Date.now());
-
     }
   }, [gameState]);
-
 
   const statements = {
     rights: [
@@ -205,8 +132,8 @@ const CatchYourRightsGame = () => {
     return shuffled.slice(0, count);
   };
 
-  const startGame = (selectedLevel) => {
-    setLevel(selectedLevel);
+  const startGame = () => {
+    setLevel(2);
     setGameState("playing");
     setScore(0);
     setLives(3);
@@ -219,8 +146,7 @@ const CatchYourRightsGame = () => {
     setCorrectlySorted(0);
 
     // Set level-specific statements
-    const statements =
-      selectedLevel === 1 ? getRandomStatements(10) : getAllStatements();
+    const statements = getRandomStatements(10);
     setLevelStatements(statements);
   };
 
@@ -235,7 +161,7 @@ const CatchYourRightsGame = () => {
       (stmt) => !usedStatements.has(stmt.id)
     );
     if (unusedStatements.length === 0) {
-      setGameState("gameover");
+      // No more to spawn; outcome will be decided after remaining items resolve
     }
 
     const randomStatement =
@@ -247,12 +173,12 @@ const CatchYourRightsGame = () => {
       screenWidth < 480
         ? 150
         : screenWidth < 640
-          ? 170
-          : screenWidth < 768
-            ? 200
-            : screenWidth < 1024
-              ? 240
-              : 250;
+        ? 170
+        : screenWidth < 768
+        ? 200
+        : screenWidth < 1024
+        ? 240
+        : 250;
 
     const newItem = {
       id: Date.now() + Math.random(),
@@ -298,15 +224,24 @@ const CatchYourRightsGame = () => {
           usedStatements.size >= levelStatements.length &&
           updatedItems.length === 0
         ) {
-          const requiredCorrect = level === 1 ? 10 : 15;
-          if (correctlySorted >= requiredCorrect) {
-            setGameState("levelComplete");
-          } else if (lives > 0) {
-            const remainingStatements =
-              levelStatements.length - usedStatements.size;
-            const maxPossibleCorrect = correctlySorted + remainingStatements;
-
-            if (maxPossibleCorrect < requiredCorrect) {
+          // End-of-pool evaluation
+          if (level === 1) {
+            const requiredCorrect = 6;
+            if (correctlySorted >= requiredCorrect) {
+              setGameState("completed");
+            } else if (lives > 0) {
+              const remainingStatements =
+                levelStatements.length - usedStatements.size;
+              const maxPossibleCorrect = correctlySorted + remainingStatements;
+              if (maxPossibleCorrect < requiredCorrect) {
+                setGameState("gameOver");
+              }
+            }
+          } else if (level === 2) {
+            const requiredScore = 18; // 18/30
+            if (score >= requiredScore) {
+              setGameState("completed");
+            } else if (lives > 0) {
               setGameState("gameOver");
             }
           }
@@ -356,6 +291,44 @@ const CatchYourRightsGame = () => {
     };
   }, []);
 
+  // Intro screen auto-hide
+  useEffect(() => {
+    const timer = setTimeout(() => setShowIntro(false), 3500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (gameState !== "gameOver") return;
+
+    const mistakes = [];
+
+    // Mistakes are items the player sorted wrong
+    const wrongOnes = Array.from(usedStatements)
+      .map((id) => levelStatements.find((s) => s.id === id))
+      .filter(
+        (stmt) =>
+          stmt && // valid
+          // Check if this statement was not correctly sorted
+          !fallingItems.find((item) => item.id === stmt.id) &&
+          // (optional) low score means it's likely wrong
+          score < 18
+      );
+
+    wrongOnes.forEach((stmt) => {
+      mistakes.push({
+        text: stmt.text,
+        selectedOption: "Wrong category",
+        correctAnswer: stmt.category,
+      });
+    });
+
+    if (mistakes.length > 0) {
+      getLawNotesRecommendation(mistakes).then((notes) => {
+        setRecommendedNotes(notes);
+      });
+    }
+  }, [gameState]);
+
   const handleDragStart = (e, item) => {
     setDraggedItem(item);
     e.dataTransfer.effectAllowed = "move";
@@ -394,13 +367,12 @@ const CatchYourRightsGame = () => {
     );
     setDraggedItem(null);
 
-    // Check level completion based on correctly sorted items
-    const targetCount = level === 1 ? 10 : 15;
+    // ✅ Check level completion (only 1 level now, 10 questions)
+    const targetCount = 10;
+
     if (isCorrect && correctlySorted + 1 >= targetCount) {
       setGameState("completed");
-      completeLawChallenge(1, 1);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
+      completeLawChallenge(1, 1); // still marks challenge completion
     }
   };
 
@@ -427,12 +399,10 @@ const CatchYourRightsGame = () => {
         setStreak((prev) => prev + 1);
 
         // Check completion after auto-sort
-        const targetCount = level === 1 ? 10 : 15;
+        const targetCount = 10;
         if (correctlySorted + 1 >= targetCount) {
           setGameState("completed");
           completeLawChallenge(1, 1);
-          setShowConfetti(true);
-          setTimeout(() => setShowConfetti(false), 5000);
         }
       }
     }
@@ -454,12 +424,10 @@ const CatchYourRightsGame = () => {
     setStreak(0);
     setPowerUps({ slowTime: 0, autoSort: 0 });
     setSlowTimeActive(false);
-    setShowConfetti(false);
     setLevelStatements([]);
     setUsedStatements(new Set());
     setCorrectlySorted(0);
     setStartTime(Date.now());
-
   };
 
   const getResponsiveItemSize = () => {
@@ -471,90 +439,90 @@ const CatchYourRightsGame = () => {
     return { width: "250px", fontSize: "text-lg" }; // Desktop
   };
 
+  const handleNextChallenge = () => {
+    setIsPopupVisible(true);
+  };
+
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
   return (
-    <div className="w-[95%] mx-auto  p-5">
+    <>
+      <GameNav />
       <div
-        className="min-h-screen p-5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden rounded-2xl"
+        className="min-h-screen p-5 pt-20 md:pt-50 pb-28 bg-[#0A160E] overflow-hidden rounded-2xl"
         style={{ fontFamily: "'Comic Neue', cursive" }}
       >
-        <Confetti isActive={showConfetti} />
-
         {/* Menu Screen */}
         {gameState === "menu" && (
           <div className="flex items-center justify-center min-h-screen p-4">
-            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center max-w-3xl w-full">
+            <div className="bg-[#202F364D] border border-white backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center max-w-3xl w-full">
               <div className="text-6xl mb-4">⚖️</div>
-              <h1 className="text-lg lg:text-3xl font-bold text-purple-800 mb-4">
+              <h1 className="text-lg lg:text-3xl font-bold text-white lilita-one-regular mb-4">
                 Catch Your Rights!
               </h1>
-              <p className="text-lg lg:text-xl text-gray-700 mb-6">
+              <p className="text-lg lg:text-xl text-white lilita-one-regular mb-6">
                 Sort falling legal statements into the correct categories before
                 they hit the ground!
               </p>
 
               <div className="text-left bg-white/80 rounded-xl p-4 shadow-inner text-gray-800 mb-6 space-y-3">
-                <h2 className="text-sm lg:text-lg font-bold text-purple-700">
+                <h2 className="text-sm lg:text-lg font-bold text-purple-700 lilita-one-regular">
                   ⏱ Scoring + Bonus:
                 </h2>
-                <ul className="text-sm lg:text-lg  list-disc list-inside space-y-1">
+                <ul className="text-sm lg:text-lg lilita-one-regular list-disc list-inside space-y-1">
                   <li>
-                    <span className="font-semibold text-green-600">
-                      +3 points
-                    </span>{" "}
-                    for correct placement.
+                    <span className=" text-green-600">+3 points</span> for
+                    correct placement.
                   </li>
                   <li>
-                    <span className="font-semibold text-red-500">
-                      -2 points
-                    </span>{" "}
-                    for wrong drop or if it hits the ground.
+                    <span className=" text-red-500">-2 points</span> for wrong
+                    drop or if it hits the ground.
                   </li>
                   <li>
-                    <span className="font-semibold text-red-500">Total 3 </span>{" "}
-                    Lives.
+                    <span className=" text-red-500">Total 3 </span> Lives.
                   </li>
                   <li>
-                    <span className="font-semibold text-red-500">-1 Life</span>{" "}
-                    if item hits the ground.
+                    <span className=" text-red-500">-1 Life</span> if item hits
+                    the ground.
                   </li>
                 </ul>
 
-                <h2 className="text-sm lg:text-lg  font-bold text-yellow-600 mt-4">
+                <h2 className="text-sm lg:text-lg lilita-one-regular text-yellow-600 mt-4">
                   ⚡ Power-ups:
                 </h2>
-                <p className="text-sm lg:text-lg ">
-                  Earn “<span className="font-semibold">Slow Time</span>” or “
-                  <span className="font-semibold">Auto-Categorize</span>” by
-                  keeping a streak going!
+                <p className="text-sm lg:text-lg lilita-one-regular">
+                  Earn “<span className="">Slow Time</span>” or “
+                  <span className="">Auto-Categorize</span>” by keeping a streak
+                  going!
                 </p>
 
-                <h2 className="text-sm lg:text-lg  font-bold text-blue-600 mt-4">
+                <h2 className="text-sm lg:text-lg  font-bold text-blue-600 mt-4 lilita-one-regular ">
                   🏆 Titles to Earn:
                 </h2>
-                <p className="text-sm lg:text-lg ">
+                <p className="text-sm lg:text-lg lilita-one-regular">
                   Unlock fun titles like “
                   <span className="italic font-md">Right Defender</span>”, “
                   <span className="italic font-md">Duty Master</span>”, and “
                   <span className="italic font-md">Legal Prodigy</span>” as you
                   play!
                 </p>
-                <p className="text-sm lg:text-lg font-bold">
+                <p className="text-sm lg:text-lg lilita-one-regular">
                   This game is best experienced on a large-screen device.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <button
-                  onClick={() => startGame(1)}
-                  className="w-full text-sm lg:text-lg  bg-gradient-to-r from-green-400 to-blue-500 text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all"
+                  onClick={startGame}
+                  className="w-full text-sm lg:text-lg lilita-one-regular bg-gradient-to-r from-orange-400 to-red-500 text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all"
                 >
-                  Level 1 - Practice (10 statements)
-                </button>
-                <button
-                  onClick={() => startGame(2)}
-                  className="w-full text-sm lg:text-lg  bg-gradient-to-r from-orange-400 to-red-500 text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all"
-                >
-                  Level 2 - Challenge (All 15 statements)
+                  Start Challenge (10 statements)
                 </button>
               </div>
             </div>
@@ -565,21 +533,22 @@ const CatchYourRightsGame = () => {
         {gameState === "playing" && (
           <div ref={gameAreaRef} className="relative h-screen ">
             {/* Header */}
-            <div className="bg-black/20 backdrop-blur-sm p-4">
+            <div className="bg-[#202F364D] backdrop-blur-sm p-4">
               <div className="flex justify-between items-center text-white">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Trophy className="text-yellow-400" size={20} />
-                    <span className="font-bold">{score}</span>
+                    <span className="lilita-one-regular">{score}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(3)].map((_, i) => (
                       <Heart
                         key={i}
-                        className={`${i < lives
-                          ? "text-red-500 fill-current"
-                          : "text-gray-400"
-                          }`}
+                        className={`${
+                          i < lives
+                            ? "text-red-500 fill-current"
+                            : "text-gray-400"
+                        }`}
                         size={20}
                       />
                     ))}
@@ -587,12 +556,14 @@ const CatchYourRightsGame = () => {
                 </div>
 
                 <div className="text-center">
-                  <div className="text-sm lg:text-lg font-bold">
+                  <div className="text-sm lilita-one-regular lg:text-lg font-bold">
                     Level {level}
                   </div>
-                  <div className="text-sm lg:text-lg">{getTitle()}</div>
-                  <div className="text-xs lg:text-lg hidden md:block mt-1">
-                    Sorted: {correctlySorted}/{level === 1 ? 10 : 15}
+                  <div className="text-sm lilita-one-regular lg:text-lg">
+                    {getTitle()}
+                  </div>
+                  <div className="text-xs lg:text-lg lilita-one-regular hidden md:block mt-1">
+                    Sorted: {correctlySorted}/10
                   </div>
                 </div>
 
@@ -616,10 +587,11 @@ const CatchYourRightsGame = () => {
               <button
                 onClick={() => usePowerUp("slowTime")}
                 disabled={powerUps.slowTime <= 0}
-                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm lg:text-lg font-bold transition-all ${powerUps.slowTime > 0
-                  ? "bg-blue-500 text-white hover:bg-blue-600 transform hover:scale-105"
-                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  }`}
+                className={`flex items-center mt-12 gap-2 px-3 py-2 rounded-full text-sm lg:text-lg font-bold transition-all ${
+                  powerUps.slowTime > 0
+                    ? "bg-blue-500 text-white hover:bg-blue-600 transform hover:scale-105"
+                    : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                }`}
               >
                 <Zap size={16} />
                 Slow Time ({powerUps.slowTime})
@@ -627,10 +599,11 @@ const CatchYourRightsGame = () => {
               <button
                 onClick={() => usePowerUp("autoSort")}
                 disabled={powerUps.autoSort <= 0}
-                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm lg:text-lg font-bold transition-all ${powerUps.autoSort > 0
-                  ? "bg-green-500 text-white hover:bg-green-600 transform hover:scale-105"
-                  : "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  }`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm lg:text-lg font-bold transition-all ${
+                  powerUps.autoSort > 0
+                    ? "bg-green-500 text-white hover:bg-green-600 transform hover:scale-105"
+                    : "bg-gray-400 text-gray-200 cursor-not-allowed"
+                }`}
               >
                 <Star size={16} />
                 Auto-Sort ({powerUps.autoSort})
@@ -647,8 +620,9 @@ const CatchYourRightsGame = () => {
                   key={item.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, item)}
-                  className={`absolute bg-white/90 backdrop-blur-sm p-3 md:p-4 rounded-xl shadow-lg cursor-move transform hover:scale-105 transition-all border-4  border-sky-300 ${slowTimeActive ? "animate-pulse" : ""
-                    }`}
+                  className={`absolute bg-white/90 backdrop-blur-sm p-3 md:p-4 rounded-xl shadow-lg cursor-move transform hover:scale-105 transition-all border-4  border-sky-300 ${
+                    slowTimeActive ? "animate-pulse" : ""
+                  }`}
                   style={{
                     left: `${item.x}px`, // Prevent overflow
 
@@ -663,7 +637,7 @@ const CatchYourRightsGame = () => {
                   }}
                 >
                   <p
-                    className={`${itemSize.fontSize} font-semibold text-gray-800`}
+                    className={`${itemSize.fontSize} font-semibold lilita-one-regular text-gray-800`}
                   >
                     {item.text}
                   </p>
@@ -679,7 +653,7 @@ const CatchYourRightsGame = () => {
                 className=" bg-blue-500/80 backdrop-blur-sm rounded-xl p-6 text-white font-bold border-2 border-dashed border-blue-300 hover:bg-blue-600/80 transition-colors"
               >
                 <div className="text-2xl text-center mb-2">🗽</div>
-                <div className="text-sm lg:text-lg text-center wrap-break-word">
+                <div className="text-sm lg:text-lg lilita-one-regular text-outline text-center wrap-break-word">
                   Fundamental Rights
                 </div>
               </div>
@@ -690,7 +664,7 @@ const CatchYourRightsGame = () => {
                 className="flex-1 bg-green-500/80 backdrop-blur-sm rounded-xl p-6 text-center text-white font-bold border-2 border-dashed border-green-300 hover:bg-green-600/80 transition-colors"
               >
                 <div className="text-2xl mb-2">🤝</div>
-                <div className="text-sm lg:text-lg wrap-break-word">
+                <div className="text-sm lilita-one-regular text-outline lg:text-lg wrap-break-word">
                   Fundamental Duties
                 </div>
               </div>
@@ -701,12 +675,14 @@ const CatchYourRightsGame = () => {
                 className="flex-1 bg-orange-500/80 backdrop-blur-sm rounded-xl p-6 text-center text-white font-bold border-2 border-dashed border-orange-300 hover:bg-orange-600/80 transition-colors"
               >
                 <div className="text-2xl mb-2">⚖️</div>
-                <div className="text-sm lg:text-lg wrap-break-word">Laws</div>
+                <div className="text-sm lg:text-lg lilita-one-regular text-outline wrap-break-word">
+                  Laws
+                </div>
               </div>
             </div>
 
             {slowTimeActive && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-500/90 text-white px-6 py-3 rounded-full font-bold animate-pulse">
+              <div className="absolute lilita-one-regular top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-500/90 text-white px-6 py-3 rounded-full font-bold animate-pulse">
                 ⏱️ SLOW TIME ACTIVE!
               </div>
             )}
@@ -716,23 +692,23 @@ const CatchYourRightsGame = () => {
         {/* Paused Screen */}
         {gameState === "paused" && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-            <div className="bg-white rounded-3xl p-8 text-center">
-              <h2 className="text-2xl font-bold text-purple-800 mb-6">
+            <div className="bg-[#202F364D] border border-white rounded-3xl p-8 text-center">
+              <h2 className="text-2xl font-bold text-white lilita-one-regular mb-6">
                 Game Paused
               </h2>
               <div className="space-y-4">
                 <button
                   onClick={() => setGameState("playing")}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-full font-semibold transition-colors flex items-center gap-2 mx-auto"
+                  className="bg-green-500 lilita-one-regular text-outline hover:bg-green-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2 mx-auto"
                 >
-                  <Play size={20} />
+                  <Play size={20} className="text-outline" />
                   Resume
                 </button>
                 <button
                   onClick={resetGame}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-full font-semibold transition-colors flex items-center gap-2 mx-auto"
+                  className="bg-gray-500 lilita-one-regular text-outline hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2 mx-auto"
                 >
-                  <RotateCcw size={20} />
+                  <RotateCcw size={20} className="text-outline" />
                   Main Menu
                 </button>
               </div>
@@ -740,83 +716,179 @@ const CatchYourRightsGame = () => {
           </div>
         )}
 
-        {/* Game Over Screen */}
-        {gameState === "gameOver" && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-            <motion.div
-              initial={{ opacity: 0.1, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                repeat: 4,
-                repeatType: "mirror",
-                ease: "easeInOut",
-              }}
-              className="bg-gradient-to-br from-pink-200 to-yellow-100 rounded-3xl p-8 text-center max-w-md"
-            >
-              <div className="text-4xl mb-4">💔</div>
-              <h2 className="text-2xl font-bold text-red-600 mb-4">
-                Game Over!
-              </h2>
-              <p className="text-gray-700 mb-4">
-                Final Score:{" "}
-                <span className="font-bold text-purple-600">{score}</span>
-              </p>
-              <p className="text-sm text-gray-600 mb-6">{getTitle()}</p>
-              <div className="space-y-4">
-                <button
-                  onClick={() => startGame(level)}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full font-semibold transition-colors"
-                >
-                  Try Again
-                </button>
-                <button
-                  onClick={resetGame}
-                  className="w-full bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-full font-semibold transition-colors"
-                >
-                  Main Menu
-                </button>
+        {/* ✅ WIN / LOSE SCREENS */}
+        {gameState === "completed" ? (
+          // WIN SCREEN
+          <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+            <div className="flex flex-col items-center justify-center flex-1 p-6">
+              {/* Trophy GIFs */}
+              <div className="relative w-64 h-64 flex items-center justify-center">
+                <img
+                  src="/financeGames6to8/trophy-rotating.gif"
+                  alt="Rotating Trophy"
+                  className="absolute w-full h-full object-contain"
+                />
+                <img
+                  src="/financeGames6to8/trophy-celebration.gif"
+                  alt="Celebration Effects"
+                  className="absolute w-full h-full object-contain"
+                />
               </div>
-            </motion.div>
-          </div>
-        )}
 
-        {/* Completed Screen */}
-        {gameState === "completed" && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
-            <motion.div
-              initial={{ opacity: 0.1, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                duration: 0.4,
-                repeat: 4,
-                repeatType: "mirror",
-                ease: "easeInOut",
-              }}
-              className="bg-white rounded-3xl p-8 text-center max-w-md"
-            >
-              <div className="text-6xl mb-4">🏆</div>
-              <h2 className="text-3xl font-bold text-green-600 mb-4">
-                Congratulations!
+              {/* Success Message */}
+              <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                Challenge Complete!
               </h2>
-              <p className="text-gray-700 mb-4">You've mastered all levels!</p>
-              <p className="text-xl font-bold text-purple-600 mb-2">
-                Final Score: {score}
-              </p>
-              <p className="text-lg text-green-600 mb-6">{getTitle()}</p>
-              <div className="space-y-4">
-                <button
-                  onClick={resetGame}
-                  className="w-full bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-full font-semibold transition-colors"
-                >
-                  Play Again
-                </button>
+
+              <div className="mt-6 flex flex-col items-center justify-center sm:flex-row sm:items-stretch sm:gap-4">
+                {/* Accuracy Box */}
+                <div className="bg-[#09BE43] rounded-xl p-1 flex flex-col items-center w-64 flex-1">
+                  <p className="text-black text-sm font-bold mb-1 mt-2">
+                    TOTAL ACCURACY
+                  </p>
+                  <div className="bg-[#131F24] flex-1 rounded-xl flex items-center justify-center py-3 px-5 w-full">
+                    <img
+                      src="/financeGames6to8/accImg.svg"
+                      alt="Target Icon"
+                      className="w-8 h-8 mr-2"
+                    />
+                    <span className="text-[#09BE43] text-3xl font-extrabold">
+                      {Math.round((score / 30) * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Insight Box */}
+                <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-64 flex-1">
+                  <p className="text-black text-sm font-bold mb-1 mt-2">
+                    INSIGHT
+                  </p>
+                  <div className="bg-[#131F24] flex-1 rounded-xl flex items-center justify-center px-4 py-3 w-full text-center">
+                    <p
+                      className="text-[#FFCC00] font-bold leading-relaxed"
+                      style={{
+                        fontSize: "clamp(0.7rem, 1.2vw, 0.9rem)",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {score === 60
+                        ? "🏆 Perfect! You nailed every answer!"
+                        : "🌟 Great job! You're on your way to being a Legal Eagle!"}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </motion.div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+              <img
+                src="/financeGames6to8/retry.svg"
+                alt="Retry"
+                onClick={resetGame}
+                className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+              />
+              <img
+                src="/financeGames6to8/feedback.svg"
+                alt="Feedback"
+                onClick={handleViewFeedback}
+                className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+              />
+              <img
+                src="/financeGames6to8/next-challenge.svg"
+                alt="Next Challenge"
+                onClick={handleNextChallenge}
+                className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+              />
+            </div>
+          </div>
+        ) : gameState === "gameOver" ? (
+          // LOSE SCREEN
+          <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+            <div className="flex flex-col items-center justify-center flex-1 p-4">
+              <img
+                src="/financeGames6to8/game-over-game.gif"
+                alt="Game Over"
+                className="w-48 sm:w-64 h-auto mb-4"
+              />
+              <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+                Oops! Your score was below 18 or you wasted your lives. Wanna
+                retry?
+              </p>
+
+              {/* Suggested Notes */}
+              {recommendedNotes.length > 0 && (
+                <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                  <h3 className="text-white lilita-one-regular text-xl mb-2">
+                    📘 Learn & Improve
+                  </h3>
+                  <p className="text-white mb-3 text-sm leading-relaxed">
+                    We recommend revisiting{" "}
+                    <span className="text-yellow-300 font-bold">
+                      {recommendedNotes.map((n) => n.title).join(", ")}
+                    </span>{" "}
+                    to strengthen your skills before retrying.
+                  </p>
+                  {recommendedNotes.map((note) => (
+                    <button
+                      key={note.topicId}
+                      onClick={() =>
+                        navigate(`/law/notes?grade=6-8&section=${note.topicId}`)
+                      }
+                      className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                    >
+                      Go to {note.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+              <img
+                src="/financeGames6to8/retry.svg"
+                alt="Retry"
+                onClick={resetGame}
+                className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+              />
+              <img
+                src="/financeGames6to8/next-challenge.svg"
+                alt="Next Challenge"
+                onClick={handleNextChallenge}
+                className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {/* ✅ Popup */}
+        <LevelCompletePopup
+          isOpen={isPopupVisible}
+          onConfirm={() => {
+            setIsPopupVisible(false);
+            navigate("/case-hear"); // your next level
+          }}
+          onCancel={() => {
+            setIsPopupVisible(false);
+            navigate("/law/games"); // or exit route
+          }}
+          onClose={() => setIsPopupVisible(false)}
+          title="Challenge Complete!"
+          message="Are you ready for the next challenge?"
+          confirmText="Next Challenge"
+          cancelText="Exit"
+        />
+
+        {/* Instructions overlay */}
+        {showInstructions && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+            <InstructionOverlay onClose={() => setShowInstructions(false)} />
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
 
