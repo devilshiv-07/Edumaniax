@@ -104,7 +104,6 @@ import CoolTheConflict from "./components/Communication/Level-4/CoolTheConflict/
 import LegalQuiz from "./components/Legal Awareness/Level1/LegalQuiz/LegalQuiz";
 import PuzzleMatch from "./components/Legal Awareness/Level2/Puzzle Match/PuzzleMatch";
 import CatchYourRightsGame from "./components/Legal Awareness/Level2/Catch-rights/CatchYourRightsGame";
-import CaseHear from "./components/Legal Awareness/Level3/Case Hear/CaseHear";
 import MazeOfChoices from "./components/Legal Awareness/Level4/MazeOfChoices/MazeOfChoices";
 import AdCampaignerGame from "./components/Digital Marketing/Level 3/AdCampaign/AdCampaignerGame";
 import AdCampaignerIntro from "./components/Digital Marketing/Level 3/AdCampaign/AdCampaignerIntro";
@@ -314,6 +313,7 @@ import Register from "./pages/Register";
 import CreditCardSimulator from "./components/Finance Management/Activities/Level 2/CreditCardSimulator/CreditCardSimulator";
 import InvestmentSimulator from "./components/Finance Management/Activities/Level 3/InvestmentSim/InvestmentSimulator";
 import Certificate from "./pages/Certificate";
+import CaseHear from "./components/Legal Awareness/Level3/CaseHear/CaseHear";
 
 const INTRO_EXPIRY_HOURS = 0.5; // Change this to 1 for 1 hour, 0.1 for 6 minutes, etc.
 
