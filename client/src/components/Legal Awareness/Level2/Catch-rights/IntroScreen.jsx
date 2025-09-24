@@ -149,3 +149,4 @@ const CatchRightsIntroScreen = () => {
 
 export default CatchRightsIntroScreen;
 
+
