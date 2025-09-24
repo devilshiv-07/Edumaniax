@@ -40,28 +40,27 @@ const getHeroImageForGrade = (userClass) => {
 
 // This function determines the CSS classes for the stats container based on grade.
 const getStatsContainerClasses = (userClass) => {
-  // These classes define the layout and are common for all grades.
-  const baseLayoutClasses =
-    "rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center relative overflow-hidden z-0"; // <-- The only change needed is adding z-0 here
+  // These classes define the layout and are common for all grades.
+  const baseLayoutClasses =
+    "rounded-2xl lg:rounded-tl-4xl lg:rounded-bl-4xl text-center relative overflow-hidden z-0"; // <-- The only change needed is adding z-0 here
 
-  const styleForGrades6to8 = `bg-[#00B347] h-[300px] sm:h-[430px] w-full lg:w-[550px] ${baseLayoutClasses}`;
+  const styleForGrades6to8 = `bg-[#00B347] h-[300px] sm:h-[430px] w-full lg:w-[550px] ${baseLayoutClasses}`;
 
-  if (!userClass) {
-    return styleForGrades6to8;
-  }
+  if (!userClass) {
+    return styleForGrades6to8;
+  }
 
-  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
+  const gradeNumber = parseInt(String(userClass).replace(/\D/g, ""), 10);
 
-  if (isNaN(gradeNumber)) {
-    return styleForGrades6to8;
-  }
+  if (isNaN(gradeNumber)) {
+    return styleForGrades6to8;
+  } // Custom style for grades 9 and above.
 
-  // Custom style for grades 9 and above.
-  if (gradeNumber >= 9) {
-    return `h-[300px] sm:h-[485px] md:h-[600px] lg:h-[485px] -mt-20 md:-mt-40 lg:-mt-24 w-full lg:w-[580px] ${baseLayoutClasses}`;
-  }
+  if (gradeNumber >= 9) {
+    return `h-[300px] sm:h-[485px] md:h-[600px] lg:h-[485px] -mt-20 md:-mt-40 lg:-mt-24 w-full lg:w-[580px] ${baseLayoutClasses}`;
+  }
 
-  return styleForGrades6to8;
+  return styleForGrades6to8;
 };
 
 const getStatsGifForGrade = (userClass) => {
@@ -2133,7 +2132,7 @@ const Home = () => {
         />
 
         {/* Navbar - fixed at top */}
-        <div className="w-full fixed -top-0 left-0 z-50">
+        <div className="w-full fixed -top-0 left-0 z-[1000]">
           <Navbar />
         </div>
 
