@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import { useLaw } from "@/contexts/LawContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
+import { getLawNotesRecommendation } from "@/utils/getLawNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 
 const questions = [
   // Challenge 1
@@ -253,7 +259,7 @@ const questions = [
 ];
 
 const GameHeader = ({ score, currentLevel, timeLeft, gamePhase }) => (
-  <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 text-white p-4 rounded-lg shadow-lg mb-6">
+  <div className="bg-[#202F364D] border border-white lilita-one-regular text-white p-4 rounded-lg shadow-lg mb-6">
     <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
       <div className="flex items-center gap-3">
         <div className="text-3xl animate-bounce">🏰</div>
@@ -268,7 +274,7 @@ const GameHeader = ({ score, currentLevel, timeLeft, gamePhase }) => (
       <div className="flex items-center gap-4">
         <div className="bg-white/20 px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-sm">
           <Trophy className="w-5 h-5 text-yellow-300" />
-          <span className="font-bold">{score} pts</span>
+          <span className="">{score} pts</span>
         </div>
         {gamePhase === "playing" && (
           <>
@@ -276,8 +282,9 @@ const GameHeader = ({ score, currentLevel, timeLeft, gamePhase }) => (
               Level {currentLevel}/3
             </div>
             <div
-              className={`bg-white/20 px-3 py-2 rounded-full text-sm flex items-center gap-1 ${timeLeft <= 5 ? "animate-pulse bg-red-500/30" : ""
-                }`}
+              className={`bg-white/20 px-3 py-2 rounded-full text-sm flex items-center gap-1 ${
+                timeLeft <= 5 ? "animate-pulse bg-red-500/30" : ""
+              }`}
             >
               <Timer className="w-4 h-4" />
               {timeLeft}s
@@ -326,20 +333,19 @@ const MazeMap = ({ currentQuestion, completedQuestions, currentLevel }) => {
   };
 
   const renderLevel = (level) => {
-    const startId = (level - 1) * 5 + 1;
-    const endId = level * 5;
     const levelQuestions = questions.filter((q) => q.level === level);
 
     return (
       <div key={level} className="mb-12">
         <div className="text-center mb-4">
           <h3
-            className={`text-lg font-bold ${level === 1
-              ? "text-green-600"
-              : level === 2
+            className={`text-lg lilita-one-regular ${
+              level === 1
+                ? "text-green-600"
+                : level === 2
                 ? "text-purple-600"
                 : "text-red-600"
-              }`}
+            }`}
           >
             Challenge {level}
           </h3>
@@ -353,22 +359,26 @@ const MazeMap = ({ currentQuestion, completedQuestions, currentLevel }) => {
               <div key={question.id} className="relative  space-y-5">
                 <div className=" flex items-center justify-center">
                   <div
-                    className={`w-12 min-h-12  rounded-full ${nodeColor} flex items-center justify-center text-white font-bold shadow-lg transform transition-all duration-300 ${status === "current" ? "scale-110" : "hover:scale-105"
-                      }`}
+                    className={`w-12 min-h-12  rounded-full ${nodeColor} flex items-center justify-center text-white font-bold shadow-lg transform transition-all duration-300 ${
+                      status === "current" ? "scale-110" : "hover:scale-105"
+                    }`}
                   >
                     {status === "completed" ? (
                       <CheckCircle className="w-6 h-6 text-center" />
                     ) : (
-                      <span className="text-sm">{question.id}</span>
+                      <span className="text-sm lilita-one-regular">
+                        {question.id}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="text-xs  text-center w-20">
                   <div
-                    className={`${status === "current"
-                      ? "font-bold text-blue-600"
-                      : "text-gray-600 mt-6"
-                      }`}
+                    className={`${
+                      status === "current"
+                        ? "lilita-one-regular text-blue-600"
+                        : "text-gray-600 mt-6"
+                    }`}
                   >
                     {question.category}
                   </div>
@@ -384,14 +394,14 @@ const MazeMap = ({ currentQuestion, completedQuestions, currentLevel }) => {
   return (
     <div className="bg-orange-100 rounded-xl p-6 shadow-lg mb-6">
       <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">
+        <h2 className="text-xl lilita-one-regular text-gray-800 mb-2">
           🗺️ Maze Progress
         </h2>
-        <p className="text-gray-600 text-sm">
+        <p className="text-gray-600 lilita-one-regular text-sm">
           Complete each challenge to unlock the next level!
         </p>
       </div>
-      {[1, 2, 3].map((level) => renderLevel(level))}
+      {renderLevel(currentLevel)}
     </div>
   );
 };
@@ -438,12 +448,16 @@ const QuestionCard = ({
           <div className="flex items-center gap-3">
             <MapPin className="w-6 h-6" />
             <div>
-              <h3 className="font-bold">Checkpoint {question.id}</h3>
-              <p className="text-sm opacity-90">{question.category}</p>
+              <h3 className="lilita-one-regular">Checkpoint {question.id}</h3>
+              <p className="text-sm lilita-one-regular opacity-90">
+                {question.category}
+              </p>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-lg font-bold">Challenge {question.level}</div>
+            <div className="text-lg lilita-one-regular">
+              Challenge {question.level}
+            </div>
             <div className={`text-sm ${timeLeft <= 5 ? "animate-pulse" : ""}`}>
               {timeLeft}s remaining
             </div>
@@ -453,18 +467,19 @@ const QuestionCard = ({
 
       <div className="p-6">
         <div className="mb-6">
-          <h4 className="text-lg font-semibold text-violet-700 mb-4 leading-relaxed">
+          <h4 className="text-lg lilita-one-regular text-violet-700 mb-4 leading-relaxed">
             {question.question}
           </h4>
 
           <div className="w-full bg-violet-100 rounded-full h-2 mb-4">
             <div
-              className={`h-full rounded-full transition-all duration-1000 ease-linear ${timeLeft > 10
-                ? "bg-lime-400"
-                : timeLeft > 5
+              className={`h-full rounded-full transition-all duration-1000 ease-linear ${
+                timeLeft > 10
+                  ? "bg-lime-400"
+                  : timeLeft > 5
                   ? "bg-orange-300"
                   : "bg-pink-400"
-                }`}
+              }`}
               style={{ width: `${(timeLeft / 15) * 100}%` }}
             />
           </div>
@@ -482,18 +497,19 @@ const QuestionCard = ({
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${showResult && index === question.correct
-                    ? "bg-lime-400 text-white"
-                    : showResult &&
-                      selectedAnswer === index &&
-                      index !== question.correct
+                  className={`w-8 h-8 rounded-full flex items-center justify-center lilita-one-regular text-sm ${
+                    showResult && index === question.correct
+                      ? "bg-lime-400 text-white"
+                      : showResult &&
+                        selectedAnswer === index &&
+                        index !== question.correct
                       ? "bg-pink-300 text-white"
                       : "bg-blue-100 text-blue-600"
-                    }`}
+                  }`}
                 >
                   {String.fromCharCode(65 + index)}
                 </div>
-                <span className="flex-1">{option}</span>
+                <span className="flex-1 lilita-one-regular">{option}</span>
                 {showResult && index === question.correct && (
                   <CheckCircle className="w-5 h-5 text-lime-400" />
                 )}
@@ -509,32 +525,39 @@ const QuestionCard = ({
 
         {showResult && (
           <div
-            className={`mt-6 p-4 rounded-lg ${selectedAnswer === question.correct
-              ? "bg-lime-50 border-2 border-lime-200"
-              : "bg-orange-50 border-2 border-orange-200"
-              }`}
+            className={`mt-6 p-4 rounded-lg ${
+              selectedAnswer === question.correct
+                ? "bg-lime-50 border-2 border-lime-200"
+                : "bg-orange-50 border-2 border-orange-200"
+            }`}
           >
             <div className="flex items-center gap-2 mb-2">
               {selectedAnswer === question.correct ? (
                 <>
                   <CheckCircle className="w-5 h-5 text-lime-400" />
-                  <span className="font-bold text-lime-700">
+                  <span className="lilita-one-regular text-lime-700">
                     Correct! +10 points
                   </span>
                 </>
               ) : selectedAnswer === -1 ? (
                 <>
                   <XCircle className="w-5 h-5 text-orange-500" />
-                  <span className="font-bold text-orange-700">Time's up</span>
+                  <span className="lilita-one-regular text-orange-700">
+                    Time's up
+                  </span>
                 </>
               ) : (
                 <>
                   <XCircle className="w-5 h-5 text-orange-500" />
-                  <span className="font-bold text-orange-700">Try again!</span>
+                  <span className="lilita-one-regular text-orange-700">
+                    Try again!
+                  </span>
                 </>
               )}
             </div>
-            <p className="text-sm text-violet-800">{question.explanation}</p>
+            <p className="text-sm text-violet-800 lilita-one-regular">
+              {question.explanation}
+            </p>
           </div>
         )}
       </div>
@@ -542,154 +565,196 @@ const QuestionCard = ({
   );
 };
 
-const CompletionScreen = ({ score, totalQuestions, timeBonus, onRestart }) => {
+// 🎉 Win Screen
+const WinScreen = ({
+  score,
+  totalQuestions,
+  timeBonus,
+  onRestart,
+  onNextChallenge,
+  onFeedBack,
+  completeLawChallenge,
+}) => {
   const maxScore = totalQuestions * 10 + timeBonus;
-  const percentage = (score / maxScore) * 100;
+  const percentage = Math.round((score / maxScore) * 100);
 
+  // Track challenge completion when user wins
   useEffect(() => {
-    if (percentage >= 90) {
-      completeLawChallenge(3, 0);
+    if (percentage >= 70) {
+      completeLawChallenge(3, 0); // ⚡ important tracking
     }
-  }, [percentage]);
-
-  console.log(score, totalQuestions, timeBonus);
-
-  const getBadge = () => {
-    if (percentage >= 90)
-      return {
-        emoji: "👑",
-        title: "Legal Master!",
-        color: "text-yellow-500",
-        bg: "from-yellow-400 to-orange-500",
-      };
-    if (percentage >= 80)
-      return {
-        emoji: "🏆",
-        title: "Legal Hero!",
-        color: "text-blue-500",
-        bg: "from-blue-400 to-purple-500",
-      };
-    if (percentage >= 70)
-      return {
-        emoji: "⭐",
-        title: "Legal Champion!",
-        color: "text-green-500",
-        bg: "from-green-400 to-blue-500",
-      };
-    if (percentage >= 60)
-      return {
-        emoji: "🎯",
-        title: "Legal Explorer!",
-        color: "text-purple-500",
-        bg: "from-purple-400 to-pink-500",
-      };
-    return {
-      emoji: "📚",
-      title: "Legal Learner!",
-      color: "text-indigo-500",
-      bg: "from-indigo-400 to-purple-500",
-    };
-  };
-
-  const badge = getBadge();
+  }, [percentage, completeLawChallenge]);
 
   return (
-    <div className="text-center space-y-6">
-      <div className="text-8xl animate-bounce mb-6">{badge.emoji}</div>
-
-      <div
-        className={`bg-gradient-to-br ${badge.bg} text-white p-8 rounded-xl shadow-xl`}
-      >
-        <h2 className="text-3xl font-bold mb-4">
-          {percentage >= 90
-            ? "Outstanding!"
-            : percentage >= 80
-              ? "Great Job!"
-              : percentage >= 70
-                ? "Well Done!"
-                : percentage >= 60
-                  ? "Nice Try!"
-                  : "Keep Learning!"}
-        </h2>
-        <h3 className="text-xl mb-6">{badge.title}</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
-            <div className="text-2xl font-bold">{score}</div>
-            <div className="text-sm opacity-90">Total Score</div>
-          </div>
-          <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
-            <div className="text-2xl font-bold">{Math.round(percentage)}%</div>
-            <div className="text-sm opacity-90">Accuracy</div>
-          </div>
-          <div className="bg-white/20 p-4 rounded-lg backdrop-blur-sm">
-            <div className="text-2xl font-bold">{timeBonus}</div>
-            <div className="text-sm opacity-90">Time Bonus</div>
-          </div>
+    <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+      <div className="flex flex-col items-center justify-center flex-1 p-6">
+        {/* Trophy GIFs */}
+        <div className="relative w-64 h-64 flex items-center justify-center">
+          <img
+            src="/financeGames6to8/trophy-rotating.gif"
+            alt="Rotating Trophy"
+            className="absolute w-full h-full object-contain"
+          />
+          <img
+            src="/financeGames6to8/trophy-celebration.gif"
+            alt="Celebration Effects"
+            className="absolute w-full h-full object-contain"
+          />
         </div>
 
-        <div className="bg-white/10 rounded-full h-4 overflow-hidden mb-4">
-          <div
-            className="bg-white h-full transition-all duration-2000 ease-out rounded-full"
-            style={{ width: `${percentage}%` }}
-          />
+        {/* Success Message */}
+        <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+          You Escaped the Maze!
+        </h2>
+
+        {/* Stats */}
+        <div className="mt-6 flex flex-col items-center sm:flex-row sm:gap-4">
+          <div className="bg-[#09BE43] rounded-xl p-1 flex flex-col items-center w-64">
+            <p className="text-black text-sm font-bold mb-1 mt-2">
+              TOTAL SCORE
+            </p>
+            <div className="bg-[#131F24] rounded-xl flex items-center justify-center py-3 px-5 w-full">
+              <span className="text-[#09BE43] text-3xl font-extrabold">
+                {score}/{maxScore}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-64">
+            <p className="text-black text-sm font-bold mb-1 mt-2">ACCURACY</p>
+            <div className="bg-[#131F24] rounded-xl flex items-center justify-center px-4 py-3 w-full">
+              <p className="text-[#FFCC00] font-bold leading-relaxed text-xl">
+                {percentage}%
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="text-lg font-semibold text-gray-700">
-          {percentage >= 90
-            ? "🎉 You’ve aced the Law Labyrinth with flying colors!"
-            : percentage >= 80
-              ? "🚀 You’re almost a legal legend!"
-              : percentage >= 70
-                ? "✨ Solid effort in mastering key laws!"
-                : percentage >= 60
-                  ? "📘 You’ve made good progress. Keep it up!"
-                  : "🧠 Keep exploring and learning. You’ll get there!"}
-        </div>
-        <p className="text-gray-600">
-          {percentage >= 70
-            ? "You're now better equipped to be a responsible citizen and legal hero!"
-            : "Review some topics and try again to boost your score!"}
-        </p>
-
-        <button
+      {/* Footer */}
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+        <img
+          src="/financeGames6to8/retry.svg"
+          alt="Retry"
           onClick={onRestart}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-8 py-3 rounded-full font-bold hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-2 mx-auto"
-        >
-          <RotateCcw className="w-5 h-5" />
-          Play Again
-        </button>
+          className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+        />
+        <img
+          src="/financeGames6to8/feedback.svg"
+          alt="Feedback"
+          onClick={onFeedBack}
+          className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+        />
+        <img
+          src="/financeGames6to8/next-challenge.svg"
+          alt="Next Challenge"
+          onClick={onNextChallenge}
+          className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+        />
       </div>
     </div>
   );
 };
 
+// ❌ Lose Screen
+const LoseScreen = ({
+  score,
+  totalQuestions,
+  timeBonus,
+  onRestart,
+  onNextChallenge,
+  recommendedNotes,
+  navigate,
+}) => {
+  const maxScore = totalQuestions * 10 + timeBonus;
+  const percentage = Math.round((score / maxScore) * 100);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+      <div className="flex flex-col items-center justify-center flex-1 p-4">
+        <img
+          src="/financeGames6to8/game-over-game.gif"
+          alt="Game Over"
+          className="w-48 sm:w-64 h-auto mb-4"
+        />
+        <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl text-center font-semibold">
+          Oops! You scored {percentage}%. Try again to escape the maze!
+        </p>
+
+        {/* Suggested Notes */}
+        {recommendedNotes?.length > 0 && (
+          <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+            <h3 className="text-white lilita-one-regular text-xl mb-2">
+              📘 Learn & Improve
+            </h3>
+            <p className="text-white mb-3 text-sm leading-relaxed">
+              Review{" "}
+              <span className="text-yellow-300 font-bold">
+                {recommendedNotes.map((n) => n.title).join(", ")}
+              </span>{" "}
+              before retrying.
+            </p>
+            {recommendedNotes.map((note) => (
+              <button
+                key={note.topicId}
+                onClick={() =>
+                  navigate(`/law/notes?grade=6-8&section=${note.topicId}`)
+                }
+                className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+              >
+                Go to {note.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+        <img
+          src="/financeGames6to8/retry.svg"
+          alt="Retry"
+          onClick={onRestart}
+          className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+        />
+        <img
+          src="/financeGames6to8/next-challenge.svg"
+          alt="Next Challenge"
+          onClick={onNextChallenge}
+          className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+        />
+      </div>
+    </div>
+  );
+};
+
+export { WinScreen, LoseScreen };
+
 export default function MazeOfChoices() {
   const { completeLawChallenge } = useLaw();
   const [gamePhase, setGamePhase] = useState("menu"); // menu, playing, completed
   const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [failedQuestions, setFailedQuestions] = useState([]);
+  // Removed unused failedQuestions state
   const [completedQuestions, setCompletedQuestions] = useState([]);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [timeBonus, setTimeBonus] = useState(0);
-  const [levelCorrectAnswers, setLevelCorrectAnswers] = useState({
-    1: [],
-    2: [],
-    3: [],
-  });
+  // Removed per new flow: no correctness gating across levels
 
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
 
-
   const currentQuestionData = questions.find((q) => q.id === currentQuestion);
   const currentLevel = currentQuestionData ? currentQuestionData.level : 1;
+  const [showIntro, setShowIntro] = useState(true);
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const navigate = useNavigate();
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     if (gamePhase === "completed") {
@@ -709,13 +774,10 @@ export default function MazeOfChoices() {
         avgResponseTimeSec: Math.round(timeTakenSec / 16),
         studyTimeMinutes: Math.ceil(timeTakenSec / 60),
         completed: true,
-
       });
       setStartTime(Date.now());
-
     }
   }, [gamePhase]);
-
 
   useEffect(() => {
     let timer;
@@ -726,53 +788,34 @@ export default function MazeOfChoices() {
       setSelectedAnswer(-1);
       setShowResult(true);
 
-      const currentLevel = currentQuestionData.level;
+      const levelNow = currentQuestionData.level;
 
-      // Always mark question as completed (attempted)
+      // Mark question as attempted
       setCompletedQuestions([...completedQuestions, currentQuestion]);
 
       setTimeout(() => {
-        // Check if we've completed all questions in current level
         const currentLevelQuestions = questions.filter(
-          (q) => q.level === currentLevel
+          (q) => q.level === levelNow
         );
         const attemptedInLevel = [
           ...completedQuestions,
           currentQuestion,
         ].filter((qId) => {
           const q = questions.find((quest) => quest.id === qId);
-          return q && q.level === currentLevel;
+          return q && q.level === levelNow;
         });
 
         if (attemptedInLevel.length === currentLevelQuestions.length) {
-          // Completed all questions in this level
-          const correctInLevel = levelCorrectAnswers[currentLevel] || [];
-
-          if (correctInLevel.length === currentLevelQuestions.length) {
-            // All correct - can proceed to next level or finish
-            if (currentLevel < 3) {
-              const nextLevelStart = currentLevel * 5 + 1;
-              setCurrentQuestion(nextLevelStart);
-            } else {
-              setGamePhase("completed");
-              return;
-            }
+          // Move to next level or finish regardless of correctness
+          if (levelNow < 3) {
+            const nextLevelStart = levelNow * 5 + 1;
+            setCurrentQuestion(nextLevelStart);
           } else {
-            // Some wrong answers - restart this level
-            const levelStart = (currentLevel - 1) * 5 + 1;
-            setCurrentQuestion(levelStart);
-            const otherLevelsCompleted = completedQuestions.filter((qId) => {
-              const q = questions.find((quest) => quest.id === qId);
-              return q && q.level !== currentLevel;
-            });
-            setCompletedQuestions(otherLevelsCompleted);
-            setLevelCorrectAnswers((prev) => ({
-              ...prev,
-              [currentLevel]: [],
-            }));
+            setGamePhase("completed");
+            return;
           }
         } else {
-          // Still have questions left in this level
+          // Next question in this level
           setCurrentQuestion(currentQuestion + 1);
         }
 
@@ -783,6 +826,33 @@ export default function MazeOfChoices() {
     }
     return () => clearTimeout(timer);
   }, [gamePhase, timeLeft, showResult]);
+
+  useEffect(() => {
+    if (gamePhase !== "completed") return;
+
+    // collect mistakes → questions answered wrong
+    const mistakes = completedQuestions.filter((qId) => {
+      const q = questions.find((ques) => ques.id === qId);
+      return q && q.correct !== selectedAnswer; // answered wrong
+    });
+
+    if (mistakes.length > 0) {
+      getLawNotesRecommendation(mistakes).then((notes) => {
+        setRecommendedNotes(notes);
+      });
+    }
+  }, [gamePhase, completedQuestions, selectedAnswer]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const handleAnswer = (answerIndex) => {
     setSelectedAnswer(answerIndex);
@@ -796,64 +866,24 @@ export default function MazeOfChoices() {
       const bonus = timeLeft > 10 ? 5 : timeLeft > 5 ? 3 : 1;
       setScore(newScore + bonus);
       setTimeBonus((prev) => prev + bonus);
-
-      // Track correct answers for this level
-      setLevelCorrectAnswers((prev) => ({
-        ...prev,
-        [currentLevel]: [...prev[currentLevel], currentQuestion],
-      }));
     }
 
     // Always mark question as completed (attempted)
     setCompletedQuestions([...completedQuestions, currentQuestion]);
 
     setTimeout(() => {
-      // Check if we've completed all questions in current level
-      const currentLevelQuestions = questions.filter(
-        (q) => q.level === currentLevel
-      );
-      const attemptedInLevel = [...completedQuestions, currentQuestion].filter(
-        (qId) => {
-          const q = questions.find((quest) => quest.id === qId);
-          return q && q.level === currentLevel;
-        }
-      );
-
-      if (attemptedInLevel.length === currentLevelQuestions.length) {
-        // Completed all questions in this level
-        const correctInLevel = isCorrect
-          ? [...(levelCorrectAnswers[currentLevel] || []), currentQuestion]
-          : levelCorrectAnswers[currentLevel];
-
-        if (correctInLevel.length === currentLevelQuestions.length) {
-          // All correct - can proceed to next level or finish
-          if (currentLevel < 3) {
-            // Move to next level
-            const nextLevelStart = currentLevel * 5 + 1;
-            setCurrentQuestion(nextLevelStart);
-          } else {
-            // Game completed
-            setGamePhase("completed");
-            return;
-          }
+      // After answer, move to next question; after last in level, move to next level regardless of correctness
+      const levelNow = currentLevel;
+      const isLastInLevel = currentQuestion === levelNow * 5;
+      if (isLastInLevel) {
+        if (levelNow < 3) {
+          const nextLevelStart = levelNow * 5 + 1;
+          setCurrentQuestion(nextLevelStart);
         } else {
-          // Some wrong answers - restart this level
-          const levelStart = (currentLevel - 1) * 5 + 1;
-          setCurrentQuestion(levelStart);
-          // Clear completed questions for this level
-          const otherLevelsCompleted = completedQuestions.filter((qId) => {
-            const q = questions.find((quest) => quest.id === qId);
-            return q && q.level !== currentLevel;
-          });
-          setCompletedQuestions(otherLevelsCompleted);
-          // Clear correct answers for this level
-          setLevelCorrectAnswers((prev) => ({
-            ...prev,
-            [currentLevel]: [],
-          }));
+          setGamePhase("completed");
+          return;
         }
       } else {
-        // Still have questions left in this level
         setCurrentQuestion(currentQuestion + 1);
       }
 
@@ -876,101 +906,175 @@ export default function MazeOfChoices() {
     setGamePhase("menu");
     setCurrentQuestion(1);
     setCompletedQuestions([]);
-    setLevelCorrectAnswers({ 1: [], 2: [], 3: [] }); // Add this line
     setScore(0);
     setTimeLeft(15);
     setSelectedAnswer(null);
     setShowResult(false);
     setTimeBonus(0);
     setStartTime(Date.now());
-
   };
+
+  const handleNextChallenge = () => {
+    setIsPopupVisible(true);
+  };
+
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        <GameHeader
-          score={score}
-          currentLevel={currentLevel}
-          timeLeft={timeLeft}
-          gamePhase={gamePhase}
-        />
+    <>
+      <GameNav />
+      <div className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4">
+        <div className="max-w-6xl mx-auto">
+          <GameHeader
+            score={score}
+            currentLevel={currentLevel}
+            timeLeft={timeLeft}
+            gamePhase={gamePhase}
+          />
 
-        <div className="bg-gradient-to-br from-yellow-100 to-red-300  backdrop-blur-sm rounded-xl shadow-xl p-6">
-          {gamePhase === "menu" && (
-            <div className="text-center space-y-6">
-              <div className="text-8xl animate-bounce mb-6">🏰</div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                Welcome to Law Labyrinth!
-              </h1>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-                You're trapped in a magical maze filled with legal puzzles!
-                Answer questions correctly to open doors and find your way out.
-                Can you become a Legal Hero? 🌟
-              </p>
+          <div className="bg-[#202F364D] border border-white backdrop-blur-sm rounded-xl shadow-xl p-6">
+            {gamePhase === "menu" && (
+              <div className="text-center space-y-6">
+                <div className="text-8xl animate-bounce mb-6">🏰</div>
+                <h1 className="text-4xl font-bold text-white lilita-one-regular mb-4">
+                  Welcome to Law Labyrinth!
+                </h1>
+                <p className="text-lg text-white lilita-one-regular max-w-2xl mx-auto mb-8">
+                  You're trapped in a magical maze filled with legal puzzles!
+                  Answer questions correctly to open doors and find your way
+                  out. Can you become a Legal Hero? 🌟
+                </p>
 
-              <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl border-2 border-orange-200 max-w-2xl mx-auto mb-8">
-                <h3 className="font-bold text-orange-700 mb-3 flex items-center justify-center gap-2">
-                  <Target className="w-5 h-5" />
-                  Game Rules
-                </h3>
-                <div className="text-sm text-orange-600 space-y-2">
-                  <p>
-                    • Answer legal questions to progress through 3 challenging
-                    levels
-                  </p>
-                  <p>• Each correct answer = 10 points + time bonus</p>
-                  <p>
-                    • To unlock the next level, you must answer all questions of
-                    the current level correctly
-                  </p>
-                  <p>
-                    • Otherwise, you will be redirected to the current level
-                  </p>
-                  <p>• 15 seconds per question - think fast!</p>
-                  <p>• Complete all 15 questions to escape the maze</p>
+                <div className="bg-gradient-to-r from-yellow-100 to-orange-100 p-6 rounded-xl border-2 border-orange-200 max-w-2xl mx-auto mb-8">
+                  <h3 className="lilita-one-regular text-orange-700 mb-3 flex items-center justify-center gap-2">
+                    <Target className="w-5 h-5" />
+                    Game Rules
+                  </h3>
+                  <div className="text-sm lilita-one-regular text-orange-600 space-y-2">
+                    <p>
+                      • Answer legal questions to progress through 3 challenging
+                      levels
+                    </p>
+                    <p>• Each correct answer = 10 points + time bonus</p>
+
+                    <p>• 15 seconds per question - think fast!</p>
+                    <p>• Complete all 15 questions to escape the maze</p>
+                  </div>
                 </div>
+
+                <button
+                  onClick={handleStart}
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-8 py-4 rounded-lg text-xl lilita-one-regular hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
+                >
+                  <Play className="w-6 h-6" />
+                  Start Maze Adventure!
+                </button>
               </div>
+            )}
 
-              <button
-                onClick={handleStart}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-8 py-4 rounded-full text-xl font-bold hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-3 mx-auto"
-              >
-                <Play className="w-6 h-6" />
-                Start Maze Adventure!
-              </button>
-            </div>
-          )}
-
-          {gamePhase === "playing" && (
-            <div className="space-y-6">
-              <MazeMap
-                currentQuestion={currentQuestion}
-                completedQuestions={completedQuestions}
-                currentLevel={currentLevel}
-              />
-
-              {currentQuestionData && (
-                <QuestionCard
-                  question={currentQuestionData}
-                  onAnswer={handleAnswer}
-                  timeLeft={timeLeft}
-                  selectedAnswer={selectedAnswer}
-                  showResult={showResult}
+            {gamePhase === "playing" && (
+              <div className="space-y-6">
+                <MazeMap
+                  currentQuestion={currentQuestion}
+                  completedQuestions={completedQuestions}
+                  currentLevel={currentLevel}
                 />
-              )}
-            </div>
-          )}
 
-          {gamePhase === "completed" && (
-            <CompletionScreen
-              score={score}
-              totalQuestions={16}
-              timeBonus={timeBonus}
-              onRestart={handleRestart}
-            />
+                {currentQuestionData && (
+                  <QuestionCard
+                    question={currentQuestionData}
+                    onAnswer={handleAnswer}
+                    timeLeft={timeLeft}
+                    selectedAnswer={selectedAnswer}
+                    showResult={showResult}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {gamePhase === "completed" &&
+            ((score / (16 * 10 + timeBonus)) * 100 >= 70 ? (
+              <div className="flex flex-col min-h-screen bg-[#0d1b0f]">
+                <div className="flex-1 flex items-center justify-center">
+                  <WinScreen
+                    score={score}
+                    totalQuestions={16}
+                    timeBonus={timeBonus}
+                    onRestart={handleRestart}
+                    onNextChallenge={handleNextChallenge}
+                    onFeedBack={handleViewFeedback}
+                    completeLawChallenge={completeLawChallenge}
+                  />
+                </div>
+                <footer className="w-full bg-[#2d3748] py-4 flex justify-center space-x-4">
+                  <button
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                    onClick={handleRestart}
+                  >
+                    Retry
+                  </button>
+                  <button
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 rounded"
+                    onClick={handleViewFeedback}
+                  >
+                    Feedback
+                  </button>
+                  <button
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                    onClick={handleNextChallenge}
+                  >
+                    Next Challenge
+                  </button>
+                </footer>
+              </div>
+            ) : (
+              <div className="flex flex-col min-h-screen bg-[#0d1b0f]">
+                <div className="flex-1 flex items-center justify-center">
+                  <LoseScreen
+                    score={score}
+                    totalQuestions={16}
+                    timeBonus={timeBonus}
+                    onRestart={handleRestart}
+                    onNextChallenge={handleNextChallenge}
+                    recommendedNotes={recommendedNotes}
+                    navigate={navigate}
+                  />
+                </div>
+                <footer className="w-full bg-[#2d3748] py-4 flex justify-center space-x-4">
+                  {/* same buttons for lose */}
+                </footer>
+              </div>
+            ))}
+
+          {/* ✅ Popup */}
+          <LevelCompletePopup
+            isOpen={isPopupVisible}
+            onConfirm={() => {
+              setIsPopupVisible(false);
+              navigate("/courses"); // your next level
+            }}
+            onCancel={() => {
+              setIsPopupVisible(false);
+              navigate("/law/games"); // or exit route
+            }}
+            onClose={() => setIsPopupVisible(false)}
+            title="Challenge Complete!"
+            message="Are you ready for the next challenge?"
+            confirmText="Next Challenge"
+            cancelText="Exit"
+          />
+
+          {/* Instructions overlay */}
+          {showInstructions && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+              <InstructionOverlay onClose={() => setShowInstructions(false)} />
+            </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
