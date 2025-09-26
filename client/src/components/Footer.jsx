@@ -5,7 +5,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Linkedin, Instagram } from "lucide-react";
 
 const AnimatedAIImage = ({ src, alt, className }) => {
-  const [isLaptop, setIsLaptop] = React.useState(window.innerWidth >= 1024); 
+  const [isLaptop, setIsLaptop] = React.useState(
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
+  );
+
+  // Hooks at top-level only
+  const x = useMotionValue(0);
+  const springX = useSpring(x, { stiffness: 120, damping: 20 });
+  const rotate = useTransform(springX, [-1, 1], [-15, 15]);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -15,56 +22,32 @@ const AnimatedAIImage = ({ src, alt, className }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (isLaptop) {
-    // Laptop/Desktop: Mouse-controlled rotation
-    const x = useMotionValue(0);
-    const springX = useSpring(x, { stiffness: 120, damping: 20 });
-    const rotate = useTransform(springX, [-1, 1], [-15, 15]); 
+  // Attach mouse listeners only for laptop/desktop
+  React.useEffect(() => {
+    if (!isLaptop) return;
+    const handleMouseMove = (event) => {
+      const centerX = window.innerWidth / 2;
+      const xPct = (event.clientX - centerX) / centerX; // -1 to 1
+      x.set(xPct);
+    };
+    const handleMouseLeave = () => x.set(0);
 
-    React.useEffect(() => {
-      const handleMouseMove = (event) => {
-        const centerX = window.innerWidth / 2;
-        const xPct = (event.clientX - centerX) / centerX; // -1 to 1
-        x.set(xPct);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseleave", handleMouseLeave);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [isLaptop, x]);
+
+  const motionProps = isLaptop
+    ? { style: { rotate } }
+    : {
+        animate: { rotate: [0, 10, -20, 0] },
+        transition: { duration: 5, repeat: Infinity, ease: "easeInOut" },
       };
 
-      const handleMouseLeave = () => {
-        x.set(0);
-      };
-
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseleave", handleMouseLeave);
-
-      return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseleave", handleMouseLeave);
-      };
-    }, [x]);
-
-    return (
-      <motion.img
-        src={src}
-        alt={alt}
-        className={className}
-        style={{ rotate }}
-      />
-    );
-  } else {
-    // Mobile/Tablet: Self-playing animation loop
-    return (
-      <motion.img
-        src={src}
-        alt={alt}
-        className={className}
-        animate={{ rotate: [0, 10, -20, 0] }}
-        transition={{
-          duration: 5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-    );
-  }
+  return <motion.img src={src} alt={alt} className={className} {...motionProps} />;
 };
 
 // Export this as named (not default)
