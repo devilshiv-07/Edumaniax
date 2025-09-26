@@ -3,7 +3,7 @@ import { Menu, X, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import GoogleTranslate from "./GoogleTranslate";
+// Google Translate moved to global App render to avoid DOM reparenting issues
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -274,12 +274,6 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Google Translate - render in desktop only when sidebar is closed */}
-            {!isSidebarOpen && (
-              <div className="relative">
-                <GoogleTranslate />
-              </div>
-            )}
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -382,15 +376,7 @@ const Navbar = () => {
                 </button>
               </div>
 
-              {/* Language selector for mobile - render only when sidebar is open */}
-              {isSidebarOpen && (
-                <div className="mb-6">
-                  <span className="text-sm font-medium text-gray-600">Language</span>
-                  <div className="mt-2 gt-sidebar">
-                    <GoogleTranslate />
-                  </div>
-                </div>
-              )}
+              {/* (language selector moved to global fixed position) */}
 
               <hr className="mb-6" />
 

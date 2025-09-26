@@ -371,7 +371,5 @@ body { top: 0 !important; }
   border-radius: 8px;
 }
 
-/* Full width select inside sidebar on mobile */
-.gt-sidebar #google_translate_element .goog-te-combo {
-  width: 100% !important;
-}
+/* Ensure the fixed widget remains tappable on mobile */
+.fixed #google_translate_element .goog-te-combo { max-width: 200px; }
