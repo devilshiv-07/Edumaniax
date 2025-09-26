@@ -377,6 +377,7 @@ body { top: 0 !important; }
   padding: 6px 8px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
+  background-color: #ffffff;
 }
 
 /* Ensure the fixed widget remains tappable on mobile */

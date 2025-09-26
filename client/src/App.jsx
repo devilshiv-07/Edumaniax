@@ -1375,7 +1375,7 @@ function App() {
       ) : (
         <Router>
           <ScrollToTop />
-          {/* Initialize Google Translate globally (mount provided in Navbar) */}
+          {/* Initialize Google Translate globally (fixed container) */}
           <GoogleTranslate />
           <Routes>
             <Route path="/login" element={<Login />} />
