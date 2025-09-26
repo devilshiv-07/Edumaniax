@@ -5,38 +5,29 @@ const GoogleTranslate = () => {
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Ensure a mount point exists; prefer one provided in the React tree (e.g., Navbar)
-    const ensureMount = () => {
-      let el = document.getElementById("google_translate_element");
-      if (!el) {
-        return false;
-      }
-      if (!el.classList.contains("gt-container")) {
-        el.classList.add("gt-container");
-      }
-      return true;
-    };
-
-    let mounted = ensureMount();
+    // Wait for mount points (desktop or mobile) and initialize once
     let attemptsForMount = 0;
     const mountTimer = setInterval(() => {
-      if (mounted) {
-        clearInterval(mountTimer);
-        return;
-      }
+      const desktop = document.getElementById("google_translate_element_desktop");
+      const mobile = document.getElementById("google_translate_element_mobile");
+      const el = desktop || mobile;
       attemptsForMount += 1;
-      mounted = ensureMount();
-      if (mounted || attemptsForMount > 40) {
-        // As a last resort, create a fixed mount so widget is still usable
-        if (!mounted) {
-          const fallback = document.createElement("div");
-          fallback.id = "google_translate_element";
-          fallback.className = "gt-container gt-fixed";
-          document.body.appendChild(fallback);
+      if (el) {
+        // Ensure only one active mount has the expected id
+        const existing = document.getElementById("google_translate_element");
+        if (existing !== el) {
+          if (existing) existing.removeAttribute("id");
+          el.id = "google_translate_element";
         }
+        if (window.google && window.google.translate) {
+          window.googleTranslateElementInit?.();
+        }
+        // do not clear timer immediately, keep syncing id for a few cycles
+        if (attemptsForMount > 5) clearInterval(mountTimer);
+      } else if (attemptsForMount > 60) {
         clearInterval(mountTimer);
       }
-    }, 150);
+    }, 200);
 
     const SCRIPT_ID = "google-translate-script";
 

@@ -274,8 +274,8 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Navbar language selector mount */}
-            <div id="google_translate_element" className="gt-container" />
+            {/* Navbar language selector mount (desktop only) */}
+            <div id="google_translate_element_desktop" className="gt-container shrink-0" />
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -353,8 +353,10 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          {/* Mobile: language selector + Menu Button */}
+          <div className="md:hidden flex items-center gap-3">
+            {/* Navbar language selector mount (mobile only) */}
+            <div id="google_translate_element_mobile" className="gt-container shrink-0 max-w-[160px]" />
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="text-black"

@@ -356,6 +356,14 @@ a.blog-hyperlink:hover,
   min-width: 140px;
   max-width: 180px;
   overflow: visible;
+  position: relative;
+  z-index: 201; /* higher than navbar z-200 */
+}
+
+/* Tighten select height to align with navbar controls */
+#google_translate_element .goog-te-combo {
+  line-height: 1.25rem;
+  height: 2.25rem;
 }
 
 /* Hide Google top frame banner that can cause layout shift */
