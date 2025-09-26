@@ -348,3 +348,30 @@ a.blog-hyperlink:hover,
 .font-black {
   font-weight: 900;
 }
+
+/* (removed Google Translate styles) */
+/* Google Translate widget tidy-up */
+.gt-container {
+  display: inline-block;
+  min-width: 140px;
+  max-width: 180px;
+  overflow: visible;
+}
+
+/* Hide Google top frame banner that can cause layout shift */
+iframe[id^=":1.container"],
+#goog-gt-tt, .goog-te-banner-frame, .goog-te-balloon-frame { display: none !important; }
+body { top: 0 !important; }
+
+/* Make the select cleaner */
+#google_translate_element .goog-te-gadget .goog-te-combo {
+  font-size: 14px;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+/* Full width select inside sidebar on mobile */
+.gt-sidebar #google_translate_element .goog-te-combo {
+  width: 100% !important;
+}
