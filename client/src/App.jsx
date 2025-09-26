@@ -1375,10 +1375,8 @@ function App() {
       ) : (
         <Router>
           <ScrollToTop />
-          {/* Global Google Translate selector - fixed top-right, visible everywhere */}
-          <div className="fixed top-2 right-2 z-[500] bg-white/90 backdrop-blur px-2 py-1 rounded-md shadow">
-            <GoogleTranslate />
-          </div>
+          {/* Initialize Google Translate globally (mount provided in Navbar) */}
+          <GoogleTranslate />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="*" element={<AppContent />} />
