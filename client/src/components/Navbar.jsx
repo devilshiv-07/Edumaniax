@@ -16,8 +16,7 @@ const Navbar = () => {
   const [isMobileCoursesOpen, setIsMobileCoursesOpen] = useState(false); // New state for mobile courses dropdown
   const sidebarRef = useRef(null);
   const dropdownRef = useRef(null); // New ref for dropdown
-  const desktopTranslateSlotRef = useRef(null);
-  const mobileTranslateSlotRef = useRef(null);
+  // (translate slots managed by conditional rendering)
 
   // Effect to handle clicks outside the sidebar and dropdown
   useEffect(() => {
@@ -41,20 +40,7 @@ const Navbar = () => {
   }, [showLogoutConfirm]); // Run this effect only once on mount
 
   // (removed translate widget movement)
-  // Move Google Translate widget between desktop header and mobile sidebar
-  useEffect(() => {
-    const el = document.getElementById("google_translate_element");
-    const desktopSlot = desktopTranslateSlotRef.current;
-    const mobileSlot = mobileTranslateSlotRef.current;
-    if (!desktopSlot) return;
-    if (!el) return;
-
-    if (isSidebarOpen && mobileSlot) {
-      try { mobileSlot.appendChild(el); } catch (_) {}
-    } else {
-      try { desktopSlot.appendChild(el); } catch (_) {}
-    }
-  }, [isSidebarOpen]);
+  // (removed DOM reparenting of Google widget to avoid React errors)
 
   const handleItemClick = () => {
     setIsSidebarOpen(false);
@@ -288,10 +274,12 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Google Translate - desktop slot */}
-            <div className="relative" ref={desktopTranslateSlotRef}>
-              <GoogleTranslate />
-            </div>
+            {/* Google Translate - render in desktop only when sidebar is closed */}
+            {!isSidebarOpen && (
+              <div className="relative">
+                <GoogleTranslate />
+              </div>
+            )}
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -394,11 +382,15 @@ const Navbar = () => {
                 </button>
               </div>
 
-              {/* Language selector for mobile */}
-              <div className="mb-6">
-                <span className="text-sm font-medium text-gray-600">Language</span>
-                <div className="mt-2 gt-sidebar" ref={mobileTranslateSlotRef} />
-              </div>
+              {/* Language selector for mobile - render only when sidebar is open */}
+              {isSidebarOpen && (
+                <div className="mb-6">
+                  <span className="text-sm font-medium text-gray-600">Language</span>
+                  <div className="mt-2 gt-sidebar">
+                    <GoogleTranslate />
+                  </div>
+                </div>
+              )}
 
               <hr className="mb-6" />
 
