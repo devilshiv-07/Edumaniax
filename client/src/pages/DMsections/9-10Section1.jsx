@@ -25,6 +25,37 @@ const Module1 = ({ topicRefs }) => {
     return () => clearInterval(timer);
   }, []);
 
+  // Google Translate initialization
+  useEffect(() => {
+    // Add Google Translate script if not already present
+    if (!document.querySelector('script[src*="translate.google.com"]')) {
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      document.head.appendChild(script);
+    }
+
+    // Define the initialization function
+    window.googleTranslateElementInit = function() {
+      if (window.google && window.google.translate) {
+        new window.google.translate.TranslateElement(
+          { pageLanguage: 'en' }, 
+          'google_translate_element'
+        );
+      }
+    };
+
+    // If Google Translate is already loaded, initialize it
+    if (window.google && window.google.translate) {
+      window.googleTranslateElementInit();
+    }
+
+    return () => {
+      // Cleanup: remove the global function when component unmounts
+      delete window.googleTranslateElementInit;
+    };
+  }, []);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -46,15 +77,41 @@ const Module1 = ({ topicRefs }) => {
   }, []);
 
   return (
-    <div
-      id="m-1"
-      ref={(el) => {
-        if (topicRefs?.current) {
-          topicRefs.current["m-1"] = el;
+    <>
+      {/* Google Translate Styles */}
+      <style jsx>{`
+        .google-translate-container .goog-te-gadget {
+          font-family: inherit !important;
         }
-      }}
-      className="mb-10"
-    >
+        .google-translate-container .goog-te-gadget-simple {
+          background-color: transparent !important;
+          border: none !important;
+          font-size: 14px !important;
+          color: white !important;
+        }
+        .google-translate-container .goog-te-gadget-simple .goog-te-menu-value {
+          color: white !important;
+        }
+        .google-translate-container .goog-te-gadget-simple .goog-te-menu-value:hover {
+          text-decoration: none !important;
+        }
+        .google-translate-container .goog-te-gadget-icon {
+          display: none !important;
+        }
+        .google-translate-container .goog-te-gadget-simple .goog-te-menu-value span {
+          color: white !important;
+        }
+      `}</style>
+      
+      <div
+        id="m-1"
+        ref={(el) => {
+          if (topicRefs?.current) {
+            topicRefs.current["m-1"] = el;
+          }
+        }}
+        className="mb-10"
+      >
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
         <div className="absolute inset-0 bg-black opacity-10"></div>
@@ -69,6 +126,13 @@ const Module1 = ({ topicRefs }) => {
             <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto leading-relaxed">
               Planning your digital marketing journey like a pro explorer! 🗺️✨
             </p>
+            
+            {/* Google Translate Widget */}
+            <div className="mt-8 flex justify-center">
+              <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                <div id="google_translate_element" className="google-translate-container"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent"></div>
@@ -284,7 +348,8 @@ const Module1 = ({ topicRefs }) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
