@@ -1,6 +1,6 @@
 // utils/getEntrepreneurshipNotesRecommendation.js
+import { notesEntrepreneurship6to8 } from "@/data/notesEntrepreneurship";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { notesEntrepreneurship6to8 } from "@/data/notesEntrepreneurship6to8";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
 
