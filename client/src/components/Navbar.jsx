@@ -274,6 +274,8 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Navbar language selector mount */}
+            <div id="google_translate_element" className="gt-container" />
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
