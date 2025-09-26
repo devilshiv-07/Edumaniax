@@ -296,6 +296,7 @@ import TheBigSpeech from "./components/Games for 9-10/Communication/Level3/TheBi
 import InboxInsightGame from "./components/Games for 9-10/Communication/Level3/InboxInsight/InboxInsight";
 import CarouselCampaign from "./components/Games for 9-10/Dig Mkting/Level1/CarouselCampaign/CarouselCampaign";
 import VideoAudioSyncIntro from "./components/VideoAudioSyncIntro";
+import GoogleTranslate from "./components/GoogleTranslate";
 import PaymentRequired from "./pages/PaymentRequired";
 import Payment from "./pages/Payment";
 import SalesDashboard from "./pages/SalesDashboard";
@@ -1374,6 +1375,10 @@ function App() {
       ) : (
         <Router>
           <ScrollToTop />
+          {/* Global Google Translate selector - fixed top-right, visible everywhere */}
+          <div className="fixed top-2 right-2 z-[500] bg-white/90 backdrop-blur px-2 py-1 rounded-md shadow">
+            <GoogleTranslate />
+          </div>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="*" element={<AppContent />} />
