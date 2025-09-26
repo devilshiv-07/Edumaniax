@@ -3,6 +3,7 @@ import { Menu, X, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import GoogleTranslate from "./GoogleTranslate";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -15,6 +16,7 @@ const Navbar = () => {
   const [isMobileCoursesOpen, setIsMobileCoursesOpen] = useState(false); // New state for mobile courses dropdown
   const sidebarRef = useRef(null);
   const dropdownRef = useRef(null); // New ref for dropdown
+  // (translate slots managed by conditional rendering)
 
   // Effect to handle clicks outside the sidebar and dropdown
   useEffect(() => {
@@ -36,6 +38,9 @@ const Navbar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showLogoutConfirm]); // Run this effect only once on mount
+
+  // (removed translate widget movement)
+  // (removed DOM reparenting of Google widget to avoid React errors)
 
   const handleItemClick = () => {
     setIsSidebarOpen(false);
@@ -269,6 +274,12 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Google Translate - render in desktop only when sidebar is closed */}
+            {!isSidebarOpen && (
+              <div className="relative">
+                <GoogleTranslate />
+              </div>
+            )}
             {user ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -370,6 +381,16 @@ const Navbar = () => {
                   <X size={24} className="text-black" />
                 </button>
               </div>
+
+              {/* Language selector for mobile - render only when sidebar is open */}
+              {isSidebarOpen && (
+                <div className="mb-6">
+                  <span className="text-sm font-medium text-gray-600">Language</span>
+                  <div className="mt-2 gt-sidebar">
+                    <GoogleTranslate />
+                  </div>
+                </div>
+              )}
 
               <hr className="mb-6" />
 
