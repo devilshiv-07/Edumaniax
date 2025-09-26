@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, ChevronDown, BookOpen, TrendingUp, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
-import { useParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import Section1dm from "./Entrepreneurship/6-8Section1";
 import Section2dm from "./Entrepreneurship/6-8Section2";
@@ -75,7 +75,7 @@ const EntrepreneurshipFullNotes = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
 
-  const [searchParams] = useParams();
+  const [searchParams] = useSearchParams();
 
   const topicRefs = useRef({});
   const visibleTopics = useRef(new Set());

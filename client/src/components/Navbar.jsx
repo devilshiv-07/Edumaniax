@@ -3,7 +3,7 @@ import { Menu, X, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import GoogleTranslate from "./GoogleTranslate";
+// Google Translate moved to global App render to avoid DOM reparenting issues
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -163,6 +163,21 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Notify translate initializer when sidebar opens so it can (re)mount into mobile slot
+  useEffect(() => {
+    if (isSidebarOpen) {
+      // Defer to next tick to ensure DOM is painted
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("gt:sidebar-open"));
+      }, 0);
+    } else {
+      // Notify to restore widget to desktop container
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("gt:sidebar-close"));
+      }, 0);
+    }
+  }, [isSidebarOpen]);
+
   return (
     <>
       <nav className="bg-white text-black sticky top-0 z-200 w-full rounded-bl-4xl rounded-br-4xl shadow-lg">
@@ -274,14 +289,10 @@ const Navbar = () => {
 
           {/* Right Side Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-3">
-            {/* Google Translate - render in desktop only when sidebar is closed */}
-            {!isSidebarOpen && (
-              <div className="relative">
-                <GoogleTranslate />
-              </div>
-            )}
+            {/* Navbar language selector mount (desktop only) */}
+            <div id="google_translate_element_desktop" className="gt-container mr-5 shrink-0" />
             {user ? (
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative mr-5" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition duration-300 focus:outline-none"
@@ -382,15 +393,13 @@ const Navbar = () => {
                 </button>
               </div>
 
-              {/* Language selector for mobile - render only when sidebar is open */}
-              {isSidebarOpen && (
-                <div className="mb-6">
-                  <span className="text-sm font-medium text-gray-600">Language</span>
-                  <div className="mt-2 gt-sidebar">
-                    <GoogleTranslate />
-                  </div>
+              {/* Language selector for mobile - in sidebar */}
+              <div className="mb-6">
+                <span className="text-sm font-medium text-gray-600">Language</span>
+                <div className="mt-2 gt-sidebar">
+                  <div id="google_translate_element_mobile" className="gt-container" />
                 </div>
-              )}
+              </div>
 
               <hr className="mb-6" />
 
