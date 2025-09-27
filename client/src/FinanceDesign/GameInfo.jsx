@@ -15,7 +15,7 @@ const GameInfo = () => {
           What’s in the game!
         </h2>
         <p className="text-gray-600 lg:max-w-5xl text-sm md:text-base">
-          Our creativity tools, interactive story-based lessons, and fun 
+          Our creativity tools, interactive story-based lessons, and fun
           characters will motivate students to learn fundamental finance
           concepts and take their first big steps toward finance management
         </p>
