@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useEntrepreneruship } from "@/contexts/EntreprenerushipContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
-
-// GIFs
-const introGif = "https://media0.giphy.com/media/YHvI6fvc1bwfrP9alV/200w.webp";
-const successGif = "https://media4.giphy.com/media/lC69bczh51rZldSyA5/200.webp";
-const failGif = "https://media3.giphy.com/media/5QW76Ww9bquHdg1fTv/100.webp";
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { getEntrepreneurshipNotesRecommendation } from "@/utils/getEntrepreneurshipNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 
 const EthicsAndImpact = () => {
   const { completeEntreprenerushipChallenge } = useEntrepreneruship();
-  const [started, setStarted] = useState(false);
   const [risks, setRisks] = useState(["", "", ""]);
   const [solutions, setSolutions] = useState(["", "", ""]);
   const [reflection, setReflection] = useState("");
@@ -23,12 +23,60 @@ const EthicsAndImpact = () => {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const navigate = useNavigate();
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     if (showSuccess) {
       completeEntreprenerushipChallenge(1, 0); // Replace with correct challenge ID
     }
   }, [showSuccess]);
+
+  // Recommended Notes for Lose Scenario
+  useEffect(() => {
+    if (!showFail) return; // only run if user failed
+
+    // collect mistakes
+    const mistakes = risks
+      .map((risk, idx) => ({
+        problem: risk,
+        solution: solutions[idx],
+        review: pairFeedbacks[idx] || "",
+        category: "Risk-Solution Pair",
+      }))
+      .filter(
+        (f) =>
+          !(
+            f.review.toLowerCase().startsWith("great") ||
+            f.review.toLowerCase().startsWith("good")
+          )
+      )
+      .map((f) => ({
+        text: `${f.problem} → ${f.solution}`,
+        placedIn: f.category || "not selected",
+        correctCategory: "Needs improvement",
+      }));
+
+    if (mistakes.length > 0) {
+      getEntrepreneurshipNotesRecommendation(mistakes).then((notes) =>
+        setRecommendedNotes(notes)
+      );
+    }
+  }, [showFail, risks, solutions, pairFeedbacks]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   // ✅ Gemini check with explicit instruction for positive wording
   const verifyInputsWithGemini = async () => {
@@ -146,7 +194,6 @@ Check this reflection:
       avgResponseTimeSec: timeTakenSec,
       studyTimeMinutes: timeTakenMin,
       completed: true,
-
     });
     setStartTime(Date.now());
     if (score >= 7) {
@@ -158,18 +205,15 @@ Check this reflection:
     }
   };
 
-
   const handleTryAgain = () => {
     setRisks(["", "", ""]);
     setSolutions(["", "", ""]);
     setReflection("");
     setShowSuccess(false);
     setShowFail(false);
-     
   };
 
   const handlePlayAgain = () => {
-    setStarted(false);
     setRisks(["", "", ""]);
     setSolutions(["", "", ""]);
     setReflection("");
@@ -180,151 +224,250 @@ Check this reflection:
     setStartTime(Date.now());
   };
 
-  if (!started) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-blue-50 text-center">
-        <h1 className="text-3xl font-bold mb-4">
-          🛡️ Challenge 3: Ethics & Impact Board
-        </h1>
-        <img src={introGif} alt="Intro" className="mb-4 rounded shadow" />
-        <p className="text-lg mb-6 max-w-xl">
-          <strong>Mission:</strong> Think about risks and fairness in using AI.
-          Every idea must be responsible! 🧑‍💻💡
-          <br />
-          <br />
-          ✏️ <strong>Tasks:</strong> <br />
-          1️⃣ Identify 3 risks/problems your AI could cause. <br />
-          2️⃣ Suggest how to prevent each risk. <br />
-          3️⃣ Reflect on who is responsible.
-        </p>
-        <button
-          onClick={() => setStarted(true)}
-          className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          🚀 Start the Game
-        </button>
-      </div>
-    );
-  }
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/pitch-champion");
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-green-50 text-center">
-      <h2 className="text-2xl font-bold mb-4">🛡️ Ethics & Impact Board</h2>
+    <>
+      <GameNav />
+      <div className=" min-h-screen w-full">
+        <div className="bg-[#0A160E] flex flex-col pt-20 md:pt-50 pb-28 items-center justify-center min-h-screen p-6 text-center">
+          <div className="w-full max-w-md space-y-6 text-left">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="space-y-2">
+                <label className="block">
+                  <span className="text-white lilita-one-regular">
+                    {index + 1}️⃣ Risk
+                  </span>
+                  <input
+                    type="text"
+                    value={risks[index]}
+                    onChange={(e) => {
+                      const updated = [...risks];
+                      updated[index] = e.target.value;
+                      setRisks(updated);
+                    }}
+                    className="w-full mt-1 p-2 border rounded text-white"
+                    placeholder="Eg: Might leak private info"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-white lilita-one-regular">
+                    🛠️ Solution
+                  </span>
+                  <input
+                    type="text"
+                    value={solutions[index]}
+                    onChange={(e) => {
+                      const updated = [...solutions];
+                      updated[index] = e.target.value;
+                      setSolutions(updated);
+                    }}
+                    className="w-full mt-1 p-2 border rounded text-white"
+                    placeholder="Eg: Use strong encryption"
+                  />
+                </label>
+                <p className="bg-white border p-2 rounded shadow">
+                  {pairFeedbacks[index] || "No feedback yet."}
+                </p>
+              </div>
+            ))}
 
-      <div className="w-full max-w-md space-y-6 text-left">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="space-y-2">
             <label className="block">
-              <span className="font-semibold">{index + 1}️⃣ Risk</span>
+              <span className="text-white lilita-one-regular">
+                🪞 Reflection
+              </span>
               <input
                 type="text"
-                value={risks[index]}
-                onChange={(e) => {
-                  const updated = [...risks];
-                  updated[index] = e.target.value;
-                  setRisks(updated);
-                }}
-                className="w-full mt-1 p-2 border rounded"
-                placeholder="Eg: Might leak private info"
+                value={reflection}
+                onChange={(e) => setReflection(e.target.value)}
+                className="w-full mt-1 p-2 border rounded text-white"
+                placeholder="Eg: Developers & users should be careful."
               />
             </label>
-            <label className="block">
-              <span className="font-semibold">🛠️ Solution</span>
-              <input
-                type="text"
-                value={solutions[index]}
-                onChange={(e) => {
-                  const updated = [...solutions];
-                  updated[index] = e.target.value;
-                  setSolutions(updated);
-                }}
-                className="w-full mt-1 p-2 border rounded"
-                placeholder="Eg: Use strong encryption"
-              />
-            </label>
-            <p className="bg-white border p-2 rounded shadow">
-              {pairFeedbacks[index] || "No feedback yet."}
+            <p className="bg-white border lilita-one-regular p-2 rounded shadow">
+              {reflectionFeedback || "No feedback yet."}
             </p>
           </div>
-        ))}
 
-        <label className="block">
-          <span className="font-semibold">🪞 Reflection</span>
-          <input
-            type="text"
-            value={reflection}
-            onChange={(e) => setReflection(e.target.value)}
-            className="w-full mt-1 p-2 border rounded"
-            placeholder="Eg: Developers & users should be careful."
-          />
-        </label>
-        <p className="bg-white border p-2 rounded shadow">
-          {reflectionFeedback || "No feedback yet."}
-        </p>
-      </div>
+          <div className="mt-6 space-x-4">
+            <button
+              onClick={verifyInputsWithGemini}
+              disabled={loading}
+              className="px-5 py-2 bg-yellow-500 text-white lilita-one-regular rounded hover:bg-yellow-600"
+            >
+              {loading ? "Checking..." : "✅ Verify "}
+            </button>
 
-      <div className="mt-6 space-x-4">
-        <button
-          onClick={verifyInputsWithGemini}
-          disabled={loading}
-          className="px-5 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-        >
-          {loading ? "Checking..." : "✅ Verify "}
-        </button>
+            <button
+              onClick={handleTryAgain}
+              className="px-5 py-2 bg-red-500 text-white lilita-one-regular rounded hover:bg-red-600"
+            >
+              🔄 Try Again
+            </button>
+          </div>
 
-        <button
-          onClick={handleSubmit}
-          className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          🎉 Submit
-        </button>
+          <div className="fixed bottom-0 left-0 w-full bg-[#2f3e46] border-t-4 border-[#1a2e1a] shadow-inner py-3 sm:py-6 flex items-center justify-center z-40 px-4 sm:px-0">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-t-pink-500 border-yellow-300 rounded-full animate-spin"></div>
+                <p className="mt-2 text-gray-200 lilita-one-regular text-lg font-semibold">
+                  Thinking...
+                </p>
+              </div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSubmit} // 🔥 use handleSubmit here
+              >
+                <img
+                  src="/financeGames6to8/check-now-btn.svg"
+                  alt="Submit & Get Review"
+                  className="h-12 sm:h-16 w-auto"
+                />
+              </motion.button>
+            )}
+          </div>
 
-        <button
-          onClick={handleTryAgain}
-          className="px-5 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          🔄 Try Again
-        </button>
+          {/* WIN SCREEN */}
+          {showSuccess && (
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                {/* Trophy GIFs */}
+                <div className="relative w-64 h-64 flex items-center justify-center">
+                  <img
+                    src="/financeGames6to8/trophy-rotating.gif"
+                    alt="Rotating Trophy"
+                    className="absolute w-full h-full object-contain"
+                  />
+                  <img
+                    src="/financeGames6to8/trophy-celebration.gif"
+                    alt="Celebration Effects"
+                    className="absolute w-full h-full object-contain"
+                  />
+                </div>
 
-        <button
-          onClick={handlePlayAgain}
-          className="px-5 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          🔁 Play Again
-        </button>
-      </div>
+                {/* Success Message */}
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                  Challenge Complete!
+                </h2>
 
-      <div className="mt-6 flex flex-col items-center">
-        {showSuccess && (
-          <>
-            <div className="flex justify-center">
-              <img
-                src={successGif}
-                alt="Success"
-                className="rounded shadow w-60 h-auto"
-              />
+                <p className="text-[#FFCC00] mt-4 text-center font-semibold">
+                  🎉 Great job! You nailed it!
+                </p>
+
+                {/* Badge Earned Section */}
+                <div className="mt-3 flex flex-col items-center">
+                  <p className="text-white text-sm sm:text-base font-bold mb-1">
+                    🏅 Badge Earned
+                  </p>
+                  <span className="text-yellow-400 text-sm sm:text-base font-extrabold lilita-one-regular">
+                    Ethics Defender
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={handlePlayAgain}
+                  className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/feedback.svg"
+                  alt="Feedback"
+                  onClick={handleViewFeedback}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
             </div>
-            <p className="text-xl font-bold mt-2 text-center">
-              🎉 Great job! Everything looks responsible!
-            </p>
-          </>
-        )}
-        {showFail && (
-          <>
-            <div className="flex justify-center">
-              <img
-                src={failGif}
-                alt="Try again"
-                className="rounded shadow w-40 h-auto"
-              />
+          )}
+
+          {/* LOSE SCREEN */}
+          {showFail && (
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                <img
+                  src="/financeGames6to8/game-over-game.gif"
+                  alt="Game Over"
+                  className="w-48 sm:w-64 h-auto mb-4"
+                />
+                <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+                  Oops! You didn’t hit the mark this time. Wanna retry?
+                </p>
+
+                {/* Suggested Notes Section */}
+                {recommendedNotes.length > 0 && (
+                  <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                    <h3 className="text-white lilita-one-regular text-xl mb-2">
+                      📘 Learn & Improve
+                    </h3>
+                    <p className="text-white mb-3 text-sm leading-relaxed">
+                      We recommend revisiting{" "}
+                      <span className="text-yellow-300 font-bold">
+                        {recommendedNotes.map((n) => n.title).join(", ")}
+                      </span>{" "}
+                      to strengthen your skills before retrying.
+                    </p>
+                    {recommendedNotes.map((note) => (
+                      <button
+                        key={note.topicId}
+                        onClick={() =>
+                          navigate(
+                            `/law/notes?grade=6-8&section=${note.topicId}`
+                          )
+                        }
+                        className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                      >
+                        Go to {note.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={handlePlayAgain}
+                  className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-34 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
             </div>
-            <p className="text-xl font-bold mt-2 text-center">
-              ⚠️ Oops! Some answers need fixing. Please improve them!
-            </p>
-          </>
-        )}
+          )}
+
+          {/* Instructions overlay */}
+          {showInstructions && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+              <InstructionOverlay onClose={() => setShowInstructions(false)} />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
