@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from "react";
 import Confetti from "react-confetti";
-import { useWindowSize } from "react-use";
 import { useEntrepreneruship } from "@/contexts/EntreprenerushipContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
-
-const introGif =
-  "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdGw5Y3ZmeG9qcXpreXo5NXN5czBnYnhvcGd1b3g5NXhqdHV0NzA4ayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ZJ6r7T0GWbfdyXgVYs/200w.webp";
-const championGif =
-  "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXdtNXMwa2lqNm15MWRkZTBibnJxYTdkZ2NqNWs4ajgwdDFtanVjbSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/xoHntNXFYkfzGAftEv/200w.webp";
-const tryAgainGif =
-  "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExZmdleGF0ZWJvbGw5YXh1ZzFwbm1yY3VrYnprbWtqdGVxd282c2UyMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ji6zzUZwNIuLS/200.webp";
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
+import { getEntrepreneurshipNotesRecommendation } from "@/utils/getEntrepreneurshipNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 
 const MVPTest = () => {
   const { completeEntreprenerushipChallenge } = useEntrepreneruship();
 
-  const [step, setStep] = useState("intro");
-  const { width, height } = useWindowSize();
+  const [step, setStep] = useState("form");
   const [mockup, setMockup] = useState("");
   const [testPlan, setTestPlan] = useState("");
   const [simulatedFeedback, setSimulatedFeedback] = useState("");
@@ -27,7 +25,14 @@ const MVPTest = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   //for performance
   const { updatePerformance } = usePerformance();
-  const [startTime,setStartTime] = useState(Date.now());
+  const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [showKidGif, setShowKidGif] = useState(false);
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const navigate = useNavigate();
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     if (step === "result" && badgeEarned) {
@@ -35,12 +40,38 @@ const MVPTest = () => {
     }
   }, [step, badgeEarned]);
 
-  const startGame = () => {
-    setStep("form");
-    setFeedback("");
-    setBadgeEarned(false);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
 
+  useEffect(() => {
+    if (step === "result" && badgeEarned) {
+      setShowConfetti(true);
+    }
+  }, [step, badgeEarned]);
+
+  useEffect(() => {
+    if (step === "result" && !badgeEarned) {
+      // Collect mistakes summary for this game
+      const mistakes = {
+        mockup,
+        testPlan,
+        improvements,
+        feedback,
+      };
+
+      getEntrepreneurshipNotesRecommendation(mistakes).then((notes) =>
+        setRecommendedNotes(notes)
+      );
+    }
+  }, [step, badgeEarned, mockup, testPlan, improvements, feedback]);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
   const verifyWithGemini = async () => {
     if (!mockup.trim() || !testPlan.trim() || !improvements.trim()) {
       alert("Please fill in all fields before verifying!");
@@ -167,14 +198,14 @@ const MVPTest = () => {
   };
 
   const handlePlayAgain = () => {
-    setStep("intro");
+    setStep("form");
     setMockup("");
     setTestPlan("");
     setSimulatedFeedback("");
     setImprovements("");
     setFeedback("");
     setBadgeEarned(false);
-     setStartTime(Date.now());
+    setStartTime(Date.now());
   };
 
   const handleSubmit = () => {
@@ -202,210 +233,318 @@ const MVPTest = () => {
       avgResponseTimeSec: timeTakenSec,
       studyTimeMinutes: timeTakenMin,
       completed: true,
-     
     });
-     setStartTime(Date.now());
+    setStartTime(Date.now());
   };
 
-  useEffect(() => {
-    if (step === "result" && badgeEarned) {
-      setShowConfetti(true);
-    }
-  }, [step, badgeEarned]);
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    setIsPopupVisible(true);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 to-blue-200 flex flex-col items-center justify-center p-6">
-      {step === "intro" && (
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">🧪 MVP Test Lab</h1>
-          <p className="mb-4 text-lg">
-            Mission: Simulate your product idea, test it, and improve it wisely.
-            Fill out your mockup, test plan, feedback, and improvements. Then
-            verify with Gemini and earn your badge!
-          </p>
-          <img
-            src={introGif}
-            alt="Let's Start"
-            className="w-60 mx-auto mb-6 rounded-xl shadow-lg"
-          />
-          <button
-            onClick={startGame}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg hover:bg-blue-700 transition"
-          >
-            Start Game
-          </button>
-        </div>
-      )}
+    <>
+      <GameNav />
+      <div className="min-h-screen bg-[#0A160E] flex flex-col items-center justify-center p-6">
+        {step === "form" && (
+          <div className="w-full max-w-xl bg-[#202F364D] p-6 rounded-xl shadow-md">
+            <h2 className="text-2xl text-white lilita-one-regular mb-4">
+              ✏️ Fill in your MVP Test Lab
+            </h2>
 
-      {step === "form" && (
-        <div className="w-full max-w-xl bg-white p-6 rounded-xl shadow-md">
-          <h2 className="text-2xl font-semibold mb-4">
-            ✏️ Fill in your MVP Test Lab
-          </h2>
+            <label className="block mb-2 text-white lilita-one-regular">
+              Mockup Description:
+            </label>
+            <textarea
+              className="w-full p-3 border text-white rounded mb-4"
+              rows="3"
+              value={mockup}
+              onChange={(e) => {
+                setMockup(e.target.value);
+                // 🎉 Show kid gif for 2 seconds when typing
+                setShowKidGif(true);
+                setTimeout(() => setShowKidGif(false), 2000);
+              }}
+              placeholder="E.g. A simple sketch showing the main screen and buttons..."
+            />
 
-          <label className="block mb-2 font-medium">Mockup Description:</label>
-          <textarea
-            className="w-full p-3 border rounded mb-4"
-            rows="3"
-            value={mockup}
-            onChange={(e) => setMockup(e.target.value)}
-            placeholder="E.g. A simple sketch showing the main screen and buttons..."
-          />
+            <label className="block mb-2 text-white lilita-one-regular">
+              Test Plan:
+            </label>
+            <textarea
+              className="w-full p-3 border text-white rounded mb-4"
+              rows="2"
+              value={testPlan}
+              onChange={(e) => setTestPlan(e.target.value)}
+              placeholder="E.g. Ask 5 users if they understand how to use it..."
+            />
 
-          <label className="block mb-2 font-medium">Test Plan:</label>
-          <textarea
-            className="w-full p-3 border rounded mb-4"
-            rows="2"
-            value={testPlan}
-            onChange={(e) => setTestPlan(e.target.value)}
-            placeholder="E.g. Ask 5 users if they understand how to use it..."
-          />
+            <div className="flex flex-col gap-2 mb-4">
+              <button
+                onClick={simulateFeedback}
+                className="bg-orange-500 text-white lilita-one-regular px-4 py-2 rounded-full hover:bg-orange-600 transition w-fit"
+                disabled={loadingFeedback}
+              >
+                {loadingFeedback
+                  ? "Simulating..."
+                  : "Generate Simulated Feedback"}
+              </button>
 
-          <div className="flex flex-col gap-2 mb-4">
-            <button
-              onClick={simulateFeedback}
-              className="bg-orange-500 text-white px-4 py-2 rounded-full hover:bg-orange-600 transition w-fit"
-              disabled={loadingFeedback}
-            >
-              {loadingFeedback
-                ? "Simulating..."
-                : "Generate Simulated Feedback"}
-            </button>
+              {simulatedFeedback && (
+                <div className="mt-2 p-3 bg-gray-100 border rounded">
+                  <p className="whitespace-pre-wrap lilita-one-regular">
+                    {simulatedFeedback}
+                  </p>
+                </div>
+              )}
+            </div>
 
-            {simulatedFeedback && (
-              <div className="mt-2 p-3 bg-gray-100 border rounded">
-                <p className="whitespace-pre-wrap">{simulatedFeedback}</p>
+            <label className="block mb-2 text-white lilita-one-regular">
+              3 Improvements:
+            </label>
+            <textarea
+              className="w-full p-3 border rounded mb-4 text-white"
+              rows="2"
+              value={improvements}
+              onChange={(e) => setImprovements(e.target.value)}
+              placeholder="E.g. 1) Simplify homepage, 2) Add clear CTA, 3) Improve colors..."
+            />
+
+            <div className="flex flex-wrap gap-3 mt-4">
+              <button
+                onClick={verifyWithGemini}
+                className="bg-green-600 text-white lilita-one-regular px-4 py-2 rounded-full hover:bg-green-700 transition"
+                disabled={loading}
+              >
+                {loading ? "Verifying..." : "Verify"}
+              </button>
+              <button
+                onClick={handleTryAgain}
+                className="bg-yellow-500 text-white lilita-one-regular px-4 py-2 rounded-full hover:bg-yellow-600 transition"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={handlePlayAgain}
+                className="bg-purple-600 text-white lilita-one-regular px-4 py-2 rounded-full hover:bg-purple-700 transition"
+              >
+                Play Again
+              </button>
+            </div>
+
+            {/* ✅ Sticky Footer with Kid Celebration */}
+            <div className="fixed bottom-0 left-0 w-full bg-[#2f3e46] border-t-4 border-[#1a2e1a] shadow-inner py-3 sm:py-6 flex items-center justify-center z-40 px-4 sm:px-0">
+              {showKidGif && (
+                <div
+                  className="absolute -top-24 sm:-top-30 transform -translate-x-1/2 z-50 flex items-start"
+                  style={{ left: "85%" }}
+                >
+                  <img
+                    src="/financeGames6to8/kid-gif.gif"
+                    alt="Kid Celebration"
+                    className="object-contain"
+                    style={{
+                      maxHeight: "120px",
+                      height: "auto",
+                      width: "auto",
+                    }}
+                  />
+                  <img
+                    src="/financeGames6to8/kid-saying.svg"
+                    alt="Kid Saying"
+                    className="absolute top-2 left-[90px] w-24 hidden md:block"
+                  />
+                </div>
+              )}
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 border-4 border-t-pink-500 border-yellow-300 rounded-full animate-spin"></div>
+                  <p className="mt-2 text-gray-200 lilita-one-regular text-lg font-semibold">
+                    Submitting...
+                  </p>
+                </div>
+              ) : (
+                <motion.button
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  <img
+                    src="/financeGames6to8/check-now-btn.svg"
+                    alt="Check Now"
+                    className={`h-12 sm:h-16 w-auto ${
+                      loading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  />
+                </motion.button>
+              )}
+            </div>
+
+            {feedback && (
+              <div className="mt-6 p-4 bg-gray-100 rounded border border-gray-300">
+                <h3 className="lilita-one-regular mb-2">✅ AI Feedback:</h3>
+                <p className="whitespace-pre-wrap lilita-one-regular">
+                  {feedback}
+                </p>
               </div>
             )}
           </div>
+        )}
 
-          <label className="block mb-2 font-medium">3 Improvements:</label>
-          <textarea
-            className="w-full p-3 border rounded mb-4"
-            rows="2"
-            value={improvements}
-            onChange={(e) => setImprovements(e.target.value)}
-            placeholder="E.g. 1) Simplify homepage, 2) Add clear CTA, 3) Improve colors..."
-          />
+        {step === "result" && (
+          <>
+            {badgeEarned ? (
+              /* WIN VIEW */
+              <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                {/* Center Content */}
+                <div className="flex flex-col items-center justify-center flex-1 p-6">
+                  {/* Trophy GIFs */}
+                  <div className="relative w-64 h-64 flex items-center justify-center">
+                    <img
+                      src="/financeGames6to8/trophy-rotating.gif"
+                      alt="Rotating Trophy"
+                      className="absolute w-full h-full object-contain"
+                    />
+                    <img
+                      src="/financeGames6to8/trophy-celebration.gif"
+                      alt="Celebration Effects"
+                      className="absolute w-full h-full object-contain"
+                    />
+                  </div>
 
-          <div className="flex flex-wrap gap-3 mt-4">
-            <button
-              onClick={verifyWithGemini}
-              className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 transition"
-              disabled={loading}
-            >
-              {loading ? "Verifying..." : "Verify"}
-            </button>
-            <button
-              onClick={handleTryAgain}
-              className="bg-yellow-500 text-white px-4 py-2 rounded-full hover:bg-yellow-600 transition"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={handlePlayAgain}
-              className="bg-purple-600 text-white px-4 py-2 rounded-full hover:bg-purple-700 transition"
-            >
-              Play Again
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition"
-            >
-              Submit
-            </button>
+                  {/* Badge Earned */}
+                  <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                    🏅 Badge Earned: Pitch Pro!
+                  </h2>
+                  <p className="text-xl text-white mt-2">
+                    🎉 Fantastic pitch! You nailed it!
+                  </p>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                  <img
+                    src="/financeGames6to8/feedback.svg"
+                    alt="Feedback"
+                    onClick={handleViewFeedback}
+                    className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                  <img
+                    src="/financeGames6to8/retry.svg"
+                    alt="Retry"
+                    onClick={handlePlayAgain}
+                    className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                  <img
+                    src="/financeGames6to8/next-challenge.svg"
+                    alt="Next Challenge"
+                    onClick={handleNextChallenge}
+                    className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                </div>
+              </div>
+            ) : (
+              /* LOSE VIEW */
+              <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                {/* Game Over */}
+                <div className="flex flex-col items-center justify-center flex-1 p-4">
+                  <img
+                    src="/financeGames6to8/game-over-game.gif"
+                    alt="Game Over"
+                    className="w-48 sm:w-64 h-auto mb-4"
+                  />
+                  <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+                    ❌ Some parts need improvement. Wanna Retry?
+                  </p>
+
+                  {/* Notes Recommendation if user mistakes exist */}
+                  {recommendedNotes.length > 0 && (
+                    <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                      <h3 className="text-white lilita-one-regular text-xl mb-2">
+                        📘 Learn & Improve
+                      </h3>
+                      <p className="text-white mb-3 text-sm leading-relaxed">
+                        Based on your mistakes, we recommend revisiting{" "}
+                        <span className="text-yellow-300 font-bold">
+                          {recommendedNotes.map((n) => n.title).join(", ")}
+                        </span>{" "}
+                        to strengthen your skills before retrying.
+                      </p>
+                      {recommendedNotes.map((note) => (
+                        <button
+                          key={note.topicId}
+                          onClick={() =>
+                            navigate(
+                              `/leadership/notes?grade=6-8&section=${note.topicId}`
+                            )
+                          }
+                          className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                        >
+                          Go to {note.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+                  <img
+                    src="/financeGames6to8/feedback.svg"
+                    alt="Feedback"
+                    onClick={handleViewFeedback}
+                    className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                  <img
+                    src="/financeGames6to8/retry.svg"
+                    alt="Retry"
+                    onClick={handlePlayAgain}
+                    className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                  <img
+                    src="/financeGames6to8/next-challenge.svg"
+                    alt="Next Challenge"
+                    onClick={handleNextChallenge}
+                    className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Popup here */}
+            <LevelCompletePopup
+              isOpen={isPopupVisible}
+              onConfirm={() => {
+                setIsPopupVisible(false);
+                navigate("/courses"); // your next level
+              }}
+              onCancel={() => {
+                setIsPopupVisible(false);
+                navigate("/entrepreneurship/games"); // or exit route
+              }}
+              onClose={() => setIsPopupVisible(false)}
+              title="Challenge Complete!"
+              message="Are you ready for the next challenge?"
+              confirmText="Next Challenge"
+              cancelText="Exit"
+            />
+          </>
+        )}
+
+        {/* Instructions overlay */}
+        {showInstructions && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+            <InstructionOverlay onClose={() => setShowInstructions(false)} />
           </div>
-
-          {feedback && (
-            <div className="mt-6 p-4 bg-gray-100 rounded border border-gray-300">
-              <h3 className="font-semibold mb-2">✅ Gemini Feedback:</h3>
-              <p className="whitespace-pre-wrap">{feedback}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === "result" && (
-        <div className="text-center relative">
-          {badgeEarned && showConfetti && (
-            <div className="fixed inset-0 z-50 pointer-events-none">
-              <Confetti width={window.innerWidth} height={window.innerHeight} />
-            </div>
-          )}
-
-          {badgeEarned ? (
-            <>
-              <h2 className="text-3xl font-bold mb-4">
-                🎖 Badge Earned: MVP Strategist
-              </h2>
-              <p className="text-lg mb-4">
-                Great work! Your MVP is clear and test-ready. You're officially
-                an MVP Strategist!
-              </p>
-              <img
-                src={championGif}
-                alt="Champion Badge"
-                className="w-60 mx-auto mb-6 rounded-xl shadow-lg"
-              />
-              {/* Additional celebration text + gif */}
-              <p className="text-xl font-semibold leading-relaxed max-w-2xl mx-auto mb-4">
-                Congratulations, Young AI Entrepreneur!
-                <br />
-                You did it! You’ve completed the AI + Entrepreneurship Master
-                Module — an incredible journey of creativity, innovation, and
-                impact. <br />
-                <br />
-                You’ve learned how to:
-                <br />
-                👀 Spot real-life problems
-                <br />
-                💡 Design smart, AI-powered solutions
-                <br />
-                🔧 Build prototypes and get feedback
-                <br />
-                ⚖️ Think ethically and act responsibly
-                <br />
-                🎤 Pitch your ideas with passion and confidence
-                <br />
-                <br />
-                This is just the beginning of your journey as a future
-                innovator, creator, and changemaker. 🌟
-                <br />
-                🏅 You’re now a Certified Young AI Entrepreneur!
-              </p>
-              <img
-                src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG83Z3c4aWE2bXZoZnV6NTBkYm84dzVyNWw4eXZ5Zm5zdHJ6bWpiYiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/Jir7AUookJHIVb5aYM/100.webp"
-                alt="Celebration"
-                className="w-48 mx-auto mb-6"
-              />
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl font-bold mb-4">😅 Not There Yet</h2>
-              <p className="text-lg mb-4">
-                No worries! Review Gemini’s tips and try again. Keep iterating
-                💪✨
-              </p>
-              <img
-                src={tryAgainGif}
-                alt="Try Again"
-                className="w-60 mx-auto mb-6 rounded-xl shadow-lg"
-              />
-            </>
-          )}
-
-          <button
-            onClick={() => {
-              handlePlayAgain();
-              setShowConfetti(false); // hide confetti only when play again is clicked
-            }}
-            className="bg-purple-600 text-white px-6 py-3 rounded-full text-lg hover:bg-purple-700 transition"
-          >
-            Play Again
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
