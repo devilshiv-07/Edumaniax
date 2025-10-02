@@ -2,6 +2,12 @@ import React, { useEffect, useState } from "react";
 import Confetti from "react-confetti";
 import { useSEL } from "@/contexts/SELContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
+import { getSELNotesRecommendation } from "@/utils/getSELNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 const thoughtsData = [
   {
     id: 1,
@@ -82,6 +88,12 @@ const MyCircleMission = () => {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const navigate = useNavigate();
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const [showInstructions, setShowInstructions] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -122,13 +134,52 @@ const MyCircleMission = () => {
         avgResponseTimeSec: totalSeconds / thoughtsData.length,
         studyTimeMinutes: Math.ceil(totalSeconds / 60),
         completed: isWin,
-
       });
       setStartTime(Date.now());
-
     }
   }, [showResult]);
 
+  useEffect(() => {
+    if (!showResult || isWin) return; // only if result shown AND user didn’t win
+
+    // Collect mistakes (wrong answers)
+    const mistakes = thoughtsData
+      .map((t) => {
+        const userAnswer = answers[t.id];
+        if (userAnswer === t.correctCircle) return null;
+
+        return {
+          text: `Statement: "${t.text}" | Correct: ${
+            t.correctCircle
+          } | Your Answer: ${userAnswer || "None"}`,
+          placedIn: "My Circle Mission",
+          correctCategory: t.correctCircle,
+        };
+      })
+      .filter(Boolean);
+
+    if (mistakes.length > 0) {
+      getSELNotesRecommendation(mistakes).then((notes) => {
+        // ensure unique topics
+        const seen = new Set();
+        const uniqueNotes = notes.filter((n) => {
+          if (seen.has(n.topic)) return false;
+          seen.add(n.topic);
+          return true;
+        });
+        setRecommendedNotes(uniqueNotes);
+      });
+    }
+  }, [showResult, isWin, answers]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowIntro(false), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const handleReset = () => {
     setAnswers({});
@@ -136,7 +187,6 @@ const MyCircleMission = () => {
     setActionText("");
     setVerifyMessage("");
     setStartTime(Date.now());
-
   };
 
   const verifyActionWithGemini = async (text) => {
@@ -193,139 +243,290 @@ const MyCircleMission = () => {
     }
   };
 
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    setIsPopupVisible(true);
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">My Circle Mission</h1>
-      <p className="mb-4">
-        🧠 <strong>Instructions:</strong> Every day brings new worries and new
-        powers. For each thought, choose whether it belongs in your Circle of
-        Influence or Circle of Concern. Then write an action you’ll take using
-        something in your influence.
-      </p>
+    <>
+      <GameNav />
+      <div className="min-h-screen bg-[#0A160E]">
+        <div className="p-6 pt-20 md:pt-50 pb-28 max-w-4xl mx-auto">
+          <p className="mb-4 text-white lilita-one-regular">
+            🧠 <strong>Instructions:</strong> Every day brings new worries and
+            new powers. For each thought, choose whether it belongs in your
+            Circle of Influence or Circle of Concern. Then write an action
+            you’ll take using something in your influence.
+          </p>
 
-      {thoughtsData.map((thought) => (
-        <div key={thought.id} className="mb-4 p-4 border rounded">
-          <p className="font-semibold">{thought.text}</p>
-          <div className="mt-2">
-            <label className="mr-4">
-              <input
-                type="radio"
-                name={`q-${thought.id}`}
-                checked={answers[thought.id] === "Influence"}
-                onChange={() =>
-                  setAnswers({ ...answers, [thought.id]: "Influence" })
-                }
-              />{" "}
-              Influence
-            </label>
-            <label>
-              <input
-                type="radio"
-                name={`q-${thought.id}`}
-                checked={answers[thought.id] === "Concern"}
-                onChange={() =>
-                  setAnswers({ ...answers, [thought.id]: "Concern" })
-                }
-              />{" "}
-              Concern
-            </label>
+          {thoughtsData.map((thought) => (
+            <div
+              key={thought.id}
+              className="mb-4 p-4 border rounded bg-[#202F364D]"
+            >
+              <p className="text-white lilita-one-regular">{thought.text}</p>
+              <div className="mt-2">
+                <label className="mr-4 text-white lilita-one-regular">
+                  <input
+                    type="radio"
+                    name={`q-${thought.id}`}
+                    checked={answers[thought.id] === "Influence"}
+                    onChange={() =>
+                      setAnswers({ ...answers, [thought.id]: "Influence" })
+                    }
+                  />{" "}
+                  Influence
+                </label>
+                <label className="text-white lilita-one-regular">
+                  <input
+                    type="radio"
+                    name={`q-${thought.id}`}
+                    checked={answers[thought.id] === "Concern"}
+                    onChange={() =>
+                      setAnswers({ ...answers, [thought.id]: "Concern" })
+                    }
+                  />{" "}
+                  Concern
+                </label>
+              </div>
+            </div>
+          ))}
+
+          <div className="mt-6">
+            <h2 className="text-xl text-white lilita-one-regular mb-2">
+              ✍️ Your Action Plan
+            </h2>
+            <p className="mb-2 text-white lilita-one-regular">
+              Write 1 action you’ll take today using something in your
+              influence. Be specific!
+            </p>
+            <p className="mb-4 italic lilita-one-regular text-white">
+              Example: “I will spend 30 minutes this evening practicing math
+              problems instead of watching videos, because I want to improve for
+              the next test. That’s something I can fully control.”
+            </p>
+            <textarea
+              className="w-full border p-2 text-white lilita-one-regular bg-[#202F364D] rounded"
+              rows="4"
+              value={actionText}
+              onChange={(e) => setActionText(e.target.value)}
+              placeholder="Write your action here..."
+            ></textarea>
+
+            <button
+              onClick={() => verifyActionWithGemini(actionText)}
+              className="mt-2 lilita-one-regular px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              ✅ Verify
+            </button>
+
+            {verifyMessage && (
+              <div className="mt-4 lilita-one-regular p-4 border border-green-400 rounded bg-green-50 text-green-700">
+                {verifyMessage}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
 
-      <div className="mt-6">
-        <h2 className="text-xl font-bold mb-2">✍️ Your Action Plan</h2>
-        <p className="mb-2">
-          Write 1 action you’ll take today using something in your influence. Be
-          specific!
-        </p>
-        <p className="mb-4 italic">
-          Example: “I will spend 30 minutes this evening practicing math
-          problems instead of watching videos, because I want to improve for the
-          next test. That’s something I can fully control.”
-        </p>
-        <textarea
-          className="w-full border p-2"
-          rows="4"
-          value={actionText}
-          onChange={(e) => setActionText(e.target.value)}
-          placeholder="Write your action here..."
-        ></textarea>
+          <button
+            onClick={() => setShowResult(true)}
+            className="mt-4 px-6 py-2 bg-blue-600 lilita-one-regular text-white rounded hover:bg-blue-700"
+          >
+            🎉 Submit & Check Result
+          </button>
 
-        <button
-          onClick={() => verifyActionWithGemini(actionText)}
-          className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          ✅ Verify
-        </button>
+          {showResult && (
+            <>
+              {isWin ? (
+                /* WIN SCREEN */
+                <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                  <div className="flex flex-col items-center justify-center flex-1 p-6">
+                    {/* Trophy GIFs */}
+                    <div className="relative w-64 h-64 flex items-center justify-center">
+                      <img
+                        src="/financeGames6to8/trophy-rotating.gif"
+                        alt="Rotating Trophy"
+                        className="absolute w-full h-full object-contain"
+                      />
+                      <img
+                        src="/financeGames6to8/trophy-celebration.gif"
+                        alt="Celebration Effects"
+                        className="absolute w-full h-full object-contain"
+                      />
+                    </div>
 
-        {verifyMessage && (
-          <div className="mt-4 p-4 border border-green-400 rounded bg-green-50 text-green-700">
-            {verifyMessage}
-          </div>
-        )}
-      </div>
+                    {/* Success Message */}
+                    <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                      Challenge Complete!
+                    </h2>
+                    <p className="text-[#FFCC00] mt-4 text-center font-semibold">
+                      🎉 Great job! You nailed it!
+                    </p>
 
-      <button
-        onClick={() => setShowResult(true)}
-        className="mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        🎉 Submit & Check Result
-      </button>
+                    {/* Accuracy + Insight */}
+                    <div className="mt-6 flex flex-col items-center justify-center sm:flex-row sm:items-stretch sm:gap-4">
+                      {/* Accuracy Box */}
+                      <div className="bg-[#09BE43] rounded-xl p-1 flex flex-col items-center w-64 flex-1">
+                        <p className="text-black text-sm font-bold mb-1 mt-2">
+                          TOTAL ACCURACY
+                        </p>
+                        <div className="bg-[#131F24] flex-1 rounded-xl flex items-center justify-center py-3 px-5 w-full">
+                          <img
+                            src="/financeGames6to8/accImg.svg"
+                            alt="Target Icon"
+                            className="w-8 h-8 mr-2"
+                          />
+                          <span className="text-[#09BE43] text-3xl font-extrabold">
+                            {Math.round((correctCount / 9) * 100)}%
+                          </span>
+                        </div>
+                      </div>
 
-      {showResult && (
-        <div className="mt-6 text-center">
-          {isWin && (
-            <Confetti width={windowSize.width} height={windowSize.height} />
+                      {/* Insight Box */}
+                      <div className="mt-4 sm:mt-0 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-64 flex-1">
+                        <p className="text-black text-sm font-bold mb-1 mt-2">
+                          INSIGHT
+                        </p>
+                        <div className="bg-[#131F24] flex-1 rounded-xl flex items-center justify-center px-4 py-3 w-full text-center">
+                          <p
+                            className="text-[#FFCC00] font-bold leading-relaxed"
+                            style={{
+                              fontSize: "clamp(0.7rem, 1.2vw, 0.9rem)",
+                              whiteSpace: "normal",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {correctCount === 9
+                              ? "🏆 Perfect! You nailed every answer!"
+                              : "🌟 Great job! You're on your way to being a SEL Star!"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                    <img
+                      src="/financeGames6to8/retry.svg"
+                      alt="Retry"
+                      onClick={handleReset}
+                      className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/feedback.svg"
+                      alt="Feedback"
+                      onClick={handleViewFeedback}
+                      className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/next-challenge.svg"
+                      alt="Next Challenge"
+                      onClick={handleNextChallenge}
+                      className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* LOSE SCREEN */
+                <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+                  <div className="flex flex-col items-center justify-center flex-1 p-6">
+                    <img
+                      src="/financeGames6to8/game-over-game.gif"
+                      alt="Game Over"
+                      className="w-48 sm:w-64 h-auto mb-4"
+                    />
+                    <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl font-semibold text-center">
+                      Oops! You didn’t hit the mark this time. Wanna retry?
+                    </p>
+
+                    {/* Notes Recommendation */}
+                    {recommendedNotes.length > 0 && (
+                      <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                        <h3 className="text-white lilita-one-regular text-xl mb-2">
+                          📘 Learn & Improve
+                        </h3>
+                        <p className="text-white mb-3 text-sm leading-relaxed">
+                          Based on your mistakes, we recommend revisiting{" "}
+                          <span className="text-yellow-300 font-bold">
+                            {recommendedNotes.map((n) => n.title).join(", ")}
+                          </span>{" "}
+                          to strengthen your skills before retrying.
+                        </p>
+                        {recommendedNotes.map((note) => (
+                          <button
+                            key={note.topicId}
+                            onClick={() =>
+                              navigate(
+                                `/social-learning/notes?grade=6-8&section=${note.topicId}`
+                              )
+                            }
+                            className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                          >
+                            Go to {note.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+                    <img
+                      src="/financeGames6to8/retry.svg"
+                      alt="Retry"
+                      onClick={handleReset}
+                      className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/feedback.svg"
+                      alt="Feedback"
+                      onClick={handleViewFeedback}
+                      className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                    <img
+                      src="/financeGames6to8/next-challenge.svg"
+                      alt="Next Challenge"
+                      onClick={handleNextChallenge}
+                      className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {(() => {
-            let resultGif = "";
-            let resultText = "";
+          {/* ✅ Popup here */}
+          <LevelCompletePopup
+            isOpen={isPopupVisible}
+            onConfirm={() => {
+              setIsPopupVisible(false);
+              navigate("/mission-goal-tracker"); // your next level
+            }}
+            onCancel={() => {
+              setIsPopupVisible(false);
+              navigate("/courses"); // or exit route
+            }}
+            onClose={() => setIsPopupVisible(false)}
+            title="Challenge Complete!"
+            message="Are you ready for the next challenge?"
+            confirmText="Next Challenge"
+            cancelText="Exit"
+          />
 
-            if (correctCount >= 8) {
-              resultGif =
-                "https://media.tenor.com/3LTjHZ7ldOUAAAAM/im-proud-of-you-dan-levy.gif";
-              resultText =
-                "You’re focusing on what YOU can control. That’s a superpower!";
-            } else if (correctCount >= 7) {
-              resultGif =
-                "https://media.tenor.com/63RHIfCjLkEAAAAM/declan-rice-rice-rice-baby.gif";
-              resultText =
-                "Great job! You're getting really good at spotting what you can influence!";
-            } else if (correctCount >= 4) {
-              resultGif =
-                "https://media.tenor.com/eMq9vlIRw8wAAAAM/beet-applause.gif";
-              resultText =
-                "Good effort! You’re learning. Keep practicing to master your Circle of Influence!";
-            } else {
-              resultGif =
-                "https://media.tenor.com/yHxKn-mRllUAAAAM/gif-perms-flex-image-perms-flex.gif";
-              resultText =
-                "Hmm... Let’s try again! Focus on what you can change!";
-            }
-
-            return (
-              <>
-                <h2 className="text-2xl font-bold">{resultText}</h2>
-                <img
-                  src={resultGif}
-                  alt="Result GIF"
-                  className="mx-auto my-4 w-64 h-auto rounded shadow-lg"
-                />
-                <p className="mt-2">Correct: {correctCount} / 9</p>
-                <button
-                  onClick={handleReset}
-                  className="mt-4 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Play Again
-                </button>
-              </>
-            );
-          })()}
+          {/* Instructions overlay */}
+          {showInstructions && (
+            <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+              <InstructionOverlay onClose={() => setShowInstructions(false)} />
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 
