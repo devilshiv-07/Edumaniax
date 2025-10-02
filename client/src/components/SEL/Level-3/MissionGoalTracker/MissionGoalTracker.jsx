@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useSEL } from "@/contexts/SELContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import { getSELNotesRecommendation } from "@/utils/getSELNotesRecommendation";
+import InstructionOverlay from "./InstructionOverlay";
 // ✅ Goal data
 const goals = [
   {
@@ -115,6 +120,13 @@ const MissionGoalTracker = () => {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [gameOver, setGameOver] = useState(false); // ✅ NEW
+  const [showFeedback, setShowFeedback] = useState(false); // Feedback modal state
+  const navigate = useNavigate();
+  const [recommendedNotes, setRecommendedNotes] = useState([]);
+  const [showInstructions, setShowInstructions] = useState(true); // Instructions overlay state
+
   useEffect(() => {
     if (resultMessage && isCorrect()) {
       completeSELChallenge(2, 0); // ✅ Adjust the parameters as needed
@@ -126,7 +138,6 @@ const MissionGoalTracker = () => {
       const endTime = Date.now();
       const totalSeconds = Math.round((endTime - startTime) / 1000);
 
-
       updatePerformance({
         moduleName: "SEL",
         topicName: "peerSupportNetworks",
@@ -135,13 +146,43 @@ const MissionGoalTracker = () => {
         avgResponseTimeSec: totalSeconds / 5,
         studyTimeMinutes: Math.ceil(totalSeconds / 60),
         completed: isCorrect(),
-
       });
       setStartTime(Date.now());
-
     }
   }, [resultMessage]);
 
+  // 📝 Notes Recommendation Hook
+  useEffect(() => {
+    if (!gameOver || isCorrect()) return; // only trigger if game ended AND not all correct
+
+    const mistakes = [];
+    for (let bucket of buckets) {
+      for (let item of columns[bucket]) {
+        if (item.type !== bucket) {
+          mistakes.push({
+            text: `Step "${item.text}" was placed in "${bucket}" but should be in "${item.type}".`,
+            placedIn: bucket,
+            correctCategory: item.type,
+          });
+        }
+      }
+    }
+
+    if (mistakes.length > 0) {
+      getSELNotesRecommendation(mistakes).then((notes) =>
+        setRecommendedNotes(notes)
+      );
+    }
+  }, [gameOver, columns]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowIntro(false), 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -189,6 +230,7 @@ const MissionGoalTracker = () => {
   const handleCheck = () => {
     if (isCorrect()) {
       setResultMessage("🎉 Well done! All steps matched correctly!");
+      setGameOver(true); // ✅ End game on win
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -197,6 +239,7 @@ const MissionGoalTracker = () => {
         setResultMessage(
           "😢 Oops! Better luck next time. Here's the correct placement."
         );
+        setGameOver(true); // ✅ End game on fail
       } else {
         setResultMessage(
           `❌ Not quite right. Try again! (${3 - newAttempts} tries left)`
@@ -219,7 +262,7 @@ const MissionGoalTracker = () => {
     setResultMessage("");
     setShowCorrect(false);
     setStartTime(Date.now());
-
+    setGameOver(false); // ✅ Reset game
   };
 
   const handleGoalChange = (id) => {
@@ -232,78 +275,54 @@ const MissionGoalTracker = () => {
     setShowCorrect(false);
   };
 
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
+
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/help-hub");
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 to-blue-200 p-6 flex flex-col items-center">
-      <h1 className="text-3xl md:text-4xl font-bold mb-2 text-blue-700">
-        Mission Goal Tracker – Set It, Plan It, Do It!
-      </h1>
-      <p className="text-lg text-center mb-4">
-        It’s time to make your goal real. Drag each step into the right part of
-        your SMART goal plan.
-        <br />
-        <strong>SMART</strong> = Specific, Measurable, Achievable, Relevant,
-        Time-bound.
-      </p>
+    <>
+      <GameNav />
+      <div className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-6 flex flex-col items-center">
+        <p className="text-lg text-white lilita-one-regular text-center mb-4">
+          It’s time to make your goal real. Drag each step into the right part
+          of your SMART goal plan.
+          <br />
+          <strong>SMART</strong> = Specific, Measurable, Achievable, Relevant,
+          Time-bound.
+        </p>
 
-      <div className="mb-4">
-        <select
-          value={selectedGoal.id}
-          className="px-4 py-2 rounded-md shadow-md text-blue-800"
-          onChange={(e) => handleGoalChange(e.target.value)}
-        >
-          {goals.map((goal) => (
-            <option key={goal.id} value={goal.id}>
-              {goal.title}
-            </option>
-          ))}
-        </select>
-      </div>
+        <div className="mb-4">
+          <select
+            value={selectedGoal.id}
+            className="px-4 py-2 rounded-md shadow-md text-white lilita-one-regular bg-blue-600 hover:bg-blue-700 transition"
+            onChange={(e) => handleGoalChange(e.target.value)}
+          >
+            {goals.map((goal) => (
+              <option key={goal.id} value={goal.id}>
+                {goal.title}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
-          <Droppable droppableId="items">
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="bg-white p-4 rounded-xl shadow-md min-h-[200px]"
-              >
-                <h2 className="font-semibold mb-2 text-blue-800">
-                  Steps to Drag
-                </h2>
-                {items.map((item, index) => (
-                  <Draggable key={item.id} draggableId={item.id} index={index}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        className={`p-3 mb-2 rounded-md bg-blue-50 border border-blue-300 transition transform ${snapshot.isDragging ? "scale-105 shadow-lg" : ""
-                          }`}
-                      >
-                        {item.text}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-
-          {buckets.map((bucket) => (
-            <Droppable key={bucket} droppableId={bucket}>
-              {(provided, snapshot) => (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
+            <Droppable droppableId="items">
+              {(provided) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`bg-white p-4 rounded-xl shadow-md min-h-[200px] transition border-2 ${snapshot.isDraggingOver
-                    ? "border-green-400"
-                    : "border-transparent"
-                    }`}
+                  className="bg-white p-4 rounded-xl shadow-md min-h-[200px]"
                 >
-                  <h2 className="font-bold mb-2 text-green-800">{bucket}</h2>
-                  {columns[bucket].map((item, index) => (
+                  <h2 className="lilita-one-regular mb-2 text-blue-800">
+                    Steps to Drag
+                  </h2>
+                  {items.map((item, index) => (
                     <Draggable
                       key={item.id}
                       draggableId={item.id}
@@ -314,8 +333,9 @@ const MissionGoalTracker = () => {
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`p-3 mb-2 rounded-md bg-green-50 border border-green-300 transition transform ${snapshot.isDragging ? "scale-105 shadow-lg" : ""
-                            }`}
+                          className={`p-3 mb-2 lilita-one-regular rounded-md bg-blue-50 border border-blue-300 transition transform ${
+                            snapshot.isDragging ? "scale-105 shadow-lg" : ""
+                          }`}
                         >
                           {item.text}
                         </div>
@@ -323,84 +343,196 @@ const MissionGoalTracker = () => {
                     </Draggable>
                   ))}
                   {provided.placeholder}
-
-                  {showCorrect &&
-                    selectedGoal.steps
-                      .filter((s) => s.type === bucket)
-                      .map((s) => (
-                        <div
-                          key={`correct-${s.id}`}
-                          className="p-3 mb-2 rounded-md bg-yellow-100 border border-yellow-400"
-                        >
-                          ✅ {s.text}
-                        </div>
-                      ))}
                 </div>
               )}
             </Droppable>
+
+            {buckets.map((bucket) => (
+              <Droppable key={bucket} droppableId={bucket}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`bg-white lilita-one-regular p-4 rounded-xl shadow-md min-h-[200px] transition border-2 ${
+                      snapshot.isDraggingOver
+                        ? "border-green-400"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <h2 className="lilita-one-regular mb-2 text-green-800">
+                      {bucket}
+                    </h2>
+                    {columns[bucket].map((item, index) => (
+                      <Draggable
+                        key={item.id}
+                        draggableId={item.id}
+                        index={index}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`p-3 mb-2 rounded-md bg-green-50 border border-green-300 transition transform ${
+                              snapshot.isDragging ? "scale-105 shadow-lg" : ""
+                            }`}
+                          >
+                            {item.text}
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+
+                    {showCorrect &&
+                      selectedGoal.steps
+                        .filter((s) => s.type === bucket)
+                        .map((s) => (
+                          <div
+                            key={`correct-${s.id}`}
+                            className="p-3 mb-2 rounded-md bg-yellow-100 border border-yellow-400"
+                          >
+                            ✅ {s.text}
+                          </div>
+                        ))}
+                  </div>
+                )}
+              </Droppable>
+            ))}
+          </div>
+        </DragDropContext>
+
+        <button
+          onClick={handleCheck}
+          disabled={showCorrect}
+          className="mt-6 px-6 py-3 bg-blue-600 text-white lilita-one-regular rounded-lg hover:bg-blue-700 transition"
+        >
+          ✅ Check Answers
+        </button>
+
+        {gameOver &&
+          (isCorrect() ? (
+            /* ✅ WIN SCREEN */
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                {/* Trophy GIFs */}
+                <div className="relative w-64 h-64 flex items-center justify-center">
+                  <img
+                    src="/financeGames6to8/trophy-rotating.gif"
+                    alt="Rotating Trophy"
+                    className="absolute w-full h-full object-contain"
+                  />
+                  <img
+                    src="/financeGames6to8/trophy-celebration.gif"
+                    alt="Celebration Effects"
+                    className="absolute w-full h-full object-contain"
+                  />
+                </div>
+
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                  Challenge Complete!
+                </h2>
+                <p className="text-[#FFCC00] mt-4 text-center font-semibold">
+                  🎉 Great job! You nailed it!
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={handlePlayAgain}
+                  className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/feedback.svg"
+                  alt="Feedback"
+                  onClick={handleViewFeedback}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
+            </div>
+          ) : (
+            /* ❌ LOSE SCREEN */
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                <img
+                  src="/financeGames6to8/game-over-game.gif"
+                  alt="Game Over"
+                  className="w-48 sm:w-64 h-auto mb-4"
+                />
+                <p className="text-yellow-400 lilita-one-regular text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold text-center">
+                  Oops! You didn’t hit the mark this time. Wanna retry?
+                </p>
+
+                {/* Suggested Notes */}
+                {recommendedNotes.length > 0 && (
+                  <div className="mt-6 bg-[#202F364D] p-4 rounded-xl shadow max-w-md text-center">
+                    <h3 className="text-white lilita-one-regular text-xl mb-2">
+                      📘 Learn & Improve
+                    </h3>
+                    <p className="text-white mb-3 text-sm leading-relaxed">
+                      We recommend revisiting{" "}
+                      <span className="text-yellow-300 font-bold">
+                        {recommendedNotes.map((n) => n.title).join(", ")}
+                      </span>{" "}
+                      to strengthen your skills before retrying.
+                    </p>
+                    {recommendedNotes.map((note) => (
+                      <button
+                        key={note.topicId}
+                        onClick={() =>
+                          navigate(
+                            `/social-learning/notes?grade=6-8&section=${note.topicId}`
+                          )
+                        }
+                        className="bg-yellow-400 text-black lilita-one-regular px-4 py-2 rounded-lg hover:bg-yellow-500 transition block mx-auto my-2"
+                      >
+                        Go to {note.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-3 px-4 flex justify-center gap-6">
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={handlePlayAgain}
+                  className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/feedback.svg"
+                  alt="Feedback"
+                  onClick={handleViewFeedback}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
+            </div>
           ))}
-        </div>
-      </DragDropContext>
 
-      <button
-        onClick={handleCheck}
-        disabled={showCorrect}
-        className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
-      >
-        ✅ Check Answers
-      </button>
-
-      {resultMessage && (
-        <div className="mt-4 p-4 bg-white border-l-4 border-blue-500 shadow rounded max-w-xl text-center">
-          {/* ✅ Correct GIF */}
-          {isCorrect() && (
-            <img
-              src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdW16MjJ5MDVlM2Ztcnkxem9iMTcycGMyMWk3Z2o1bjk5djY4djljZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/JjtwVfcEaO7Gfx7y8H/giphy.webp"
-              alt="Success"
-              className="mx-auto mb-2 rounded-lg w-40"
-            />
-          )}
-
-          {/* ❌ Wrong attempt GIF */}
-          {!isCorrect() && !showCorrect && attempts < 3 && (
-            <img
-              src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmJjcG93ZmlrMHlqYmIwb3FzYzEyNjlkZmE5b3lhMmdzNnppeDFxaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/4ZUdfEa3zqjZldUz3K/giphy.webp"
-              alt="Try Again"
-              className="mx-auto mb-2 rounded-lg w-40"
-            />
-          )}
-
-          {/* 😢 Out of attempts GIF */}
-          {showCorrect && (
-            <img
-              src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExcjFjM2Zndjg0aWlnN2djY3cwZDN1YXRmb2Jqd2Z5cjE4cDIzNTFxdiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/5BLIUJbZfDzIPv0EpL/200.webp"
-              alt="Better Luck Next Time"
-              className="mx-auto mb-2 rounded-lg w-40"
-            />
-          )}
-
-          {resultMessage}
-        </div>
-      )}
-
-      {!isCorrect() && resultMessage && !showCorrect && attempts < 3 && (
-        <button
-          onClick={handleTryAgain}
-          className="mt-2 px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          🔁 Try Again
-        </button>
-      )}
-
-      {(isCorrect() || showCorrect) && (
-        <button
-          onClick={handlePlayAgain}
-          className="mt-4 px-6 py-3 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition"
-        >
-          🔄 Play Again
-        </button>
-      )}
-    </div>
+        {/* Instructions overlay */}
+        {showInstructions && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+            <InstructionOverlay onClose={() => setShowInstructions(false)} />
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
