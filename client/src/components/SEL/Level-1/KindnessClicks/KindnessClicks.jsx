@@ -464,7 +464,7 @@ const KindnessClicks = () => {
         }}
         onCancel={() => {
           setIsPopupVisible(false);
-          navigate("/entrepreneurship/games"); // or exit route
+          navigate("/social-learning/games"); // or exit route
         }}
         onClose={() => setIsPopupVisible(false)}
         title="Challenge Complete!"
