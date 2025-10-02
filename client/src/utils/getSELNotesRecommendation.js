@@ -6,10 +6,10 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_KEY);
 
 export const getSELNotesRecommendation = async (userMistakes) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
-    You are an educational tutor. A student just played a SEL (Social Emotional Learning) game and made mistakes.
+    You are an educational tutor. A student just played a SEL game and made mistakes.
     Your task: Recommend the MOST relevant module(s) they should revisit.
 
     Here are the modules:
@@ -21,27 +21,27 @@ export const getSELNotesRecommendation = async (userMistakes) => {
     ${JSON.stringify(userMistakes, null, 2)}
 
     ❗ INSTRUCTIONS ❗
-    - Carefully match the mistakes with the modules' explanations.
-    - Recommend ONLY 1–2 topicIds that will help the student improve.
-    - Output STRICTLY in raw JSON array format. Examples: ["1"] or ["2", "4"]
+    - Recommend ONLY 1–2 topicIds.
+    - Output STRICTLY in raw JSON array format. Example: ["2"] or ["3", "4"]
     `;
 
     const result = await model.generateContent(prompt);
     const raw = result.response.text().trim();
 
-    console.log("Gemini raw output:", raw); // debug log
+    console.log("Gemini raw output:", raw); // 🔍 Debug
 
-    // Extract JSON safely (even if Gemini adds text)
-    const match = raw.match(/\[.*\]/s);
-    let ids = [];
-    if (match) {
-      ids = JSON.parse(match[0]);
-    }
+    // Extract JSON safely
+    const match = raw.match(/\[(.*?)\]/s);
+    if (!match) throw new Error("No JSON array found");
 
-    // Map IDs back to full note objects
+    let ids = JSON.parse(match[0]);
+
+    // Extra safety: force string IDs
+    ids = ids.map((id) => String(id));
+
     return notesSEL6to8.filter((n) => ids.includes(n.topicId));
   } catch (err) {
-    console.error("Gemini recommendation error:", err);
-    return [notesSEL6to8[0]]; // fallback: SEL basics
+    console.error("Gemini recommendation error:", err.message);
+    return []; // empty → means no recommendation instead of always Unit 1
   }
 };
