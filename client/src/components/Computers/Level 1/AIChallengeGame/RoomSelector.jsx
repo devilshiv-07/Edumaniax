@@ -1,12 +1,12 @@
-import React from 'react';
+import React from "react";
 
 const roomEmojis = {
-  Home: '🏠',
-  School: '🏫',
-  Playground: '🎮',
+  Home: "🏠",
+  School: "🏫",
+  Playground: "🎮",
 };
 
-const rooms = ['Home', 'School', 'Playground'];
+const rooms = ["Home", "School", "Playground"];
 
 export default function RoomSelector({ selected, onSelect }) {
   return (
@@ -18,11 +18,11 @@ export default function RoomSelector({ selected, onSelect }) {
           <button
             key={room}
             onClick={() => onSelect(room)}
-            className={`px-5 py-3 rounded-full font-bold text-white transition-all duration-300 transform hover:scale-105 shadow-lg
+            className={`px-5 py-3 rounded-lg border border-white lilita-one-regular text-white transition-all duration-300 transform hover:scale-105 shadow-lg
               ${
                 isActive
-                  ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-300'
-                  : 'bg-pink-500 hover:bg-pink-400'
+                  ? "bg-yellow-400 text-yellow-900 ring-4 ring-yellow-300"
+                  : "bg-[#2c5c724d] hover:bg-[#6f8b974d]"
               }
             `}
           >
