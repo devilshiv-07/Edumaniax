@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useComputers } from "@/contexts/ComputersContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import IntroScreen from "./IntroScreen";
+import GameNav from "./GameNav";
+import { useNavigate } from "react-router-dom";
+import InstructionOverlay from "./InstructionOverlay";
 // Sample animal data (use your real ones)
 
 const animals = [
@@ -38,6 +42,10 @@ export default function TrainTheBrainGame() {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showIntro, setShowIntro] = useState(true);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const navigate = useNavigate();
+  const [showInstructions, setShowInstructions] = useState(true);
 
   const correctAnswers = {
     q1: "Lots of diverse examples! More variety helps AI generalize better.",
@@ -84,274 +92,358 @@ export default function TrainTheBrainGame() {
     (v) => v.trim() !== ""
   );
 
-  return (
-    <div className="max-w-5xl mx-auto p-6 bg-gradient-to-br from-yellow-100 via-pink-100 to-blue-100 min-h-screen rounded-lg">
-      <motion.h1
-        className="text-4xl sm:text-5xl font-extrabold text-center mb-6"
-        initial={{ y: -100, opacity: 0, scale: 0.5 }}
-        animate={{
-          y: [0, -10, 0],
-          opacity: 1,
-          scale: 1,
-        }}
-        transition={{
-          y: {
-            duration: 2,
-            repeat: Infinity,
-            repeatType: "mirror",
-            ease: "easeInOut",
-          },
-          opacity: { duration: 0.8 },
-          scale: { type: "spring", stiffness: 200, damping: 10, delay: 0.2 },
-        }}
-      >
-        🎮{" "}
-        <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 bg-clip-text text-transparent">
-          Train the Brain
-        </span>
-      </motion.h1>
-      <p className="text-lg text-center text-gray-700 mb-6">
-        🧠 Help train an AI to recognize animals by dragging them into the
-        training area!
-      </p>
+  const handleViewFeedback = () => {
+    setShowFeedback(true);
+  };
 
-      {/* Drag Zone */}
-      <div className="flex justify-center gap-6 mb-8 flex-wrap">
-        {animals.map((animal) => (
-          <div
-            key={animal.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, animal.id)}
-            className="w-36 h-48 bg-white border-4 border-yellow-400 rounded-3xl shadow-2xl p-3 cursor-grab hover:scale-105 transition-all duration-300 ease-in-out flex flex-col items-center justify-start text-center relative"
-          >
-            <div className="mb-1 text-xs text-purple-800 font-semibold">
-              🎈 Drag me!
-            </div>
-            <div className="w-28 h-36 bg-pink-100 border-4 border-pink-300 rounded-full overflow-hidden shadow-md flex items-center justify-center">
-              <img
-                src={animal.img}
-                alt={animal.label}
-                className="object-cover w-full h-full"
-              />
-            </div>
-            <div className="mt-2 text-base font-bold text-blue-700">
-              <div className="text-2xl">
-                {animal.label === "Cat"
-                  ? "🐱"
-                  : animal.label === "Dog"
-                  ? "🐶"
-                  : "🐦"}
+  // Next Challenge Handler
+  const handleNextChallenge = () => {
+    navigate("/smart-or-not");
+  };
+
+  const handleRetry = () => {
+    // Reset all game state
+    setDroppedAnimals([]);
+    setFormData({});
+    setShowTable(false);
+    setQuestionsVisible(false);
+    setAnswers({ q1: "", q2: "", q3: "" });
+    setShowCorrectAnswers(false);
+    setChallengeCompleted(false);
+    setStartTime(Date.now());
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000); // show intro for 4 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
+  return (
+    <>
+      <GameNav />
+      <div className="min-h-screen bg-[#0A160E]">
+        <div className="max-w-5xl pt-20 md:pt-50 pb-28 mx-auto p-6 rounded-lg">
+          <p className="text-lg text-center text-white lilita-one-regular mb-6">
+            🧠 Help train an AI to recognize animals by dragging them into the
+            training area!
+          </p>
+
+          {/* Drag Zone */}
+          <div className="flex justify-center gap-6 mb-8 flex-wrap">
+            {animals.map((animal) => (
+              <div
+                key={animal.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, animal.id)}
+                className="w-36 h-48 bg-[#202F364D] border-4 border-white rounded-3xl shadow-2xl p-3 cursor-grab hover:scale-105 transition-all duration-300 ease-in-out flex flex-col items-center justify-start text-center relative"
+              >
+                <div className="mb-1 text-xs text-white lilita-one-regular">
+                  🎈 Drag me!
+                </div>
+                <div className="w-28 h-36 bg-pink-100 border-4 border-white rounded-full overflow-hidden shadow-md flex items-center justify-center">
+                  <img
+                    src={animal.img}
+                    alt={animal.label}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <div className="mt-2 text-base text-white lilita-one-regular">
+                  <div className="text-2xl">
+                    {animal.label === "Cat"
+                      ? "🐱"
+                      : animal.label === "Dog"
+                      ? "🐶"
+                      : "🐦"}
+                  </div>
+                  <div>{animal.label}</div>
+                </div>
               </div>
-              <div>{animal.label}</div>
+            ))}
+          </div>
+
+          {/* Drop Area */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="min-h-[200px] bg-[#202F364D] border-dashed border-4 border-white rounded-xl p-6 shadow-xl text-center text-lg text-white lilita-one-regular mb-8"
+          >
+            🧪 Drop the animal images here to begin training the AI!
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              {droppedAnimals.map((animal) => (
+                <div
+                  key={animal.id}
+                  className="bg-blue-50 rounded-lg p-4 shadow-md"
+                >
+                  <img
+                    src={animal.img}
+                    alt={animal.label}
+                    className="w-16 h-16 rounded-full mx-auto mb-2"
+                  />
+                  <h3 className="text-xl font-bold text-blue-800">
+                    {animal.label}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    ⭐ Features: {animal.features}
+                  </p>
+                  <textarea
+                    placeholder="💡 Why is this feature important?"
+                    className="w-full text-black rounded-lg border-2 border-yellow-300 bg-yellow-50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-yellow-600 mb-3 shadow-sm"
+                    onChange={(e) => handleChange(e, animal.id, "why")}
+                    value={formData[animal.id]?.why || ""}
+                  />
+                  <input
+                    type="text"
+                    placeholder="📸 How many examples needed?"
+                    className="w-full text-black rounded-lg border-2 border-blue-300 bg-blue-50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition placeholder:text-blue-600 shadow-sm"
+                    onChange={(e) => handleChange(e, animal.id, "examples")}
+                    value={formData[animal.id]?.examples || ""}
+                  />
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Drop Area */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        className="min-h-[200px] bg-white border-dashed border-4 border-purple-400 rounded-xl p-6 shadow-xl text-center text-lg text-purple-700 font-semibold mb-8"
-      >
-        🧪 Drop the animal images here to begin training the AI!
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          {droppedAnimals.map((animal) => (
-            <div
-              key={animal.id}
-              className="bg-blue-50 rounded-lg p-4 shadow-md"
+          {/* Show Table Button */}
+          {droppedAnimals.length > 0 && !showTable && (
+            <button
+              disabled={!isComplete()}
+              onClick={() => setShowTable(true)}
+              className={`block mx-auto mt-4 px-6 py-2 rounded-full lilita-one-regular text-white transition ${
+                isComplete()
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-[#6b7e864d] cursor-not-allowed"
+              }`}
             >
-              <img
-                src={animal.img}
-                alt={animal.label}
-                className="w-16 h-16 rounded-full mx-auto mb-2"
-              />
-              <h3 className="text-xl font-bold text-blue-800">
-                {animal.label}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                ⭐ Features: {animal.features}
-              </p>
-              <textarea
-                placeholder="💡 Why is this feature important?"
-                className="w-full rounded-lg border-2 border-yellow-300 bg-yellow-50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 transition placeholder:text-yellow-600 mb-3 shadow-sm"
-                onChange={(e) => handleChange(e, animal.id, "why")}
-                value={formData[animal.id]?.why || ""}
-              />
-              <input
-                type="text"
-                placeholder="📸 How many examples needed?"
-                className="w-full rounded-lg border-2 border-blue-300 bg-blue-50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition placeholder:text-blue-600 shadow-sm"
-                onChange={(e) => handleChange(e, animal.id, "examples")}
-                value={formData[animal.id]?.examples || ""}
-              />
+              📊 Show Training Summary
+            </button>
+          )}
+
+          {/* Training Summary Table */}
+          {showTable && (
+            <div className="mt-10 bg-[#202F364D] border border-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-2xl text-white lilita-one-regular mb-4">
+                📋 AI Training Table
+              </h2>
+              <table className="w-full table-auto border border-gray-300">
+                <thead className="bg-blue-100 lilita-one-regular">
+                  <tr>
+                    <th className="border p-2">Animal</th>
+                    <th className="border p-2">Features</th>
+                    <th className="border p-2">Why Important</th>
+                    <th className="border p-2">Examples Needed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {droppedAnimals.map((animal) => (
+                    <tr
+                      key={animal.id}
+                      className="text-center text-white lilita-one-regular"
+                    >
+                      <td className="border p-2">{animal.label}</td>
+                      <td className="border p-2">{animal.features}</td>
+                      <td className="border p-2">{formData[animal.id]?.why}</td>
+                      <td className="border p-2">
+                        {formData[animal.id]?.examples}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Advanced Questions Section */}
+              {!questionsVisible && (
+                <div className="text-center mt-6">
+                  <button
+                    onClick={() => setQuestionsVisible(true)}
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-bold"
+                  >
+                    🔍 Answer Advanced Questions
+                  </button>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      {/* Show Table Button */}
-      {droppedAnimals.length > 0 && !showTable && (
-        <button
-          disabled={!isComplete()}
-          onClick={() => setShowTable(true)}
-          className={`block mx-auto mt-4 px-6 py-2 rounded-full font-bold text-white transition ${
-            isComplete()
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
-        >
-          📊 Show Training Summary
-        </button>
-      )}
-
-      {/* Training Summary Table */}
-      {showTable && (
-        <div className="mt-10 bg-white p-6 rounded-xl shadow-lg">
-          <h2 className="text-2xl font-bold text-purple-800 mb-4">
-            📋 AI Training Table
-          </h2>
-          <table className="w-full table-auto border border-gray-300">
-            <thead className="bg-blue-100">
-              <tr>
-                <th className="border p-2">Animal</th>
-                <th className="border p-2">Features</th>
-                <th className="border p-2">Why Important</th>
-                <th className="border p-2">Examples Needed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {droppedAnimals.map((animal) => (
-                <tr key={animal.id} className="text-center">
-                  <td className="border p-2">{animal.label}</td>
-                  <td className="border p-2">{animal.features}</td>
-                  <td className="border p-2">{formData[animal.id]?.why}</td>
-                  <td className="border p-2">
-                    {formData[animal.id]?.examples}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Advanced Questions Section */}
-          {!questionsVisible && (
-            <div className="text-center mt-6">
+          {/* Reflection Questions */}
+          {questionsVisible && (
+            <div className="mt-10 bg-[#202F364D] border border-white p-6 rounded-xl shadow-md">
+              <h3 className="text-xl text-white lilita-one-regular mb-4">
+                🧠 Advanced Thinking
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-white lilita-one-regular">
+                    1. How many animal images should an AI see to learn well?
+                  </label>
+                  <textarea
+                    name="q1"
+                    value={answers.q1}
+                    onChange={handleQuestionChange}
+                    className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-white lilita-one-regular">
+                    2. What happens if you show it wrong images?
+                  </label>
+                  <textarea
+                    name="q2"
+                    value={answers.q2}
+                    onChange={handleQuestionChange}
+                    className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-white lilita-one-regular">
+                    3. How would you test if the AI learned correctly?
+                  </label>
+                  <textarea
+                    name="q3"
+                    value={answers.q3}
+                    onChange={handleQuestionChange}
+                    className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
+                  />
+                </div>
+              </div>
               <button
-                onClick={() => setQuestionsVisible(true)}
-                className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-bold"
+                disabled={!allQuestionsAnswered}
+                onClick={() => {
+                  setShowCorrectAnswers(true);
+                  if (!challengeCompleted) {
+                    completeComputersChallenge(1, 0);
+                    setChallengeCompleted(true);
+
+                    // ⏱️ Performance Tracking
+                    const endTime = Date.now();
+                    const studyTimeMinutes = Math.round(
+                      (endTime - startTime) / 60000
+                    );
+                    const avgResponseTimeSec = (endTime - startTime) / 1000 / 3;
+
+                    updatePerformance({
+                      moduleName: "Computers",
+                      topicName: "foundationsOfAIIntelligence",
+                      score: 10,
+                      accuracy: 100,
+                      avgResponseTimeSec,
+                      studyTimeMinutes,
+                      completed: true,
+                    });
+                    setStartTime(Date.now());
+                  }
+                }}
+                className={`mt-6 px-6 py-2 lilita-one-regular rounded-full text-white transition ${
+                  allQuestionsAnswered && !challengeCompleted
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-[#5f6f764d] cursor-not-allowed"
+                }`}
               >
-                🔍 Answer Advanced Questions
+                ✅ Submit Answers
               </button>
             </div>
           )}
+
+          {showCorrectAnswers && (
+            <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+              {/* Center Section */}
+              <div className="flex flex-col items-center justify-center flex-1 p-6">
+                {/* Trophy GIFs */}
+                <div className="relative w-64 h-64 flex items-center justify-center">
+                  <img
+                    src="/financeGames6to8/trophy-rotating.gif"
+                    alt="Rotating Trophy"
+                    className="absolute w-full h-full object-contain"
+                  />
+                  <img
+                    src="/financeGames6to8/trophy-celebration.gif"
+                    alt="Celebration Effects"
+                    className="absolute w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* Success Message */}
+                <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+                  Reflection Complete!
+                </h2>
+
+                {/* Insights Box */}
+                <div className="mt-6 bg-[#FFCC00] rounded-xl p-1 flex flex-col items-center w-80 sm:w-96">
+                  <p className="text-black text-sm font-bold mb-1 mt-2">
+                    INSIGHTS
+                  </p>
+                  <div className="bg-[#131F24] rounded-xl px-4 py-3 w-full text-left space-y-3">
+                    <p
+                      className="text-[#FFCC00] font-bold leading-relaxed"
+                      style={{
+                        fontSize: "clamp(0.7rem, 1.2vw, 0.95rem)",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <strong>Ans1:</strong> {correctAnswers.q1}
+                    </p>
+                    <p
+                      className="text-[#FFCC00] font-bold leading-relaxed"
+                      style={{
+                        fontSize: "clamp(0.7rem, 1.2vw, 0.95rem)",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <strong>Ans2:</strong> {correctAnswers.q2}
+                    </p>
+                    <p
+                      className="text-[#FFCC00] font-bold leading-relaxed"
+                      style={{
+                        fontSize: "clamp(0.7rem, 1.2vw, 0.95rem)",
+                        whiteSpace: "normal",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      <strong>Ans3:</strong> {correctAnswers.q3}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+                <img
+                  src="/financeGames6to8/retry.svg"
+                  alt="Retry"
+                  onClick={handleRetry}
+                  className="cursor-pointer w-28 sm:w-36 md:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/feedback.svg"
+                  alt="Feedback"
+                  onClick={handleViewFeedback}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+                <img
+                  src="/financeGames6to8/next-challenge.svg"
+                  alt="Next Challenge"
+                  onClick={handleNextChallenge}
+                  className="cursor-pointer w-44 h-14 object-contain hover:scale-105 transition-transform duration-200"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Instructions overlay */}
+      {showInstructions && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <InstructionOverlay onClose={() => setShowInstructions(false)} />
         </div>
       )}
-
-      {/* Reflection Questions */}
-      {questionsVisible && (
-        <div className="mt-10 bg-yellow-50 p-6 rounded-xl shadow-md">
-          <h3 className="text-xl font-bold text-purple-800 mb-4">
-            🧠 Advanced Thinking
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="font-semibold">
-                1. How many animal images should an AI see to learn well?
-              </label>
-              <textarea
-                name="q1"
-                value={answers.q1}
-                onChange={handleQuestionChange}
-                className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
-              />
-            </div>
-            <div>
-              <label className="font-semibold">
-                2. What happens if you show it wrong images?
-              </label>
-              <textarea
-                name="q2"
-                value={answers.q2}
-                onChange={handleQuestionChange}
-                className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
-              />
-            </div>
-            <div>
-              <label className="font-semibold">
-                3. How would you test if the AI learned correctly?
-              </label>
-              <textarea
-                name="q3"
-                value={answers.q3}
-                onChange={handleQuestionChange}
-                className="w-full mt-1 p-2 rounded border-2 border-yellow-300 bg-white"
-              />
-            </div>
-          </div>
-          <button
-            disabled={!allQuestionsAnswered}
-            onClick={() => {
-              setShowCorrectAnswers(true);
-              if (!challengeCompleted) {
-                completeComputersChallenge(1, 0);
-                setChallengeCompleted(true);
-
-                // ⏱️ Performance Tracking
-                const endTime = Date.now();
-                const studyTimeMinutes = Math.round(
-                  (endTime - startTime) / 60000
-                );
-                const avgResponseTimeSec = (endTime - startTime) / 1000 / 3;
-
-                updatePerformance({
-                  moduleName: "Computers",
-                  topicName: "foundationsOfAIIntelligence",
-                  score: 10,
-                  accuracy: 100,
-                  avgResponseTimeSec,
-                  studyTimeMinutes,
-                  completed: true,
-                });
-                setStartTime(Date.now());
-              }
-            }}
-            className={`mt-6 px-6 py-2 font-bold rounded-full text-white transition ${
-              allQuestionsAnswered && !challengeCompleted
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-          >
-            ✅ Submit Answers
-          </button>
-        </div>
-      )}
-
-      {/* Correct Answers */}
-      {showCorrectAnswers && (
-        <div className="mt-10 bg-green-50 p-6 rounded-xl shadow-md">
-          <h3 className="text-xl font-bold text-green-800 mb-4">
-            ✅ Expert Insights
-          </h3>
-          <ul className="list-disc pl-6 text-gray-700 space-y-2">
-            <li>
-              <strong>Ans1:</strong> {correctAnswers.q1}
-            </li>
-            <li>
-              <strong>Ans2:</strong> {correctAnswers.q2}
-            </li>
-            <li>
-              <strong>Ans3:</strong> {correctAnswers.q3}
-            </li>
-          </ul>
-          <div className="text-center mt-6 text-lg font-semibold text-green-700">
-            🏅 You’ve completed the challenge!
-            <div className="text-yellow-600 text-2xl mt-2">
-              📊 Data Trainer Badge
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
