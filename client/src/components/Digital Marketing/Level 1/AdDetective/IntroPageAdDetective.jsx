@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaUserSecret } from "react-icons/fa";
 import { motion } from "framer-motion";
+import InstructionOverlay from "./InstructionOverlay";
+import BottomProgressLoader from "./BottomProgressLoader";
 
 const IntroPageAdDetective = () => {
   const navigate = useNavigate();
+  const [showInstructions, setShowInstructions] = useState(true);
 
-  const fullText = "Weelcome, Detective!";
+  const fullText = "Welcome, Detective!";
   const [displayedText, setDisplayedText] = useState("");
   const index = useRef(0);
 
@@ -21,7 +24,7 @@ const IntroPageAdDetective = () => {
   }, []);
 
   return (
-    <div className="w-full sm:w-[90%] mx-auto sm:p-3 h-screen">
+    <div className="w-full sm:w-[90%] mx-auto sm:p-3 h-screen lilita-one-regular">
       <div
         className="h-full rounded-2xl bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 text-white flex flex-col lg:flex-row items-center xl:justify-center p-4 sm:p-6 relative gap-6 md:gap-12"
         style={{ fontFamily: "'Comic Neue', cursive" }}
@@ -61,9 +64,9 @@ const IntroPageAdDetective = () => {
             videos, popups or posts!
           </p>
           <p className="text-base sm:text-lg text-gray-300 mb-4">
-            Record them in your{" "}
-            <span className="italic">Ad Detective Notebook</span> and crack the
-            case!
+            Use your <span className="italic">Ad Detective Notebook</span> to record:
+            platform/app, what you saw, type of ad, product/service, and whether it
+            was interesting or boring—plus why.
           </p>
 
           <button
@@ -78,6 +81,12 @@ const IntroPageAdDetective = () => {
         <div className="absolute top-2 sm:top-4 right-2 sm:right-4 text-sm sm:text-lg text-yellow-400 italic">
           Classified: Top Secret 🔐
         </div>
+        <BottomProgressLoader />
+        {showInstructions && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <InstructionOverlay onClose={() => setShowInstructions(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
