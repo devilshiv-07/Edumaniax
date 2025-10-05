@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AnimatePresence } from "framer-motion";
 import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import GameNav from "./GameNav";
 
 
 const adTypes = ["Video", "Post", "Banner", "Popup", "Other"];
@@ -14,6 +15,7 @@ const AdDetectiveGamePage = () => {
   const [entries, setEntries] = useState(
     Array.from({ length: 5 }, () => ({
       platform: "",
+      saw: "", // what you saw (ad)
       type: [],
       product: "",
       interesting: "",
@@ -53,6 +55,7 @@ const AdDetectiveGamePage = () => {
     for (let entry of entries) {
       if (
         !entry.platform.trim() ||
+        !entry.saw.trim() ||
         entry.type.length === 0 ||
         !entry.product.trim() ||
         !entry.interesting ||
@@ -72,7 +75,8 @@ const AdDetectiveGamePage = () => {
   };
 
   return (
-    <div className="w-[95%] mx-auto  p-3 h-screen overflow-y-auto">
+    <div className="w-[95%] mx-auto  p-3 h-screen overflow-y-auto lilita-one-regular">
+      <GameNav />
       <div
         ref={scrollRef}
         className="bg-gradient-to-br relative rounded-2xl from-gray-900 via-slate-800 to-gray-900 text-white p-6"
@@ -83,12 +87,13 @@ const AdDetectiveGamePage = () => {
         </h1>
 
         {/* Column Headers for large screens */}
-        <div className="hidden lg:grid grid-cols-6 gap-4 text-sm font-bold border-b border-yellow-400 pb-2 mb-4">
+        <div className="hidden lg:grid grid-cols-7 gap-4 text-sm font-bold border-b border-yellow-400 pb-2 mb-4">
           <div></div>
           <div className="text-center text-xl">Platform/App</div>
+          <div className="text-center text-xl">What you saw (Ad)</div>
           <div className="text-center text-xl">Type of Ad</div>
-          <div className="text-center text-xl">Product/Service</div>
-          <div className="text-center text-xl">Interesting?</div>
+          <div className="text-center text-xl">What product/service was being sold?</div>
+          <div className="text-center text-xl">Interesting or Boring?</div>
           <div className="text-center text-xl">Why?</div>
         </div>
 
@@ -97,7 +102,7 @@ const AdDetectiveGamePage = () => {
           <div>
             <div
               key={idx}
-              className="grid lg:grid-cols-6 gap-4 mb-6 bg-black bg-opacity-30 p-4 rounded-xl shadow-md"
+              className="grid lg:grid-cols-7 gap-4 mb-6 bg-black bg-opacity-30 p-4 rounded-xl shadow-md"
             >
               {/* Platform/App */}
 
@@ -118,10 +123,24 @@ const AdDetectiveGamePage = () => {
                 />
               </div>
 
+              {/* What you saw (Ad) */}
+              <div>
+                <label className="lg:hidden text-xl block font-semibold mb-1">
+                  What you saw (Ad)
+                </label>
+                <input
+                  type="text"
+                  placeholder="E.g., Nike shoes ad"
+                  value={entries[idx].saw}
+                  onChange={(e) => handleChange(idx, "saw", e.target.value)}
+                  className="p-2 rounded bg-gray-800 text-white w-full border border-gray-700 text-xl"
+                />
+              </div>
+
               {/* Type of Ad */}
               <div>
                 <label className="lg:hidden text-xl block font-semibold mb-1">
-                  Type of Ad
+                  Was it a video, post, banner, or pop-up?
                 </label>
                 <div className="flex justify-center flex-wrap gap-2">
                   {adTypes.map((type) => (
@@ -144,7 +163,7 @@ const AdDetectiveGamePage = () => {
               {/* Product/Service */}
               <div>
                 <label className="lg:hidden block text-xl font-semibold mb-1">
-                  Product/Service
+                  What product/service was being sold?
                 </label>
                 <input
                   type="text"
@@ -155,10 +174,10 @@ const AdDetectiveGamePage = () => {
                 />
               </div>
 
-              {/* Interesting */}
+              {/* Interesting or Boring */}
               <div>
                 <label className="lg:hidden text-xl block font-semibold mb-1">
-                  Interesting?
+                  Was it interesting or boring?
                 </label>
                 <select
                   value={entry.interesting}
@@ -168,8 +187,8 @@ const AdDetectiveGamePage = () => {
                   className="p-2 rounded  text-xl bg-gray-800 text-white w-full border border-gray-700"
                 >
                   <option value="">Select</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
+                  <option value="Interesting">Interesting</option>
+                  <option value="Boring">Boring</option>
                 </select>
               </div>
 
@@ -180,7 +199,7 @@ const AdDetectiveGamePage = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="Why?"
+                  placeholder="Why did it feel interesting or boring?"
                   value={entry.why}
                   onChange={(e) => handleChange(idx, "why", e.target.value)}
                   className="p-2 text-xl rounded bg-gray-800 text-white w-full border border-gray-700"

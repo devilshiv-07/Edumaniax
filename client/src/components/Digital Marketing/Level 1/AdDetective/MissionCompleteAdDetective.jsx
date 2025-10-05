@@ -45,7 +45,7 @@ const MissionCompleteAdDetective = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="w-[100%] lg:w-[90%] p-5 mx-auto h-screen ">
+    <div className="w-[100%] lg:w-[90%] p-5 mx-auto h-screen lilita-one-regular">
       <div className="w-full h-full relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex rounded-2xl items-center justify-center p-6">
         <canvas
           ref={canvasRef}
@@ -59,6 +59,11 @@ const MissionCompleteAdDetective = () => {
             <br />
             The digital world can’t hide from the Ad Detective!
           </p>
+          <div className="inline-flex items-center gap-2 bg-yellow-500/20 border border-yellow-400 text-yellow-300 px-4 py-2 rounded-full mb-6">
+            <span>🏅</span>
+            <span className="font-semibold">Badge Earned:</span>
+            <span className="italic">Ad Spotter</span>
+          </div>
           <button
             onClick={() => navigate("/intro-ad-detective-game")}
             className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg transition-colors duration-300"
