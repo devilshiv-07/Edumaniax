@@ -120,7 +120,7 @@ export default function AIEthicsDetective() {
   return (
     <>
       <GameNav />
-      <div className="min-h-screen bg-gradient-to-b bg-[#0A160E]">
+      <div className="min-h-screen bg-[#0A160E]">
         <div className="p-6 max-w-6xl mx-auto pt-20 md:pt-50 pb-28 rounded-3xl shadow-2xl text-center font-[Comic Sans MS,cursive]">
           {/* STEP 1: Categorization */}
           {step === 1 && (
