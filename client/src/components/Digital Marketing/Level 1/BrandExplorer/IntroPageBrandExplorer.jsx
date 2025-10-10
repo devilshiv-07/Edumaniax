@@ -1,40 +1,151 @@
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import bgVid from "/financeGames6to8/bgVid.mp4";
+import bgMusic from "/financeGames6to8/bgMusic.mp3";
+import btnExit from "/financeGames6to8/btn-exit.svg";
+import btnAudio from "/financeGames6to8/btnAudio.svg";
+import BottomProgressLoader from "./BottomProgressLoader";
 
 const IntroPageBrandExplorer = () => {
   const navigate = useNavigate();
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  const handleStart = () => {
-    navigate("/brand-explorer-game");
+  const toggleAudio = async () => {
+    if (!audioRef.current) return;
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        await audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch {}
   };
 
+  useEffect(() => {
+    const playAudio = async () => {
+      try {
+        await audioRef.current?.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+      }
+    };
+    playAudio();
+  }, []);
+
+  const handleExitClick = (e) => {
+    e.preventDefault();
+    setShowExitConfirm(true);
+  };
+
+  const confirmExit = () => navigate("/digital-marketing/games");
+  const cancelExit = () => setShowExitConfirm(false);
+
+  const handleStart = () => navigate("/brand-explorer-game");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate("/brand-explorer-game");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
+
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-yellow-200 via-pink-100 to-purple-200 text-center p-6 pt-12"
-      style={{ fontFamily: "'Comic Neue', cursive" }}
-    >
-      {/* Intro Content */}
-      <h1 className="text-3xl  md:text-5xl font-extrabold text-purple-700 mb-4 drop-shadow-lg animate-bounce">
-        🧠 Brand Explorer!
-      </h1>
+    <div className="w-full -mt-8 h-screen relative overflow-hidden">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0 pointer-events-none"
+      >
+        <source src={bgVid} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
-      <p className="text-lg md:text-2xl text-gray-800 mb-6 max-w-xl leading-relaxed">
-        Welcome, young explorer! 🎒🌟
-        <br />
-        Your mission: Pick your favorite brands and discover how they talk,
-        feel, and express themselves online!
-      </p>
-
-      <div className="text-2xl font-semibold text-pink-600 mb-8 animate-caret-blink">
-        Ready to start your brand adventure? 🚀
-      </div>
+      <audio ref={audioRef} loop>
+        <source src={bgMusic} type="audio/mp3" />
+        Your browser does not support the audio element.
+      </audio>
 
       <button
-        onClick={handleStart}
-        className="bg-purple-600 hover:bg-purple-800 hover:rotate-1 hover:shadow-purple-900 text-white font-bold py-4 px-8 rounded-full text-xl transition duration-300 shadow-xl"
+        onClick={handleExitClick}
+        className="absolute mt-10 top-4 left-4 
+          w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
+          md:w-[202px] md:h-[82px] 
+          transition transform active:scale-95 z-50"
       >
-        Start Game 🎮
+        <img src={btnExit} alt="Exit" className="w-full h-full object-contain cursor-pointer" />
       </button>
+
+      <button
+        onClick={toggleAudio}
+        className="absolute mt-10 top-4 right-4 
+    w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
+    md:w-[202px] md:h-[82px]  transition-transform active:scale-95 z-50"
+      >
+        <img src={btnAudio} alt="Audio" className="w-full h-full object-contain cursor-pointer" />
+        {!isPlaying && (
+          <img src="/financeGames6to8/audio-pause.svg" alt="Paused" className="absolute inset-0 w-full h-full object-contain mx-auto my-auto" />
+        )}
+      </button>
+
+      <div className="relative z-10 text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:mt-0">
+        <h1
+          className="mt-20 sm:mt-24 lg:mt-28 text-4xl sm:text-6xl lg:text-7xl lilita-one-regular text-[#FFE303] font-extrabold mb-2 sm:mb-4"
+          style={{
+            textShadow: `
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -2px  0px 0 #000,
+       2px  0px 0 #000,
+       0px -2px 0 #000,
+       0px  2px 0 #000,
+       0px  4px 3px rgba(0,0,0,0.7)
+    `,
+          }}
+        >
+          Digital Explorer
+        </h1>
+
+        <h2
+          className="lilita-one-regular text-2xl sm:text-4xl lg:text-5xl text-white font-semibold mb-6 sm:mb-10"
+          style={{
+            textShadow: `
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -2px  0px 0 #000,
+       2px  0px 0 #000,
+       0px -2px 0 #000,
+       0px  2px 0 #000,
+       0px  4px 3px rgba(0,0,0,0.7)
+    `,
+          }}
+        >
+          Challenge 2
+        </h2>
+
+        <BottomProgressLoader />
+      </div>
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-[999]">
+          <div className="bg-white lilita-one-regular rounded-lg p-6 shadow-lg w-[300px] text-center">
+            <h2 className="text-lg lilita-one-regular font-semibold mb-4">Are you sure you want to leave?</h2>
+            <div className="flex justify-center gap-4">
+              <button onClick={confirmExit} className="bg-red-500 hover:bg-red-600 text-white px-4 lilita-one-regular py-2 rounded">Yes</button>
+              <button onClick={cancelExit} className="bg-gray-300 lilita-one-regular hover:bg-gray-400 text-black px-4 py-2 rounded">No</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
