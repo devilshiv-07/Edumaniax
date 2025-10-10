@@ -5,6 +5,10 @@ body {
   padding: 0;
 }
 
+*{
+  font-family: "Lilita One", sans-serif
+}
+
 html,
 body {
   margin: 0;
