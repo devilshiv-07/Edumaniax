@@ -42,8 +42,9 @@ export const salesLogin = async (req, res) => {
       });
     }
 
-    // Verify password using bcrypt
-    const isPasswordValid = await bcrypt.compare(password, validSalesPasswordHash);
+    // Verify password using bcrypt (add $ prefix if missing)
+    const fullHash = validSalesPasswordHash.startsWith('$') ? validSalesPasswordHash : `$${validSalesPasswordHash}`;
+    const isPasswordValid = await bcrypt.compare(password, fullHash);
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
@@ -138,8 +139,9 @@ export const adminLogin = async (req, res) => {
       });
     }
 
-    // Verify password using bcrypt
-    const isPasswordValid = await bcrypt.compare(password, validAdminPasswordHash);
+    // Verify password using bcrypt (add $ prefix if missing)
+    const fullHash = validAdminPasswordHash.startsWith('$') ? validAdminPasswordHash : `$${validAdminPasswordHash}`;
+    const isPasswordValid = await bcrypt.compare(password, fullHash);
     if (!isPasswordValid) {
       return res.status(401).json({ 
         success: false, 
