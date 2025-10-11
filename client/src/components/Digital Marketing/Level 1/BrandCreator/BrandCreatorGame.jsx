@@ -5,6 +5,7 @@ import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext";
 import IntroScreen from "./IntroScreen";
 import GameNav from "./GameNav";
+import InstructionOverlay from "./InstructionOverlay";
 import { useNavigate } from "react-router-dom";
 import LevelCompletePopup from "@/components/LevelCompletePopup";
 
@@ -30,6 +31,7 @@ export default function BrandCreatorGame() {
   const [showIntro, setShowIntro] = useState(true);
   const [showWinView, setShowWinView] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const cardRef = useRef(null);
   const canvasRef = useRef(null);
@@ -40,6 +42,16 @@ export default function BrandCreatorGame() {
     }, 4000);
     return () => clearTimeout(timer);
   }, []);
+
+  // Show instructions automatically when game loads (after intro)
+  useEffect(() => {
+    if (!showIntro) {
+      const timer = setTimeout(() => {
+        setShowInstructions(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
 
   if (showIntro) {
     return <IntroScreen />;
@@ -204,6 +216,9 @@ export default function BrandCreatorGame() {
   return (
     <>
       <GameNav />
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <div className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 font-sans">
         <div className="flex flex-col-reverse lg:flex-row items-start justify-center gap-6">
           <div className="w-full lg:w-2/3 bg-[#202F364D] rounded-3xl shadow-2xl p-4 md:p-8 border-4 border-dashed border-white">

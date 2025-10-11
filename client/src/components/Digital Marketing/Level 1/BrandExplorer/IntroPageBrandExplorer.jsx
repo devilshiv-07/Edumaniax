@@ -21,7 +21,9 @@ const IntroPageBrandExplorer = () => {
         await audioRef.current.play();
       }
       setIsPlaying(!isPlaying);
-    } catch {}
+    } catch (err) {
+      console.error("Audio play failed:", err);
+    }
   };
 
   useEffect(() => {
@@ -44,7 +46,7 @@ const IntroPageBrandExplorer = () => {
   const confirmExit = () => navigate("/digital-marketing/games");
   const cancelExit = () => setShowExitConfirm(false);
 
-  const handleStart = () => navigate("/brand-explorer-game");
+  // const handleStart = () => navigate("/brand-explorer-game");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -110,7 +112,7 @@ const IntroPageBrandExplorer = () => {
     `,
           }}
         >
-          Digital Explorer
+          Brand Explorer
         </h1>
 
         <h2
