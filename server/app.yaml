@@ -1,3 +1,19 @@
 runtime: nodejs22
 instance_class: F1
 env: standard
+
+env_variables:
+  ADMIN_USERNAME: "agility"
+  ADMIN_PASSWORD_HASH: "$2b$12$e9sCJs52RKN1hxcsPCuneui6MeNigjRE8PXFSZUKVJQ.og3N6CuNe"
+  SALES_USERNAME: "agilitySales"
+  SALES_PASSWORD_HASH: "$2b$12$7VYv4GHBMY7ebQ5A4CVn2.SXDerktxah/51JfivHIr.Hfj3svpz5e"
+  DATABASE_URL: "postgresql://postgres:user1234@localhost/postgres?host=/cloudsql/edumaniax:asia-south1:edumaniax&schema=public"
+  EDUMARC_API_KEY: "9c1aee9fd9414a44a9b806313b1b29ac"
+  Jwt_sec: "123r43t3g"
+  CLOUD_NAME: "dmxq6f46q"
+  CLOUD_API_KEY: "798267146141411"
+  CLOUD_API_SECRET: "O2u29CuevWDEHgxgFfauLk4nTk4"
+  PAYMENT_ENABLED: "true"
+  RAZORPAY_KEY_ID: "rzp_live_IC46DNmTqGXD5p"
+  RAZORPAY_SECRET_KEY: "88vOCvz1sVoXzub5CdAf1KPM"
+  NODE_ENV: "production"
