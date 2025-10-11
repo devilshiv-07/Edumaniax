@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { motion } from "framer-motion";
@@ -6,6 +6,7 @@ import { AnimatePresence } from "framer-motion";
 import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
 import GameNav from "./GameNav";
+import InstructionOverlay from "./InstructionOverlay";
 
 
 const adTypes = ["Video", "Post", "Banner", "Popup", "Other"];
@@ -25,6 +26,15 @@ const AdDetectiveGamePage = () => {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime, setStartTime] = useState(Date.now());
+  const [showInstructions, setShowInstructions] = useState(true);
+
+  // Show instructions automatically when game loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInstructions(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (index, field, value) => {
     console.log(index, field, value);
@@ -75,8 +85,11 @@ const AdDetectiveGamePage = () => {
   };
 
   return (
-    <div className="w-[95%] mx-auto  p-3 h-screen overflow-y-auto lilita-one-regular">
+    <div className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8">
       <GameNav />
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <div
         ref={scrollRef}
         className="bg-gradient-to-br relative rounded-2xl from-gray-900 via-slate-800 to-gray-900 text-white p-6"
