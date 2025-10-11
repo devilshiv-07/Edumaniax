@@ -23,47 +23,51 @@ export const salesLogin = async (req, res) => {
       });
     }
 
-    // Find the user (first try by username if it exists, fall back to phonenumber for backward compatibility)
-    let user;
-    
-    // First try to find by username field if it exists in the schema
-    try {
-      user = await prisma.user.findFirst({ 
-        where: { 
-          OR: [
-            { username },
-            { phonenumber: username } // Try phonenumber as fallback
-          ]
-        } 
-      });
-    } catch (error) {
-      // If username field doesn't exist in the schema, fall back to just phonenumber
-      user = await prisma.user.findUnique({ 
-        where: { phonenumber: username } 
+    // Check against secure environment variables
+    const validSalesUsername = process.env.SALES_USERNAME;
+    const validSalesPasswordHash = process.env.SALES_PASSWORD_HASH;
+
+    if (!validSalesUsername || !validSalesPasswordHash) {
+      return res.status(500).json({ 
+        success: false, 
+        message: "Server configuration error" 
       });
     }
+
+    // Verify username
+    if (username !== validSalesUsername) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    // Verify password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, validSalesPasswordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    // Find the sales user in database
+    let user = await prisma.user.findUnique({ 
+      where: { phonenumber: "agilitySales" } 
+    });
     
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: "User not found" 
+        message: "Sales user not found in database" 
       });
     }
 
     // Check if user has sales role
-    if (user.role !== 'SALES' && user.role !== 'ADMIN') {
+    if (user.role !== 'SALES') {
       return res.status(403).json({ 
         success: false, 
         message: "Access denied - insufficient privileges" 
-      });
-    }
-
-    // For this example, we're checking a plaintext password directly
-    // In a real application, you would use bcrypt.compare(password, user.passwordHash)
-    if (password !== process.env.SALES_PASSWORD) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Invalid credentials" 
       });
     }
 
@@ -71,7 +75,8 @@ export const salesLogin = async (req, res) => {
     const token = jwt.sign(
       { 
         id: user.id,
-        role: user.role
+        role: user.role,
+        username: validSalesUsername
       }, 
       process.env.Jwt_sec, 
       { expiresIn: "7d" }
@@ -86,11 +91,91 @@ export const salesLogin = async (req, res) => {
         name: user.name,
         role: user.role,
         email: user.email,
-        phonenumber: user.phonenumber
+        phonenumber: user.phonenumber,
+        username: validSalesUsername
       }
     });
   } catch (error) {
     console.error("Sales login error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Login handler for admin users
+ */
+export const adminLogin = async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Username and password are required" 
+      });
+    }
+
+    // Check against secure environment variables
+    const validAdminUsername = process.env.ADMIN_USERNAME;
+    const validAdminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+
+    if (!validAdminUsername || !validAdminPasswordHash) {
+      return res.status(500).json({ 
+        success: false, 
+        message: "Server configuration error" 
+      });
+    }
+
+    // Verify username
+    if (username !== validAdminUsername) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    // Verify password using bcrypt
+    const isPasswordValid = await bcrypt.compare(password, validAdminPasswordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    // Create a virtual admin user object (since admin doesn't exist in DB)
+    const adminUser = {
+      id: "admin-" + Date.now(),
+      name: "Administrator",
+      role: "ADMIN",
+      email: "admin@edumaniax.com",
+      phonenumber: "agility",
+      username: validAdminUsername
+    };
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: adminUser.id,
+        role: adminUser.role,
+        username: validAdminUsername
+      }, 
+      process.env.Jwt_sec, 
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Admin login successful",
+      token,
+      user: adminUser
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Internal server error", 

@@ -18,6 +18,7 @@ import {
 } from '../controllers/salesController.js';
 import { 
   salesLogin,
+  adminLogin,
   createSalesUser
 } from '../controllers/salesAuthController.js';
 import {
@@ -36,8 +37,9 @@ router.post('/inquiries', createInstitutionalInquiry);
 // Public route for creating free trial requests
 router.post('/free-trial', createFreeTrialRequest);
 
-// Sales authentication routes
+// Authentication routes
 router.post('/login', salesLogin);
+router.post('/admin-login', adminLogin);
 router.post('/users', authenticateUser, checkRole(['ADMIN']), createSalesUser);
 
 // Notification routes
