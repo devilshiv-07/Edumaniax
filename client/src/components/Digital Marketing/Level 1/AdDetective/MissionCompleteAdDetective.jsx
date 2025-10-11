@@ -4,68 +4,45 @@ import { useNavigate } from "react-router-dom";
 
 const MissionCompleteAdDetective = () => {
   const canvasRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const myCanvas = canvasRef.current;
-    const myConfetti = confetti.create(myCanvas, {
-      resize: true,
-      useWorker: true,
-    });
+    const myConfetti = confetti.create(myCanvas, { resize: true, useWorker: true });
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-    const end = Date.now() + 3 * 1000;
-    const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
-
-    const frame = () => {
-      if (Date.now() > end) return;
-
-      myConfetti({
-        particleCount: 2,
-        angle: 60,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 0, y: 0.5 }, // left of container
-        colors,
-      });
-
-      myConfetti({
-        particleCount: 2,
-        angle: 120,
-        spread: 55,
-        startVelocity: 60,
-        origin: { x: 1, y: 0.5 }, // right of container
-        colors,
-      });
-
-      requestAnimationFrame(frame);
-    };
-
-    frame();
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+    const interval = window.setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) return clearInterval(interval);
+      const particleCount = 50 * (timeLeft / duration);
+      myConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+      myConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
   }, []);
 
-  const navigate = useNavigate();
+  const handleRetryChallenge = () => navigate("/ad-detective-game");
+  const handleViewFeedback = () => console.log("feedback");
+  const handleNextChallenge = () => navigate("/brand-explorer-intro");
 
   return (
-    <div className="w-[100%] lg:w-[90%] p-5 mx-auto h-screen ">
-      <div className="w-full h-full relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 flex rounded-2xl items-center justify-center p-6">
-        <canvas
-          ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-        />
-        <div className="bg-black bg-opacity-70 p-10 rounded-3xl shadow-2xl max-w-md text-center text-yellow-400">
-          <div className="text-6xl mb-6">🕵️‍♂️🎉</div>
-          <h1 className="text-4xl font-extrabold mb-4">Mission Complete!</h1>
-          <p className="mb-8 text-lg text-gray-300">
-            You’ve successfully spotted 5 different types of online ads.
-            <br />
-            The digital world can’t hide from the Ad Detective!
-          </p>
-          <button
-            onClick={() => navigate("/intro-ad-detective-game")}
-            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg transition-colors duration-300"
-          >
-            Start New Mission
-          </button>
+    <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+      <div className="flex flex-col items-center justify-center flex-1 p-6">
+        <div className="relative w-64 h-64 flex items-center justify-center">
+          <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+          <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
         </div>
+        <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">🏅 Badge Earned: 🕵️ Ad Spotter</h2>
+        <p className="text-xl text-white mt-2">🎉 Great job! You nailed it!</p>
+      </div>
+
+      <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+        <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={handleViewFeedback} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/retry.svg" alt="Retry Challenge" onClick={handleRetryChallenge} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={handleNextChallenge} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
       </div>
     </div>
   );

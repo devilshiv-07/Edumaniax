@@ -1,86 +1,192 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUserSecret } from "react-icons/fa";
-import { motion } from "framer-motion";
+import bgVid from "/communicationGames6to8/Communication2.mp4";
+import bgMusic from "/financeGames6to8/bgMusic.mp3";
+import btnExit from "/financeGames6to8/btn-exit.svg";
+import btnAudio from "/financeGames6to8/btnAudio.svg";
+import BottomProgressLoader from "./BottomProgressLoader";
 
-const IntroPageAdDetective = () => {
+const IntroScreen = () => {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const navigate = useNavigate();
 
-  const fullText = "Weelcome, Detective!";
-  const [displayedText, setDisplayedText] = useState("");
-  const index = useRef(0);
+  const toggleAudio = async () => {
+    if (!audioRef.current) return;
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        await audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (err) {
+      console.error("Audio play failed:", err);
+    }
+  };
 
+  // Attempt autoplay on load and auto-advance after loader
   useEffect(() => {
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + fullText.charAt(index.current));
-      index.current++;
-      if (index.current >= fullText.length) clearInterval(interval);
-    }, 100); // speed of typing (ms per letter)
+    const playAudio = async () => {
+      try {
+        await audioRef.current?.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.warn("Autoplay failed, user gesture required.",err);
+        setIsPlaying(false);
+      }
+    };
+    playAudio();
+    
+    // Auto-advance after loader completes (4 seconds)
+    const timer = setTimeout(() => {
+      navigate("/ad-detective-game");
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [navigate]);
 
-    return () => clearInterval(interval);
-  }, []);
+  const handleExitClick = (e) => {
+    e.preventDefault();
+    setShowExitConfirm(true);
+  };
+
+  const confirmExit = () => {
+    navigate("/digital-marketing/games");
+  };
+
+  const cancelExit = () => {
+    setShowExitConfirm(false);
+  };
 
   return (
-    <div className="w-full sm:w-[90%] mx-auto sm:p-3 h-screen">
-      <div
-        className="h-full rounded-2xl bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 text-white flex flex-col lg:flex-row items-center xl:justify-center p-4 sm:p-6 relative gap-6 md:gap-12"
-        style={{ fontFamily: "'Comic Neue', cursive" }}
+    <div className="w-full -mt-8 h-screen relative overflow-hidden">
+      {/* Background Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-0 left-0 w-full h-full object-cover z-0 pointer-events-none"
       >
-        {/* Agent Avatar */}
-        <div className=" absolute top-3 sm:top-6 left-2 sm:left-6 flex items-center space-x-2">
-          <FaUserSecret className="text-2xl sm:text-3xl text-yellow-400 animate-pulse" />
-          <span className="text-base sm:text-lg font-semibold">Agent 007</span>
-        </div>
+        <source src={bgVid} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
-        {/* Spline Model on Left for md+ */}
-        {/* <div className=" hidden lg:block w-full md:w-1/4 h-[200px] md:h-[300px]">
-      <Spline
-        className="rounded-lg object-cover"
-        scene="https://prod.spline.design/hB2IF38lQ1umF15e/scene.splinecode"
-      />
-    </div> */}
+      {/* Background Audio */}
+      <audio ref={audioRef} loop>
+        <source src={bgMusic} type="audio/mp3" />
+        Your browser does not support the audio element.
+      </audio>
 
-        {/* Mission Brief Card */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 3 }}
-          className="bg-black bg-opacity-80 backdrop-blur-sm shadow-2xl rounded-2xl p-6 sm:p-10 max-w-full sm:max-w-xl text-center border-2 border-yellow-500 flex flex-col items-center gap-4"
+      {/* Exit Button */}
+      <button
+        onClick={handleExitClick}
+        className="absolute mt-10 top-4 left-4 
+          w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
+          md:w-[202px] md:h-[82px] 
+          transition transform active:scale-95 z-50"
+      >
+        <img
+          src={btnExit}
+          alt="Exit"
+          className="w-full h-full object-contain cursor-pointer"
+        />
+      </button>
+
+      {/* Audio Toggle Button */}
+      <button
+        onClick={toggleAudio}
+        className="absolute mt-10 top-4 right-4 
+    w-[82px] h-[48px] sm:w-[120px] sm:h-[64px] 
+    md:w-[202px] md:h-[82px]  transition-transform active:scale-95 z-50"
+      >
+        {/* Base icon */}
+        <img
+          src={btnAudio}
+          alt="Audio"
+          className="w-full h-full object-contain cursor-pointer"
+        />
+
+        {/* Pause overlay when muted */}
+        {!isPlaying && (
+          <img
+            src="/financeGames6to8/audio-pause.svg"
+            alt="Paused"
+            className="absolute inset-0 w-full h-full object-contain mx-auto my-auto"
+          />
+        )}
+      </button>
+
+      {/* Center Content */}
+      <div className="relative z-10 text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:mt-0">
+        <h1
+          className="mt-20 sm:mt-24 lg:mt-28 text-4xl sm:text-6xl lg:text-7xl lilita-one-regular text-[#FFE303] font-extrabold mb-2 sm:mb-4"
+          style={{
+            textShadow: `
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -2px  0px 0 #000,
+       2px  0px 0 #000,
+       0px -2px 0 #000,
+       0px  2px 0 #000,
+       0px  4px 3px rgba(0,0,0,0.7)
+    `,
+          }}
         >
-          {/* Spline Model on Top for small screens */}
+          Ad Detective
+        </h1>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">
-            {displayedText}🕵️
-          </h1>
-          <p className="text-base sm:text-lg mb-2 leading-relaxed">
-            Your mission:{" "}
-            <span className="text-yellow-400 font-semibold">
-              Spot 5 online ads
-            </span>{" "}
-            in your digital world. Explore platforms, track every ad — banners,
-            videos, popups or posts!
-          </p>
-          <p className="text-base sm:text-lg text-gray-300 mb-4">
-            Record them in your{" "}
-            <span className="italic">Ad Detective Notebook</span> and crack the
-            case!
-          </p>
+        <h2
+          className="lilita-one-regular text-2xl sm:text-4xl lg:text-5xl text-white font-semibold mb-6 sm:mb-10"
+          style={{
+            textShadow: `
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -2px  0px 0 #000,
+       2px  0px 0 #000,
+       0px -2px 0 #000,
+       0px  2px 0 #000,
+       0px  4px 3px rgba(0,0,0,0.7)
+    `,
+          }}
+        >
+          Challenge 1
+        </h2>
 
-          <button
-            onClick={() => navigate("/ad-detective-game")}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 sm:py-3 px-4 sm:px-6 rounded-xl shadow-lg border-2 border-yellow-300 transition duration-300 ease-in-out transform hover:scale-105 hover:rotate-1 hover:shadow-yellow-400"
-          >
-            📁 Start Mission : Should you choose to accept it
-          </button>
-        </motion.div>
-
-        {/* Decorative Text */}
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 text-sm sm:text-lg text-yellow-400 italic">
-          Classified: Top Secret 🔐
-        </div>
+        <BottomProgressLoader />
       </div>
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-[999]">
+          <div className="bg-white lilita-one-regular rounded-lg p-6 shadow-lg w-[300px] text-center">
+            <h2 className="text-lg lilita-one-regular font-semibold mb-4">
+              Are you sure you want to leave?
+            </h2>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={confirmExit}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 lilita-one-regular py-2 rounded"
+              >
+                Yes
+              </button>
+              <button
+                onClick={cancelExit}
+                className="bg-gray-300 lilita-one-regular hover:bg-gray-400 text-black px-4 py-2 rounded"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default IntroPageAdDetective;
+export default IntroScreen;

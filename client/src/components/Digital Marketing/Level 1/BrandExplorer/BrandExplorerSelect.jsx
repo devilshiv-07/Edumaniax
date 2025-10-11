@@ -11,6 +11,8 @@ import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
 
 import { toast, ToastContainer } from "react-toastify";
+import GameNav from "./GameNav";
+import InstructionOverlay from "./InstructionOverlay";
 
 const BrandBrandExplorerGameSelect = () => {
   const { completeDMChallenge } = useDM();
@@ -31,6 +33,15 @@ const BrandBrandExplorerGameSelect = () => {
 
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [game, setGame] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+
+  // Show instructions automatically when game loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInstructions(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleClick = (item) => {
     const repeated = selectedBrands.some((b) => b.name === item.name);
@@ -132,9 +143,13 @@ const BrandBrandExplorerGameSelect = () => {
 
   return game ? (
     <div
-      className="min-h-screen bg-gradient-to-br from-yellow-200 via-pink-100 to-purple-200 p-6 text-center"
+      className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 text-center"
       style={{ fontFamily: "'Comic Neue', cursive" }}
     >
+      <GameNav />
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <h1 className="text-3xl font-extrabold text-purple-700 mb-4 animate-bounce">
         📝 Brand Explorer
       </h1>
@@ -257,9 +272,13 @@ const BrandBrandExplorerGameSelect = () => {
     </div>
   ) : (
     <div
-      className="min-h-screen bg-gradient-to-br from-yellow-200 via-pink-100 to-purple-200 p-6 text-center"
+      className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 text-center"
       style={{ fontFamily: "'Comic Neue', cursive" }}
     >
+      <GameNav />
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <h1 className="text-3xl font-extrabold text-purple-700 mb-4 animate-bounce">
         📝 Brand Explorer
       </h1>
