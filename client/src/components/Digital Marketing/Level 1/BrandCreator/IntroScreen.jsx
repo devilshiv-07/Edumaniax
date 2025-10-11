@@ -33,7 +33,7 @@ const IntroScreen = () => {
         await audioRef.current?.play();
         setIsPlaying(true);
       } catch (err) {
-        console.warn("Autoplay failed, user gesture required.");
+        console.warn("Autoplay failed, user gesture required.",err);
         setIsPlaying(false);
       }
     };
@@ -130,7 +130,7 @@ const IntroScreen = () => {
     `,
           }}
         >
-          Digital Explorer
+          Brand Creator
         </h1>
 
         <h2
