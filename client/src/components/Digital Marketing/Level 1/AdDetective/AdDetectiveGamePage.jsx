@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { motion } from "framer-motion";
 import { AnimatePresence } from "framer-motion";
 import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import CancelIcon from "/financeGames6to8/button-cancel.svg";
 
 const InstructionOverlay = ({ onClose }) => {
-  const [currentStep, setCurrentStep] = useState(0);
   const [showCheckbox, setShowCheckbox] = useState(false);
   const [showText, setShowText] = useState(false);
 
@@ -18,50 +17,36 @@ const InstructionOverlay = ({ onClose }) => {
       }
     ];
 
+    let currentStep = 0;
     const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        const nextStep = (prev + 1) % sequence.length;
-        sequence[nextStep]();
-        return nextStep;
-      });
+      sequence[currentStep]();
+      currentStep = (currentStep + 1) % sequence.length;
     }, 2000);
 
     return () => clearInterval(interval);
   }, []);
 
   const animatedFormField = (
-    <motion.div
+    <div
       key="form-field"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3 }}
       className="bg-[#131F24] border border-gray-600 rounded-lg p-3 mb-2"
     >
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-white text-sm">Platform/App:</span>
           {showText && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-yellow-400 text-sm font-medium"
-            >
+            <span className="text-yellow-400 text-sm font-medium">
               YouTube
-            </motion.span>
+            </span>
           )}
         </div>
         {showCheckbox && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-4 h-4 bg-green-500 rounded border-2 border-green-400 flex items-center justify-center"
-          >
+          <div className="w-4 h-4 bg-green-500 rounded border-2 border-green-400 flex items-center justify-center">
             <span className="text-white text-xs">✓</span>
-          </motion.div>
+          </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 
   return (
@@ -177,7 +162,7 @@ const InstructionOverlay = ({ onClose }) => {
           <div className="flex flex-col lg:w-1/3 gap-4 order-1 lg:order-2">
             <div className="space-y-4">
               {/* Problem Statement */}
-              <div>
+          <div>
                 <h3 className="text-lg font-bold text-yellow-400 mb-2 flex items-center gap-2">
                   <span className="text-green-400">*</span>
                   Problem Statement:
@@ -188,13 +173,13 @@ const InstructionOverlay = ({ onClose }) => {
                 <p className="text-gray-200 text-sm leading-relaxed mt-2 flex items-start gap-2">
                   <span className="text-2xl">🕵️</span>
                   <span>Your mission is to become an Ad Detective. Look around your digital life and spot <strong>5 different types of online marketing.</strong></span>
-                </p>
-              </div>
+            </p>
+          </div>
 
               <hr className="border-gray-600" />
 
               {/* Task */}
-              <div>
+          <div>
                 <h3 className="text-lg font-bold text-yellow-400 mb-2 flex items-center gap-2">
                   <span className="text-purple-400">📋</span>
                   Task:
@@ -208,22 +193,22 @@ const InstructionOverlay = ({ onClose }) => {
                   <li>• Was it a video, post, banner, or pop-up?</li>
                   <li>• What product/service was being sold?</li>
                   <li>• Was it interesting or boring? Why?</li>
-                </ul>
-              </div>
+            </ul>
+          </div>
 
               <hr className="border-gray-600" />
 
               {/* Then Answer */}
-              <div>
+          <div>
                 <h3 className="text-lg font-bold text-yellow-400 mb-2">
                   Then answer:
                 </h3>
                 <ul className="text-gray-200 text-sm space-y-1 ml-4">
                   <li>• Which ad caught your eye the most and why?</li>
                   <li>• Did any ad make you want to click or buy?</li>
-                </ul>
+            </ul>
               </div>
-            </div>
+          </div>
 
             {/* Learning Outcome */}
             <div className="bg-[#FCB813] lilita-one-regular text-white font-semibold p-2 sm:p-3 rounded-sm shadow-md text-xs sm:text-sm text-left leading-snug mt-4 max-w-md text-outline">
