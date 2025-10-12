@@ -3,6 +3,10 @@ import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import GameNav from "./GameNav";
+import IntroScreen from "./IntroScreen";
+import InstructionOverlay from "./InstructionOverlay";
+import { useNavigate } from "react-router-dom";
 
 const musicOptions = [
   "🎆 Festive",
@@ -13,10 +17,12 @@ const musicOptions = [
 const emotionOptions = ["🥳 Excitement", "😍 Love", "😂 Fun", "😲 Surprise"];
 
 export default function ReelPlannerGame() {
+  // All hooks must be called at the top level, before any conditional returns
   const { completeDMChallenge } = useDM();
+  const { updatePerformance } = usePerformance(); //for performance
+  const navigate = useNavigate();
+  
   const [challengeCompleted, setChallengeCompleted] = useState(false);
-
-
   const [story, setStory] = useState(["", "", ""]);
   const [showExamples, setShowExamples] = useState(false);
   const [selectedMusic, setSelectedMusic] = useState("");
@@ -24,10 +30,44 @@ export default function ReelPlannerGame() {
   const [selectedEmotion, setSelectedEmotion] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showInstructionOverlay, setShowInstructionOverlay] = useState(false);
+  const [showWinView, setShowWinView] = useState(false);
+  const [startTime, setStartTime] = useState(Date.now());
+  
   const previewRef = useRef(null);
-  //for performance
-  const { updatePerformance } = usePerformance();
-  const [startTime,setStartTime] = useState(Date.now());
+  const canvasRef = useRef(null);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show instruction overlay automatically when game loads (after intro)
+  useEffect(() => {
+    if (!showIntro) {
+      const timer = setTimeout(() => {
+        setShowInstructionOverlay(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
+
+  // Scroll to preview when shown
+  useEffect(() => {
+    if (!showPreview || !previewRef || !previewRef?.current) {
+      return;
+    }
+
+    previewRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showPreview, previewRef]);
+
+  // Early return after all hooks have been called
+  if (showIntro) {
+    return <IntroScreen />;
+  }
   const validClick = () => {
     if (
       story.every((part) => part) &&
@@ -39,8 +79,6 @@ export default function ReelPlannerGame() {
     }
     return false;
   };
-
-  const canvasRef = useRef(null);
 
   const handleConfetti = () => {
     const myCanvas = canvasRef.current;
@@ -92,12 +130,29 @@ export default function ReelPlannerGame() {
     if (!challengeCompleted) {
       completeDMChallenge(1, 1);
       setChallengeCompleted(true);
+
+      const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+      updatePerformance({
+        moduleName: "DigitalMarketing",
+        topicName: "contentStrategist",
+        score: 10,
+        accuracy: 100,
+        avgResponseTimeSec: timeTakenSec,
+        studyTimeMinutes: Math.ceil(timeTakenSec / 60),
+        completed: true,
+      });
+      setStartTime(Date.now());
     }
 
     setTimeout(() => {
       setLoading(false);
       setShowPreview(true);
       handleConfetti();
+      
+      // Show win view after a short delay
+      setTimeout(() => {
+        setShowWinView(true);
+      }, 3000);
     }, 2000);
   };
 
@@ -114,39 +169,90 @@ export default function ReelPlannerGame() {
     ],
   ];
 
-  useEffect(() => {
-    if (!showPreview || !previewRef || !previewRef?.current) {
-      return;
-    }
+  const handleRetryChallenge = () => {
+    // reset to initial state (no navigation reload)
+    setStory(["", "", ""]);
+    setSelectedMusic("");
+    setScreenText("");
+    setSelectedEmotion("");
+    setShowPreview(false);
+    setLoading(false);
+    setShowWinView(false);
+    setStartTime(Date.now());
+  };
 
-    previewRef?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [showPreview, previewRef]);
+  const handleNextChallenge = () => {
+    navigate("/matching-game");
+  };
 
-  useEffect(() => {
-    if (!showPreview || !validClick() || challengeCompleted) return;
+  const handleViewFeedback = () => {
+    // stub: open your feedback modal or navigate to feedback page
+    console.log("Open feedback modal or page");
+  };
 
-    const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+  // WIN VIEW
+  if (showWinView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img
+              src="/financeGames6to8/trophy-rotating.gif"
+              alt="Rotating Trophy"
+              className="absolute w-full h-full object-contain"
+            />
+            <img
+              src="/financeGames6to8/trophy-celebration.gif"
+              alt="Celebration Effects"
+              className="absolute w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+            🏅 Badge Earned: 🪅 Reel Master
+          </h2>
+          <p className="text-xl text-white mt-2">🎉 Great job! Your reel plan is amazing!</p>
+        </div>
 
-    updatePerformance({
-      moduleName: "DigitalMarketing",
-      topicName: "contentStrategist",
-      score: 10,
-      accuracy: 100,
-      avgResponseTimeSec: timeTakenSec,
-      studyTimeMinutes: Math.ceil(timeTakenSec / 60),
-      completed: true,
-      
-    });
-     setStartTime(Date.now());
-  }, [showPreview]);
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img
+            src="/financeGames6to8/feedback.svg"
+            alt="Feedback"
+            onClick={handleViewFeedback}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/retry.svg"
+            alt="Retry Challenge"
+            onClick={handleRetryChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/next-challenge.svg"
+            alt="Next Challenge"
+            onClick={handleNextChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+        </div>
+      </div>
+    );
+  }
 
 
   return (
-    <div className="w-[100%] p-5 min-h-screen ">
+    <div className="w-[100%] min-h-screen pt-20 md:pt-40 pb-28 bg-[#0A160E] p-4 md:p-8">
+      <GameNav />
+      
+      {/* Instruction Overlay */}
+      {showInstructionOverlay && (
+        <InstructionOverlay onClose={() => setShowInstructionOverlay(false)} />
+      )}
+      
       <div
-        className=" w-full h-full  overflow-auto rounded-2xl bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 py-10 px-4 flex flex-col items-center font-bold space-y-10"
+        className="w-full h-full overflow-auto rounded-2xl bg-gradient-to-br from-[#b8ffcb] via-[#beffde] to-green-200 py-10 px-4 flex flex-col items-center font-bold space-y-10 relative"
         style={{ fontFamily: "'Comic Neue', cursive" }}
       >
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
         <motion.h1
           initial={{ opacity: 0.3 }}
           animate={{ opacity: 1 }}
@@ -189,13 +295,22 @@ export default function ReelPlannerGame() {
           })}
         </div>
 
-        {/* Example Button */}
+        {/* Example and Instructions Buttons */}
+        <div className="flex flex-wrap justify-center gap-4">
         <button
           onClick={() => setShowExamples(!showExamples)}
           className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-3 rounded-full text-lg hover:scale-105 transition duration-300 shadow-lg"
         >
           {showExamples ? "Hide" : "See"} Example Storylines ✨
         </button>
+          
+          <button
+            onClick={() => setShowInstructionOverlay(true)}
+            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-8 py-3 rounded-full text-lg hover:scale-105 transition duration-300 shadow-lg"
+          >
+            📖 How to Play
+          </button>
+        </div>
 
         {/* Example Storylines */}
         {showExamples && (
