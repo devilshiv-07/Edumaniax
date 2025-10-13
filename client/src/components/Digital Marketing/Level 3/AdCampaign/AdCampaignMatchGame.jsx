@@ -1,6 +1,6 @@
 // AdCampaignMatchGame.jsx
-import React, { useEffect, useState } from "react";
-import { easeInOut, motion } from "framer-motion";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 const caps = [
   { id: "c1", name: "Baseball Cap" },
@@ -92,7 +92,7 @@ export default function AdCampaignMatchGame({completed, setCompleted}) {
             <h2 className="text-base lg:text-xl text-center font-semibold mb-3 text-pink-600">
               Audience
             </h2>
-            {remainingAudience.map((option, index) => (
+            {remainingAudience.map((option) => (
               <div
                 key={option.id}
                 onClick={() => handleOptionSelect(option)}

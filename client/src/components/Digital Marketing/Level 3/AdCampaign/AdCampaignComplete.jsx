@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
 import { useDM } from "@/contexts/DMContext";

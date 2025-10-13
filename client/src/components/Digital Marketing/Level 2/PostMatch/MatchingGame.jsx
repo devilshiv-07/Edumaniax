@@ -227,7 +227,7 @@ export default function MatchingGame() {
 
   const handleLevelCompleteConfirm = () => {
     setShowLevelCompletePopup(false);
-    navigate("/intro-budget-battle");
+    navigate("/ad-campaigner-intro");
   };
 
   const handleLevelCompleteCancel = () => {
