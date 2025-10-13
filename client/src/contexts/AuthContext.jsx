@@ -190,17 +190,37 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // 🔹 Admin login
-  const loginAsAdmin = (username, password, navigate) => {
-    if (username === "admin" && password === "admin123") {
-      setRole("admin");
-      localStorage.setItem("role", "admin");
-      toast.success("Admin login successful");
-      navigate("/");
-      return { success: true };
-    } else {
-      toast.error("Invalid admin credentials");
-      return { success: false, message: "Invalid credentials" };
+  // 🔹 Admin login - Now uses backend authentication for security
+  const loginAsAdmin = async (username, password, navigate) => {
+    try {
+      const res = await axios.post(`${server}/special/admin-login`, { 
+        username, 
+        password 
+      });
+
+      if (res.data.success) {
+        const { token: newToken, user: userData } = res.data;
+        
+        localStorage.setItem("token", newToken);
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("role", "admin");
+        
+        setToken(newToken);
+        setUser(userData);
+        setRole("admin");
+        
+        toast.success("Admin login successful");
+        navigate("/");
+        return { success: true };
+      } else {
+        toast.error("Invalid admin credentials");
+        return { success: false, message: "Invalid credentials" };
+      }
+    } catch (err) {
+      console.error("Admin login failed:", err);
+      const errorMessage = err.response?.data?.message || "Admin login failed";
+      toast.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 

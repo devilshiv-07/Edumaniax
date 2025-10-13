@@ -30,8 +30,7 @@ const BottomProgressLoader = () => {
 
       {/* Tip Content */}
       <div className="text-center text-sm sm:text-base md:text-lg text-gray-200 drop-shadow-sm mb-4">
-        AI is everywhere — in phones, games, even refrigerators! But do you
-        notice it?
+        Some tasks are easy for AI. Others are still too human!
       </div>
 
       {/* Progress Container */}

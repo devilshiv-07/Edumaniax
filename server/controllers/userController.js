@@ -42,6 +42,11 @@ const sendOtpForLogin = async (req, res) => {
 
 
 const sendOtpHelper = async (phonenumber, res) => {
+  // Validate required environment variables in runtime (useful on Cloud Run)
+  if (!process.env.EDUMARC_API_KEY) {
+    console.error("Missing EDUMARC_API_KEY environment variable");
+    return res.status(500).json({ message: "SMS service misconfigured" });
+  }
   const otp = otpGenerator.generate(6, {
     upperCaseAlphabets: false,
     specialChars: false,
@@ -73,7 +78,19 @@ const sendOtpHelper = async (phonenumber, res) => {
           "Content-Type": "application/json",
         },
       }
-    );
+    ).catch((axiosErr) => {
+      // Normalize axios error for better diagnostics
+      const status = axiosErr.response?.status;
+      const data = axiosErr.response?.data;
+      const details = {
+        status,
+        data,
+        code: axiosErr.code,
+        message: axiosErr.message,
+      };
+      console.error("SMS API request failed:", details);
+      throw new Error("SMS_API_ERROR");
+    });
 
     const { success, data } = response.data;
 
@@ -84,8 +101,13 @@ const sendOtpHelper = async (phonenumber, res) => {
       return res.status(500).json({ message: "Failed to send OTP", details: response.data });
     }
   } catch (err) {
-    console.error("Error sending OTP:", err.message);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error sending OTP:", err.message || err);
+    const isSmsError = err && err.message === "SMS_API_ERROR";
+    return res
+      .status(500)
+      .json({
+        message: isSmsError ? "Failed to send OTP via SMS provider" : "Internal server error",
+      });
   }
 };
 

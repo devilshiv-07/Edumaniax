@@ -30,8 +30,8 @@ const BottomProgressLoader = () => {
 
       {/* Tip Content */}
       <div className="text-center text-sm sm:text-base md:text-lg text-gray-200 drop-shadow-sm mb-4">
-        AI is everywhere — in phones, games, even refrigerators! But do you
-        notice it?
+        AI gets smarter by practicing with data, just like we get better by
+        studying.
       </div>
 
       {/* Progress Container */}

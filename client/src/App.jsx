@@ -651,11 +651,11 @@ function AppContent() {
             path="/budget-battle-game-complete"
             element={<BudgetBattleGameComplete />}
           />
-          <Route
+          {/* <Route
             path="/ad-campaigner-game-complete"
             element={<AdCampaignComplete />}
-          />
-          <Route path="/ad-campaigner-intro" element={<AdCampaignerIntro />} />
+          /> */}
+          {/* <Route path="/ad-campaigner-intro" element={<AdCampaignerGame />} /> */}
           <Route path="/ad-campaigner-game" element={<AdCampaignerGame />} />
 
           <Route path="/analytics-adventure" element={<AnalyticsDashboard />} />
