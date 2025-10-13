@@ -637,10 +637,10 @@ function AppContent() {
 
           <Route path="/caption-craze" element={<CaptionCraze />} />
           <Route path="/matching-game" element={<MatchingGame />} />
-          <Route
+          {/* <Route
             path="/matching-game-result"
             element={<MatchingGameResult />}
-          />
+          /> */}
 
           <Route path="/reel-planner-game" element={<ReelPlannerGame />} />
 
