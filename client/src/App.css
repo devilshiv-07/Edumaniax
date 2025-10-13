@@ -5,8 +5,9 @@ body {
   padding: 0;
 }
 
-*{
-  font-family: "Lilita One", sans-serif
+/* Use a readable default font for body; apply Lilita only where needed */
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
 }
 
 html,
