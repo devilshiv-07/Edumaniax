@@ -6,6 +6,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import GameNav from "./GameNav";
+import IntroScreen from "./IntroPage";
+import InstructionOverlay from "./InstructionOverlay";
 
 function parsePossiblyStringifiedJSON(text) {
   if (typeof text !== "string") return null;
@@ -41,6 +44,9 @@ export default function AdCampaignerGame() {
   const navigate = useNavigate();
   const previewRef = useRef(null);
   const [completed, setCompleted] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showWinView, setShowWinView] = useState(false);
 
   const [formData, setFormData] = useState({
     adType: "",
@@ -53,6 +59,24 @@ export default function AdCampaignerGame() {
   //for performance
   const { updatePerformance } = usePerformance();
   const [startTime,setStartTime] = useState(Date.now());
+
+  // Handle intro screen timing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show instructions automatically when game loads (after intro)
+  useEffect(() => {
+    if (!showIntro) {
+      const timer = setTimeout(() => {
+        setShowInstructions(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
 
   const updateFormData = (field, value) => {
     if (field === "platforms") {
@@ -88,6 +112,37 @@ export default function AdCampaignerGame() {
   };
 
   const canvasRef = useRef(null);
+
+  const handleConfetti = () => {
+    const myCanvas = canvasRef.current;
+    if (myCanvas) {
+      const myConfetti = confetti.create(myCanvas, {
+        resize: true,
+        useWorker: true,
+      });
+
+      const defaults = {
+        spread: 360,
+        ticks: 50,
+        gravity: 0,
+        decay: 0.94,
+        startVelocity: 30,
+        colors: ["#FFE400", "#FFBD00", "#E89400", "#FFCA6C", "#FDFFB8"],
+      };
+
+      const shoot = () => {
+        myConfetti({ ...defaults, particleCount: 40, scalar: 1.2, shapes: ["star"] });
+        myConfetti({ ...defaults, particleCount: 30, scalar: 0.75, shapes: ["circle"] });
+      };
+
+      // Confetti bursts
+      setTimeout(shoot, 0);
+      setTimeout(shoot, 100);
+      setTimeout(shoot, 300);
+      setTimeout(shoot, 500);
+      setTimeout(shoot, 700);
+    }
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -171,12 +226,40 @@ Example format:
          
       });
        setStartTime(Date.now());
+
+      // Show win screen after a short delay
+      setTimeout(() => {
+        setShowWinView(true);
+        handleConfetti();
+      }, 1500);
     } catch (err) {
       setError("Error fetching AI response");
       console.log(err);
     }
 
     setLoading(false);
+  };
+
+  const handleRetryChallenge = () => {
+    // Reset form data and win screen
+    setFormData({
+      adType: "",
+      targetAudience: "",
+      slogan: "",
+      platforms: [],
+      campaignName: "",
+    });
+    setResult(null);
+    setShowWinView(false);
+    setStartTime(Date.now());
+  };
+
+  const handleNextChallenge = () => {
+    navigate("/intro-budget-battle");
+  };
+
+  const handleViewFeedback = () => {
+    console.log("Open feedback modal or page");
   };
 
   useEffect(() => {
@@ -192,8 +275,67 @@ Example format:
     }, 100);
   }, [result]);
 
+  // Show intro screen first - after all hooks
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
+  // WIN VIEW
+  if (showWinView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img
+              src="/financeGames6to8/trophy-rotating.gif"
+              alt="Rotating Trophy"
+              className="absolute w-full h-full object-contain"
+            />
+            <img
+              src="/financeGames6to8/trophy-celebration.gif"
+              alt="Celebration Effects"
+              className="absolute w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+            🏅 Badge Earned: 🧢 Captain Campaign
+          </h2>
+          <p className="text-xl text-white mt-2">🎉 Great job! You created an amazing campaign!</p>
+        </div>
+
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img
+            src="/financeGames6to8/feedback.svg"
+            alt="Feedback"
+            onClick={handleViewFeedback}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/retry.svg"
+            alt="Retry Challenge"
+            onClick={handleRetryChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/next-challenge.svg"
+            alt="Next Challenge"
+            onClick={handleNextChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-[100%] p-5 min-h-screen ">
+    <div className="w-full min-h-screen pt-20 md:pt-45 pb-20 bg-[#0A160E] mx-auto px-4 md:px-6">
+      <GameNav />
+      
+      {/* Instruction Overlay */}
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <div
         className=" w-full h-full  overflow-auto rounded-2xl bg-gradient-to-br from-blue-100 via-cyan-100 to-violet-100
  py-10 px-4 flex flex-col items-center font-bold space-y-10"
