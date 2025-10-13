@@ -1,76 +1,35 @@
-// MatchingGame.jsx
-import React, { useEffect, useState } from "react";
-import { easeInOut, motion } from "framer-motion";
+import React, { useEffect, useState, useRef } from "react";
+import confetti from "canvas-confetti";
 import { useNavigate } from "react-router-dom";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import { useDM } from "@/contexts/DMContext";
+import GameNav from "./GameNav";
+import IntroScreen from "./IntroScreen";
+import InstructionOverlay from "./InstructionOverlay";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
 
 const brands = [
-  { id: "b1", name: "Nike" },
-  { id: "b2", name: "Apple" },
-  { id: "b3", name: "McDonald's" },
-  { id: "b4", name: "Toyota" },
-  { id: "b5", name: "Samsung" },
-  { id: "b6", name: "Starbucks" },
-  { id: "b7", name: "Coca-Cola" },
-  { id: "b8", name: "Intel" },
-  { id: "b9", name: "Netflix" },
-  { id: "b10", name: "Adidas" },
-  { id: "b11", name: "Amazon" },
-  { id: "b12", name: "Pepsi" },
-  { id: "b13", name: "Honda" },
-  { id: "b14", name: "Sony" },
-  { id: "b15", name: "Nestlé" },
-  { id: "b16", name: "Uber" },
-  { id: "b17", name: "Zoom" },
-  { id: "b18", name: "LinkedIn" },
-  { id: "b19", name: "Spotify" },
-  { id: "b20", name: "KFC" },
+  { id: "b1", name: "Sports Shoes" },
+  { id: "b2", name: "Ice Cream" },
+  { id: "b3", name: "Bookstore" },
+  { id: "b4", name: "Toy Company" },
+  { id: "b5", name: "Mobile Game App" },
 ];
 
 const options = [
-  { id: "o1", label: "Shoes" },
-  { id: "o2", label: "Electronics" },
-  { id: "o3", label: "Fast Food" },
-  { id: "o4", label: "Cars" },
-  { id: "o5", label: "Smartphones" },
-  { id: "o6", label: "Coffee" },
-  { id: "o7", label: "Soft Drinks" },
-  { id: "o8", label: "Processors" },
-  { id: "o9", label: "Streaming" },
-  { id: "o10", label: "Athletic Wear" },
-  { id: "o11", label: "E-commerce" },
-  { id: "o12", label: "Cola" },
-  { id: "o13", label: "Automobiles" },
-  { id: "o14", label: "PlayStation" },
-  { id: "o15", label: "Food & Beverage" },
-  { id: "o16", label: "Ride Sharing" },
-  { id: "o17", label: "Video Calls" },
-  { id: "o18", label: "Professional Network" },
-  { id: "o19", label: "Music Streaming" },
-  { id: "o20", label: "Fried Chicken" },
+  { id: "o1", label: "Behind-the-scenes video of shoe making" },
+  { id: "o2", label: "Poll: 'Pick your fave flavour 👋'" },
+  { id: "o3", label: "Reel: '3 books to read before you turn 13'" },
+  { id: "o4", label: "Meme: 'When your toy breaks on Day 1 🤯'" },
+  { id: "o5", label: "Highlight video of cool gameplay moments 🎮" },
 ];
 
 const correctMatches = {
-  b1: "o1",
-  b2: "o2",
-  b3: "o3",
-  b4: "o4",
-  b5: "o5",
-  b6: "o6",
-  b7: "o7",
-  b8: "o8",
-  b9: "o9",
-  b10: "o10",
-  b11: "o11",
-  b12: "o12",
-  b13: "o13",
-  b14: "o14",
-  b15: "o15",
-  b16: "o16",
-  b17: "o17",
-  b18: "o18",
-  b19: "o19",
-  b20: "o20",
+  b1: "o1", // Sports Shoes -> Behind-the-scenes video
+  b2: "o2", // Ice Cream -> Poll
+  b3: "o3", // Bookstore -> Reel
+  b4: "o4", // Toy Company -> Meme
+  b5: "o5", // Mobile Game App -> Highlight video
 };
 
 function getRandomIndices(n, max) {
@@ -88,16 +47,119 @@ const availOptions = options.filter((option) =>
 );
 
 export default function MatchingGame() {
+  // All hooks must be called at the top level, before any conditional returns
+  const { completeDMChallenge } = useDM();
+  const { updatePerformance } = usePerformance(); //for performance
+  const navigate = useNavigate();
+  
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingGame, setLoadingGame] = useState(false);
   const [remainingBrands, setRemainingBrands] = useState(availBrands);
   const [remainingOptions, setRemainingOptions] = useState(availOptions);
   const [matches, setMatches] = useState([]);
-  const navigate = useNavigate();
-  //for performance
-  const { updatePerformance } = usePerformance();
+  const [showIntro, setShowIntro] = useState(true);
+  const [showInstructionOverlay, setShowInstructionOverlay] = useState(false);
+  const [showWinView, setShowWinView] = useState(false);
+  const [showLoseView, setShowLoseView] = useState(false);
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
+  const [showLevelCompletePopup, setShowLevelCompletePopup] = useState(false);
+  
+  const canvasRef = useRef(null);
+  
+  const initGame = () => {
+    try {
+      const indices = getRandomIndices(4, brands.length);
+      const newAvailBrands = indices.map((i) => brands[i]);
+      const newAvailOptions = options.filter((option) =>
+        newAvailBrands.some((brand) => correctMatches[brand.id] === option.id)
+      );
+      setSelectedBrand(null);
+      setMatches([]);
+      setRemainingBrands(newAvailBrands);
+      setRemainingOptions(newAvailOptions);
+      setShowWinView(false);
+      setShowLoseView(false);
+      setChallengeCompleted(false);
+      setStartTime(Date.now());
+    } catch (e) {
+      console.log("Error initializing game", e);
+    }
+  };
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show instruction overlay automatically when game loads (after intro)
+  useEffect(() => {
+    if (!showIntro) {
+      const timer = setTimeout(() => {
+        setShowInstructionOverlay(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
+
+  // Initialize game data
+  useEffect(() => {
+    setLoadingGame(true);
+    try {
+      initGame();
+    } catch (e) {
+      console.log("Error loading Game", e);
+    } finally {
+      setLoadingGame(false);
+    }
+  }, []);
+
+  // Check for game completion
+  useEffect(() => {
+    if (remainingBrands?.length > 0) return;
+
+    setLoading(true);
+    const timer = setTimeout(() => {
+      const total = matches.length;
+      const correct = matches.filter((m) => m.isCorrect).length;
+      const scaledScore = Math.round((correct / Math.max(total, 1)) * 10); // scale out of 10
+      const accuracy = Math.round((correct / Math.max(total, 1)) * 100);
+      const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+
+      // Mark challenge complete once
+      if (!challengeCompleted) {
+        completeDMChallenge(1, 2);
+        setChallengeCompleted(true);
+      }
+
+      updatePerformance({
+        moduleName: "DigitalMarketing",
+        topicName: "contentStrategist",
+        score: scaledScore,
+        accuracy,
+        avgResponseTimeSec: timeTakenSec,
+        studyTimeMinutes: Math.ceil(timeTakenSec / 60),
+      });
+
+      setLoading(false);
+      if (total > 0 && correct === total) {
+        setShowWinView(true);
+        handleConfetti();
+      } else {
+        setShowLoseView(true);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [remainingBrands, matches, challengeCompleted, completeDMChallenge, updatePerformance, startTime]);
+
+  // Early return after all hooks have been called
+  if (showIntro) {
+    return <IntroScreen />;
+  }
 
   const handleOptionSelect = (option) => {
     if (!selectedBrand) return;
@@ -118,55 +180,179 @@ export default function MatchingGame() {
     setSelectedBrand(null);
   };
 
-  useEffect(() => {
-    setLoadingGame(true);
-    try {
-      const listOfIndices = getRandomIndices(4, brands.length); // use 3 or 4 or 5 as needed
+  const handleConfetti = () => {
+    const myCanvas = canvasRef.current;
+    if (myCanvas) {
+      const myConfetti = confetti.create(myCanvas, {
+        resize: true,
+        useWorker: true,
+      });
 
-      const availBrands = listOfIndices.map((i) => brands[i]);
+      const defaults = {
+        spread: 360,
+        ticks: 50,
+        gravity: 0,
+        decay: 0.94,
+        startVelocity: 30,
+        colors: ["#FFE400", "#FFBD00", "#E89400", "#FFCA6C", "#FDFFB8"],
+      };
 
-      const availOptions = options.filter((option) =>
-        availBrands.some((brand) => correctMatches[brand.id] === option.id)
-      );
-      setRemainingBrands(availBrands);
-      setRemainingOptions(availOptions);
-    } catch (e) {
-      console.log("Error loading Game", e);
-    } finally {
-      setLoadingGame(false);
+      const shoot = () => {
+        myConfetti({ ...defaults, particleCount: 40, scalar: 1.2, shapes: ["star"] });
+        myConfetti({ ...defaults, particleCount: 30, scalar: 0.75, shapes: ["circle"] });
+      };
+
+      // Confetti bursts
+      setTimeout(shoot, 0);
+      setTimeout(shoot, 100);
+      setTimeout(shoot, 300);
+      setTimeout(shoot, 500);
+      setTimeout(shoot, 700);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    if (remainingBrands?.length > 0) return;
+  const handleRetryChallenge = () => {
+    // reset to initial state and reinitialize a fresh board
+    setShowLevelCompletePopup(false);
+    initGame();
+  };
 
-    setLoading(true);
-    const timer = setTimeout(() => {
-      const total = matches.length;
-      const correct = matches.filter((m) => m.isCorrect).length;
-      const scaledScore = Math.round((correct / total) * 10); // scale out of 10
-      const accuracy = Math.round((correct / total) * 100);
-      const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+  const handleNextChallenge = () => {
+    setShowLevelCompletePopup(true);
+  };
 
-      updatePerformance({
-        moduleName: "DigitalMarketing",
-        topicName: "contentStrategist",
-        score: scaledScore,
-        accuracy,
-        avgResponseTimeSec: timeTakenSec,
-        studyTimeMinutes: Math.ceil(timeTakenSec / 60),
-        completed: true,
+  const handleViewFeedback = () => {
+    console.log("Open feedback modal or page");
+  };
 
-      });
-      setStartTime(Date.now());
-      navigate("/matching-game-result", {
-        state: { score: scaledScore },
-      });
-      setLoading(false);
-    }, 2000);
+  const handleLevelCompleteConfirm = () => {
+    setShowLevelCompletePopup(false);
+    navigate("/intro-budget-battle");
+  };
 
-    return () => clearTimeout(timer);
-  }, [remainingBrands]);
+  const handleLevelCompleteCancel = () => {
+    setShowLevelCompletePopup(false);
+  };
+
+  const handleLevelCompleteClose = () => {
+    setShowLevelCompletePopup(false);
+  };
+
+  // WIN VIEW
+  if (showWinView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img
+              src="/financeGames6to8/trophy-rotating.gif"
+              alt="Rotating Trophy"
+              className="absolute w-full h-full object-contain"
+            />
+            <img
+              src="/financeGames6to8/trophy-celebration.gif"
+              alt="Celebration Effects"
+              className="absolute w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+            🏅 Badge Earned: ✨ Content Matcher
+          </h2>
+          <p className="text-xl text-white mt-2">🎉 Great job! You matched all the content perfectly!</p>
+        </div>
+
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img
+            src="/financeGames6to8/feedback.svg"
+            alt="Feedback"
+            onClick={handleViewFeedback}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/retry.svg"
+            alt="Retry Challenge"
+            onClick={handleRetryChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/next-challenge.svg"
+            alt="Next Challenge"
+            onClick={handleNextChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+        </div>
+
+        {/* Level Complete Popup visible on win screen */}
+        <LevelCompletePopup
+          isOpen={showLevelCompletePopup}
+          onConfirm={handleLevelCompleteConfirm}
+          onCancel={handleLevelCompleteCancel}
+          onClose={handleLevelCompleteClose}
+          title="🎉 Congratulations! You completed Level 2!"
+          message="You've mastered all the Digital Marketing challenges! Ready for the next one?"
+          confirmText="Next Challenge"
+          cancelText="Stay Here"
+        />
+      </div>
+    );
+  }
+
+  // LOSE VIEW
+  if (showLoseView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img
+              src="/financeGames6to8/game-over-game.gif"
+              alt="Game Over"
+              className="w-48 sm:w-64 h-auto mb-4"
+            />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-2 text-center">
+            Oops! Not all matches were correct.
+          </h2>
+          <p className="text-white mt-2 text-center text-base sm:text-lg">
+            Try again to match each brand with the best content type.
+          </p>
+        </div>
+
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img
+            src="/financeGames6to8/retry.svg"
+            alt="Retry Challenge"
+            onClick={handleRetryChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/feedback.svg"
+            alt="Feedback"
+            onClick={handleViewFeedback}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+          <img
+            src="/financeGames6to8/next-challenge.svg"
+            alt="Next Challenge"
+            onClick={handleNextChallenge}
+            className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200"
+          />
+        </div>
+
+        {/* Level Complete Popup visible on lose screen as well */}
+        <LevelCompletePopup
+          isOpen={showLevelCompletePopup}
+          onConfirm={handleLevelCompleteConfirm}
+          onCancel={handleLevelCompleteCancel}
+          onClose={handleLevelCompleteClose}
+          title="Proceed to Next Challenge?"
+          message="You can retry now or continue to the next challenge."
+          confirmText="Next Challenge"
+          cancelText="Stay Here"
+        />
+      </div>
+    );
+  }
 
 
   if (loadingGame) {
@@ -182,29 +368,36 @@ export default function MatchingGame() {
 
   return (
     <div
-      className="w-[95%] max-w-7xl mx-auto p-4 md:p-6 min-h-screen"
+      className="w-full min-h-screen pt-20 md:pt-45 pb-20 bg-[#0A160E] mx-auto px-4 md:px-6"
       style={{ fontFamily: "'Comic Neue', cursive" }}
     >
-      <div className="p-4 md:p-6 min-h-[80vh] rounded-2xl shadow-2xl bg-gradient-to-br from-pink-200 to-yellow-100">
-        <motion.h1
-          initial={{ opacity: 0.1, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            duration: 0.4,
-            repeat: Infinity,
-            repeatType: "mirror",
-            ease: "easeInOut",
-          }}
-          className="text-xl sm:text-2xl md:text-3xl font-bold text-center mb-6 text-purple-800"
-        >
-          🎯 Match the Brands!
-        </motion.h1>
+      <GameNav />
+      
+      {/* Instruction Overlay */}
+      {showInstructionOverlay && (
+        <InstructionOverlay onClose={() => setShowInstructionOverlay(false)} />
+      )}
+      
+      <div className="p-4 md:p-6 min-h-[80vh] rounded-2xl shadow-2xl bg-gradient-to-br from-[#6f8775] to-[#85a997] relative">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center gap-4 mb-6">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-purple-800 animate-pulse">
+            🎯 Match the Brands!
+          </h1>
+          
+          <button
+            onClick={() => setShowInstructionOverlay(true)}
+            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white px-6 py-2 rounded-full text-sm hover:scale-105 transition duration-300 shadow-lg"
+          >
+            📖 How to Play
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Brands */}
           <div>
             <h2 className="text-base lg:text-xl text-center font-semibold mb-3 text-blue-600">
-              Brands
+              Brand
             </h2>
             {remainingBrands.map((brand, index) => {
               const floatClass = `float${(index % 4) + 1}`;
@@ -227,7 +420,7 @@ export default function MatchingGame() {
           {/* Options */}
           <div>
             <h2 className="text-base lg:text-xl text-center font-semibold mb-3 text-pink-600">
-              Options
+              Options for Best Content Type (Match 1)
             </h2>
             {remainingOptions.map((option, index) => {
               const floatClass = `float${(index % 4) + 1}`;
@@ -270,6 +463,18 @@ export default function MatchingGame() {
           </div>
         )}
       </div>
+
+      {/* Level Complete Popup */}
+      <LevelCompletePopup
+        isOpen={showLevelCompletePopup}
+        onConfirm={handleLevelCompleteConfirm}
+        onCancel={handleLevelCompleteCancel}
+        onClose={handleLevelCompleteClose}
+        title="🎉 Congratulations! You completed Level 2!"
+        message="You've mastered all the Digital Marketing challenges! Ready to explore more exciting topics?"
+        confirmText="Continue Learning"
+        cancelText="Stay Here"
+      />
     </div>
   );
 }
