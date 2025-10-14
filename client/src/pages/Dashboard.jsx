@@ -677,24 +677,6 @@ const Dashboard = () => {
     });
   };
 
-  const handleClassChangeAndSave = async (e) => {
-    const value = e.target.value;
-    try {
-      // This calls the update function from your AuthContext directly
-      const result = await updateUser("userClass", value);
-      if (!result.success) {
-        // If saving fails, show an alert
-        console.error("Update failed:", result.message);
-        alert(result.message || "Failed to update class.");
-      }
-    } catch (error) {
-      console.error("Failed to update class:", error);
-      alert("An unexpected error occurred. Please try again.");
-    } finally {
-      // This will close the dropdown and show the text again after a selection
-      setEditingField(null);
-    }
-  };
 
   const handleSaveClick = async (field) => {
     try {
@@ -1638,44 +1620,13 @@ const Dashboard = () => {
                             <div className="flex justify-between items-center">
                               <div className="flex-1">
                                 <p className="text-gray-500 text-xs">Class</p>
-                                {editingField === "userClass" ? (
-                                  // The editing view is now ONLY the select element.
-                                  <select
-                                    value={user.userClass || ""}
-                                    onChange={handleClassChangeAndSave}
-                                    onBlur={() => setEditingField(null)} // Closes dropdown if you click away
-                                    className="font-semibold bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-full"
-                                    autoFocus
-                                  >
-                                    <option value="" disabled>
-                                      Select a class
-                                    </option>
-                                    <option value="6th">6th</option>
-                                    <option value="7th">7th</option>
-                                    <option value="8th">8th</option>
-                                    <option value="9th">9th</option>
-                                    <option value="10th">10th</option>
-                                    <option value="11th and above">
-                                      11th and above
-                                    </option>
-                                  </select>
-                                ) : (
-                                  // The display view is simple text.
-                                  <p className="font-semibold">
-                                    {user.userClass || "Not set"}
-                                  </p>
-                                )}
+                                {/* Show logged-in user class only (no editing) */}
+                                <p className="font-semibold">
+                                  {user.userClass || "Not set"}
+                                </p>
                               </div>
 
-                              {/* The Edit button only shows when you are NOT editing. */}
-                              {editingField !== "userClass" && (
-                                <button
-                                  onClick={() => handleEditClick("userClass")}
-                                  className="bg-[#F0EFFA] text-gray-600 text-xs px-3 py-1 rounded-lg hover:bg-gray-200 ml-2"
-                                >
-                                  Edit
-                                </button>
-                              )}
+                              {/* Edit Class button removed as requested */}
                             </div>
 
                             <div className="flex justify-between items-center">
