@@ -3,6 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import GameNav from "./GameNav";
+import InstructionOverlay from "./InstructionOverlay";
+import IntroScreen from "./IntroPage";
 
 const platforms = [
   {
@@ -71,6 +74,8 @@ function parsePossiblyStringifiedJSON(text) {
 }
 
 export default function IntroBudgetBattle() {
+  const [showIntro, setShowIntro] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
   const totalBudget = 500;
   const [allocations, setAllocations] = useState(platforms.map(() => 0));
   const [loading, setLoading] = useState(false);
@@ -78,6 +83,8 @@ export default function IntroBudgetBattle() {
   const [result, setResult] = useState(null);
   const navigate = useNavigate();
   const previewRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [showWinView, setShowWinView] = useState(false);
 
   //for performance
   const { updatePerformance } = usePerformance();
@@ -121,6 +128,29 @@ export default function IntroBudgetBattle() {
 
   const allocatedTotal = allocations.reduce((a, b) => a + b, 0);
   const remaining = totalBudget - allocatedTotal;
+
+  const handleConfetti = () => {
+    const myCanvas = canvasRef.current;
+    if (!myCanvas) return;
+    const myConfetti = confetti.create(myCanvas, { resize: true, useWorker: true });
+    const defaults = {
+      spread: 360,
+      ticks: 50,
+      gravity: 0,
+      decay: 0.94,
+      startVelocity: 30,
+      colors: ["#FFE400", "#FFBD00", "#E89400", "#FFCA6C", "#FDFFB8"],
+    };
+    const shoot = () => {
+      myConfetti({ ...defaults, particleCount: 40, scalar: 1.2, shapes: ["star"] });
+      myConfetti({ ...defaults, particleCount: 30, scalar: 0.75, shapes: ["circle"] });
+    };
+    setTimeout(shoot, 0);
+    setTimeout(shoot, 100);
+    setTimeout(shoot, 300);
+    setTimeout(shoot, 500);
+    setTimeout(shoot, 700);
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -176,6 +206,11 @@ Example format:
       const parsed = parsePossiblyStringifiedJSON(aiReply);
       console.log(parsed);
       setResult(parsed);
+      // small celebration, then show win screen
+      setTimeout(() => {
+        setShowWinView(true);
+        handleConfetti();
+      }, 1500);
     } catch (err) {
       setError("Error fetching AI response");
       console.log(err);
@@ -191,8 +226,73 @@ Example format:
     return false;
   };
 
+  // Show intro first, then reveal game after loader (4s)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowIntro(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Open instructions shortly after intro is hidden
+  useEffect(() => {
+    if (showIntro) return;
+    const t = setTimeout(() => setShowInstructions(true), 500);
+    return () => clearTimeout(t);
+  }, [showIntro]);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
+  // Handlers for win screen actions
+  const handleRetryChallenge = () => {
+    setShowWinView(false);
+    setResult(null);
+    setAllocations(platforms.map(() => 0));
+  };
+
+  const handleNextChallenge = () => {
+    navigate("/digital-marketing/games");
+  };
+
+  const handleViewFeedback = () => {
+    // Placeholder for feedback modal
+    console.log("Open feedback modal or page");
+  };
+
+  // WIN VIEW
+  if (showWinView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+            <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+            🏅 Badge Earned: 💰 Smart Spender
+          </h2>
+          <p className="text-xl text-white mt-2">🎉 Great job! You allocated your budget wisely!</p>
+        </div>
+
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={handleViewFeedback} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/retry.svg" alt="Retry Challenge" onClick={handleRetryChallenge} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={handleNextChallenge} className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full sm:w-[90%] p-3 sm:p-5 mx-auto min-h-screen bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400">
+    <div className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular">
+      <GameNav />
+      {/* Instruction Overlay appears once after intro */}
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <div
         className="w-full p-4 sm:p-5 h-full bg-gradient-to-br from-yellow-100 via-pink-100 to-blue-100 rounded-3xl mx-auto shadow-2xl border-4 border-white"
         style={{ fontFamily: "'Comic Neue', cursive" }}

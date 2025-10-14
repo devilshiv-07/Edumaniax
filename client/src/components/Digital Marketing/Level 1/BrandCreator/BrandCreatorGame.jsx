@@ -219,7 +219,7 @@ export default function BrandCreatorGame() {
       {showInstructions && (
         <InstructionOverlay onClose={() => setShowInstructions(false)} />
       )}
-      <div className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 font-sans">
+      <div className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular">
         <div className="flex flex-col-reverse lg:flex-row items-start justify-center gap-6">
           <div className="w-full lg:w-2/3 bg-[#202F364D] rounded-3xl shadow-2xl p-4 md:p-8 border-4 border-dashed border-white">
             <div className="space-y-4">

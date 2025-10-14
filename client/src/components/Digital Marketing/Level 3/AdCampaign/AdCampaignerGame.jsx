@@ -329,7 +329,7 @@ Example format:
   }
 
   return (
-    <div className="w-full min-h-screen pt-20 md:pt-45 pb-20 bg-[#0A160E] mx-auto px-4 md:px-6">
+    <div className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular">
       <GameNav />
       
       {/* Instruction Overlay */}
