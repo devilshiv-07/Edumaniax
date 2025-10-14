@@ -253,7 +253,7 @@ Example format:
   };
 
   const handleNextChallenge = () => {
-    navigate("/digital-marketing/games");
+    navigate("/analytics-adventure");
   };
 
   const handleViewFeedback = () => {
