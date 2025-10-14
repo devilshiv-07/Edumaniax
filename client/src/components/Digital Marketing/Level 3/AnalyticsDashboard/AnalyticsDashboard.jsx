@@ -520,10 +520,10 @@ export default function AnalyticsDashboard() {
           <button
             disabled={!hasSimulated}
             onClick={() => setChallengeCompleted(true)}
-            className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl text-lg sm:text-xl font-bold shadow-xl border-3 border-black transition-transform duration-300 mt-4 ${
+            className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl text-lg sm:text-xl font-bold shadow-xl border-4 border-white transition-transform duration-300 mt-4 ${
               hasSimulated
                 ? "bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 hover:scale-105 cursor-pointer"
-                : "bg-red-400 text-gray-200 cursor-not-allowed"
+                : "bg-gray-400 text-gray-200 cursor-not-allowed"
             }`}
           >
            Finish Game

@@ -227,11 +227,7 @@ Example format:
       });
        setStartTime(Date.now());
 
-      // Show win screen after a short delay
-      setTimeout(() => {
-        setShowWinView(true);
-        handleConfetti();
-      }, 1500);
+      // Win screen will now be triggered by the Finish Game button in the UI
     } catch (err) {
       setError("Error fetching AI response");
       console.log(err);
@@ -593,7 +589,10 @@ Example format:
               </div>
               <div className="flex justify-center">
                 <button
-                  onClick={() => navigate("/ad-campaigner-game-complete")}
+                  onClick={() => {
+                    setShowWinView(true);
+                    handleConfetti();
+                  }}
                   className="px-7 py-5 text-lg sm:text-xl md:text-2xl lg:text-3xl cursor-pointer rounded-2xl bg-purple-400 text-yellow-200"
                 >
                   Finish Game

@@ -206,11 +206,6 @@ Example format:
       const parsed = parsePossiblyStringifiedJSON(aiReply);
       console.log(parsed);
       setResult(parsed);
-      // small celebration, then show win screen
-      setTimeout(() => {
-        setShowWinView(true);
-        handleConfetti();
-      }, 1500);
     } catch (err) {
       setError("Error fetching AI response");
       console.log(err);
@@ -493,7 +488,10 @@ Example format:
             </div>
             <div className="w-full flex justify-center mt-4">
               <button
-                onClick={() => navigate("/budget-battle-game-complete")}
+                onClick={() => {
+                  setShowWinView(true);
+                  handleConfetti();
+                }}
                 className="px-6 sm:px-7 py-4 sm:py-5 cursor-pointer rounded-2xl bg-gradient-to-r from-purple-400 to-pink-400 text-yellow-200 font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl border-4 border-white"
               >
                 🏆 Finish Game 🎮
