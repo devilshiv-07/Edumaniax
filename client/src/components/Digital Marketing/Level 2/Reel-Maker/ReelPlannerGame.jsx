@@ -240,7 +240,7 @@ export default function ReelPlannerGame() {
 
 
   return (
-    <div className="w-[100%] min-h-screen pt-20 md:pt-40 pb-28 bg-[#0A160E] p-4 md:p-8">
+    <div className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular">
       <GameNav />
       
       {/* Instruction Overlay */}

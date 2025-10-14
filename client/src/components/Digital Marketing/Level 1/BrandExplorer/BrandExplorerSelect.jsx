@@ -143,7 +143,7 @@ const BrandBrandExplorerGameSelect = () => {
 
   return game ? (
     <div
-      className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 text-center"
+      className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular text-center"
       style={{ fontFamily: "'Comic Neue', cursive" }}
     >
       <GameNav />
@@ -272,7 +272,7 @@ const BrandBrandExplorerGameSelect = () => {
     </div>
   ) : (
     <div
-      className="min-h-screen pt-20 md:pt-50 pb-28 bg-[#0A160E] p-4 md:p-8 text-center"
+      className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular text-center"
       style={{ fontFamily: "'Comic Neue', cursive" }}
     >
       <GameNav />
