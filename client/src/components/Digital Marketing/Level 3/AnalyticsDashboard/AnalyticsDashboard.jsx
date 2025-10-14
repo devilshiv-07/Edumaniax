@@ -3,9 +3,14 @@ import PlatformCard from "./PlatformCard";
 import { PlatformAnalysis } from "./PlatformAnalysis";
 import { WhatIfSimulator } from "./WhatIfSimulator";
 import { motion } from "framer-motion"; // Make sure to import motion
+import confetti from "canvas-confetti";
 import toast from 'react-hot-toast';
 import { useDM } from "@/contexts/DMContext";
 import { usePerformance } from "@/contexts/PerformanceContext"; //for performance
+import GameNav from "./GameNav";
+import IntroScreen from "./IntroPage";
+import InstructionOverlay from "./InstructionOverlay";
+import LevelCompletePopup from "@/components/LevelCompletePopup";
 
 const initialData = [
   {
@@ -75,6 +80,12 @@ export default function AnalyticsDashboard() {
   const [chartType, setChartType] = useState("bar");
   const [draggedLabel, setDraggedLabel] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [showIntro, setShowIntro] = useState(true);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [showWinView, setShowWinView] = useState(false);
+  const [showLevelCompletePopup, setShowLevelCompletePopup] = useState(false);
+  const canvasRef = React.useRef(null);
+  const [hasSimulated, setHasSimulated] = useState(false);
 
 
   //for performance
@@ -99,7 +110,76 @@ export default function AnalyticsDashboard() {
       
     });
      setStartTime(Date.now());
+    // Show win screen after a short celebration delay
+    setTimeout(() => {
+      setShowWinView(true);
+      handleConfetti();
+    }, 1200);
   }, [challengeCompleted]);
+
+  // Intro timing
+  useEffect(() => {
+    const t = setTimeout(() => setShowIntro(false), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Show instructions after intro
+  useEffect(() => {
+    if (showIntro) return;
+    const t = setTimeout(() => setShowInstructions(true), 500);
+    return () => clearTimeout(t);
+  }, [showIntro]);
+
+  if (showIntro) {
+    return <IntroScreen />;
+  }
+
+  const handleConfetti = () => {
+    const myCanvas = canvasRef.current;
+    if (!myCanvas) return;
+    const myConfetti = confetti.create(myCanvas, { resize: true, useWorker: true });
+    const defaults = {
+      spread: 360,
+      ticks: 50,
+      gravity: 0,
+      decay: 0.94,
+      startVelocity: 30,
+      colors: ["#FFE400", "#FFBD00", "#E89400", "#FFCA6C", "#FDFFB8"],
+    };
+    const shoot = () => {
+      myConfetti({ ...defaults, particleCount: 40, scalar: 1.2, shapes: ["star"] });
+      myConfetti({ ...defaults, particleCount: 30, scalar: 0.75, shapes: ["circle"] });
+    };
+    setTimeout(shoot, 0);
+    setTimeout(shoot, 100);
+    setTimeout(shoot, 300);
+    setTimeout(shoot, 500);
+    setTimeout(shoot, 700);
+  };
+
+  const handleRetryChallenge = () => {
+    setShowWinView(false);
+    setShowLevelCompletePopup(false);
+    setSelected(null);
+    setPlatforms(initialData);
+    setHasSimulated(false);
+    setChallengeCompleted(false);
+    setStartTime(Date.now());
+  };
+
+  const handleNextChallenge = () => {
+    setShowLevelCompletePopup(true);
+  };
+
+  const handleLevelCompleteConfirm = () => {
+    setShowLevelCompletePopup(false);
+    // Navigate to next destination – adjust as needed
+    window.location.assign("/digital-marketing/games");
+  };
+
+  const handleLevelCompleteCancel = () => {
+    setShowLevelCompletePopup(false);
+  };
 
 
   /**
@@ -111,6 +191,7 @@ export default function AnalyticsDashboard() {
   const handleSimulate = (platformName, amount) => {
     // If you are using a toast library, uncomment this line:
     toast.success("Simulation Applied!");
+    setHasSimulated(true);
 
     setPlatforms(prevPlatforms => {
       return prevPlatforms.map((p) => {
@@ -256,8 +337,52 @@ export default function AnalyticsDashboard() {
     }
   };
 
+  // WIN VIEW
+  if (showWinView) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0A160E] flex flex-col justify-between">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+        <div className="flex flex-col items-center justify-center flex-1 p-6">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <img src="/financeGames6to8/trophy-rotating.gif" alt="Rotating Trophy" className="absolute w-full h-full object-contain" />
+            <img src="/financeGames6to8/trophy-celebration.gif" alt="Celebration Effects" className="absolute w-full h-full object-contain" />
+          </div>
+          <h2 className="text-yellow-400 lilita-one-regular text-3xl sm:text-4xl font-bold mt-6">
+            🏅 Badge Earned: 🔍 Insight Seeker
+          </h2>
+          <p className="text-xl text-white mt-2">🎉 Great job! You analyzed performance and drew insights!</p>
+        </div>
+
+        <div className="bg-[#2f3e46] border-t border-gray-700 py-4 px-6 flex justify-center gap-6">
+          <img src="/financeGames6to8/feedback.svg" alt="Feedback" onClick={() => console.log("Open feedback modal or page")}
+               className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/retry.svg" alt="Retry Challenge" onClick={handleRetryChallenge}
+               className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+          <img src="/financeGames6to8/next-challenge.svg" alt="Next Challenge" onClick={handleNextChallenge}
+               className="cursor-pointer w-36 sm:w-44 h-12 sm:h-14 object-contain hover:scale-105 transition-transform duration-200" />
+        </div>
+
+        <LevelCompletePopup
+          isOpen={showLevelCompletePopup}
+          onConfirm={handleLevelCompleteConfirm}
+          onCancel={handleLevelCompleteCancel}
+          onClose={handleLevelCompleteCancel}
+          title="Challenge Complete!"
+          message="Ready to proceed to the next challenge?"
+          confirmText="Next Challenge"
+          cancelText="Stay Here"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-[95%] max-w-7xl mx-auto p-4 md:p-6 min-h-screen" style={{ fontFamily: "'Comic Neue', cursive" }}>
+    <div className="w-full pt-25 sm:pt-45 pb-20 bg-[#0A160E] px-4 mx-auto min-h-screen lilita-one-regular" style={{ fontFamily: "'Comic Neue', cursive" }}>
+      <GameNav />
+      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none hidden" />
+      {showInstructions && (
+        <InstructionOverlay onClose={() => setShowInstructions(false)} />
+      )}
       <div className="p-4 md:p-6 min-h-[80vh] rounded-2xl shadow-2xl bg-gradient-to-br from-pink-200 to-yellow-100">
         {/* Main Dashboard Heading with subtle motion */}
         <motion.h1
@@ -389,6 +514,21 @@ export default function AnalyticsDashboard() {
 
         {/* What-If Simulator Section */}
         <WhatIfSimulator onSimulate={handleSimulate} />
+
+        {/* End Game button - enabled only after running a simulation */}
+        <div className="w-full flex justify-center mt-6">
+          <button
+            disabled={!hasSimulated}
+            onClick={() => setChallengeCompleted(true)}
+            className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl text-lg sm:text-xl font-bold shadow-xl border-3 border-black transition-transform duration-300 mt-4 ${
+              hasSimulated
+                ? "bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 hover:scale-105 cursor-pointer"
+                : "bg-red-400 text-gray-200 cursor-not-allowed"
+            }`}
+          >
+           Finish Game
+          </button>
+        </div>
       </div>
     </div>
   );
