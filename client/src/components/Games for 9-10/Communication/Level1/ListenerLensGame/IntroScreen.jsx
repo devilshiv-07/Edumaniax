@@ -89,7 +89,7 @@ const IntroScreen = ({ onShowInstructions }) => {
         </span>
 
         <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl md:text-3xl lg:text-4xl text-white mb-6 sm:mb-10">
-          Challenge 1
+          Challenge 2
         </h2>
       </div>
 
