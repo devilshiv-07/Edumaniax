@@ -85,11 +85,11 @@ const IntroScreen = ({ onShowInstructions }) => {
       <div className="text-center flex flex-col items-center justify-start sm:justify-center mt-10 sm:-mt-100 z-10">
 
         <span className="lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] text-[6vh] md:text-4xl lg:text-[9vh] text-[#ffcc00] tracking-[0.05vw]">
-          Listen Up
+          What Went Wrong?
         </span>
 
         <h2 className="text-2xl lilita [text-shadow:0_6px_0_#000] [text-stroke:1px_black] sm:text-4xl md:text-3xl lg:text-4xl text-white mb-6 sm:mb-10">
-          Challenge 1
+          Challenge 3
         </h2>
       </div>
 
