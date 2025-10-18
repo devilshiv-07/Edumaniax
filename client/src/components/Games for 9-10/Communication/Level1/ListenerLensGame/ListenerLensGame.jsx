@@ -258,7 +258,7 @@ const ListenerLensGame = () => {
                 }
                 const prompt = `You are an expert AI tutor. A student was asked to provide an empathetic response to a friend who failed an exam. The student wrote: "${answer.userAnswer}". This was flagged as not being empathetic. Your task is to provide targeted feedback. ### CONTEXT ### 1. **Student's Incorrect Answer:** "${answer.userAnswer}" 2. **All Available Note Sections for this Module:** ${JSON.stringify(notesCommunication9to10.map(n => ({topicId: n.topicId, title: n.title})), null, 2)} ### YOUR TWO-STEP TASK ### 1. **Step 1: DETECT.** Analyze the student's mistake. Identify the ONE note section that is the best match for their error (e.g., active listening, validation). 2. **Step 2: GENERATE.** Provide a short, encouraging, and educational insight (about 25-30 words) on why empathy is important in this context. ### OUTPUT FORMAT ### Return ONLY a raw JSON object. { "detectedTopicId": "The 'topicId' of the section you identified", "insight": "Your personalized and encouraging feedback message here." }`;
                 try {
-                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+                    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
                     const aiReply = response.data.candidates[0].content.parts[0].text;
                     const parsed = parsePossiblyStringifiedJSON(aiReply);
                     if (parsed && parsed.insight && parsed.detectedTopicId) {
@@ -292,7 +292,7 @@ const ListenerLensGame = () => {
         const prompt = `You are a sentiment analysis AI for an educational game about empathy. A friend has just said they failed an important exam. Analyze the user's reply to them. The reply is: "${state.userResponse}". Is this reply empathetic, supportive, or helpful? Respond with ONLY a single word: "pass" or "fail". "pass" means the reply is empathetic, supportive, helpful, or at least not negative. "fail" means the reply is insensitive, dismissive, blaming, or completely irrelevant.`;
 
         try {
-            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
+            const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APIKEY}`, { contents: [{ parts: [{ text: prompt }] }] });
             const aiResult = response.data.candidates[0].content.parts[0].text.trim().toLowerCase();
             
             const passed = aiResult.includes("pass");
@@ -335,7 +335,8 @@ const ListenerLensGame = () => {
     };
     const handleContinue = () => {
         sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        alert("Navigating to the next challenge!");
+        // alert("Navigating to the next challenge!");
+        navigate("/WhatWentWrongGame");
     };
     
     // --- Video and Music Handlers ---
