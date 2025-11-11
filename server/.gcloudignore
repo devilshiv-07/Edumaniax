@@ -1,17 +1,44 @@
-# This file specifies files that are *not* uploaded to Google Cloud
-# using gcloud. It follows the same syntax as .gitignore, with the addition of
-# "#!include" directives (which insert the entries of the given .gitignore-style
-# file at that point).
-#
-# For more information, run:
-#   $ gcloud topic gcloudignore
-#
-.gcloudignore
-# If you would like to upload your .git directory, .gitignore file or files
-# from your .gitignore file, remove the corresponding line
-# below:
-.git
-.gitignore
+# Exclude sensitive scripts
+scripts/check-pro-status.js
+scripts/check-user.js
+scripts/delete-user.js
+scripts/delete-user-by-phone.js
+scripts/production-pro-activation.js
 
-# Node.js dependencies:
+# Exclude development files
+*.log
+*.tmp
+.env
+.env.local
+.env.development
+.env.test
+
+# Exclude node_modules (will be installed during deployment)
 node_modules/
+
+# Exclude development dependencies
+package-lock.json
+
+# Exclude test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Exclude documentation
+README.md
+*.md
+
+# Exclude IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
+
+# Exclude temporary files
+tmp/
+temp/

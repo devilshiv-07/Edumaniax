@@ -1,4 +1,22 @@
 node_modules
+.git
+.env
+npm-debug.log
+yarn-error.log
+Dockerfile*
+**/*.md
+prisma/migrations
+
+# Exclude deployment/ops scripts and utility scripts
+scripts/check-pro-status.js
+scripts/check-user.js
+scripts/delete-user-by-phone.js
+scripts/production-pro-activation.js
+
+# Local files
+.DS_Store
+**/*.local.*
+node_modules
 npm-debug.log
 .git
 .gitignore

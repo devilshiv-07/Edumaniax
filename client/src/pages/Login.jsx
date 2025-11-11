@@ -1,120 +1,167 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+// [DISABLED FOR NOW]: useEffect and Cookies no longer needed for OTP
+// import { useEffect } from "react";
+// import Cookies from "js-cookie";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { KeyRound } from "lucide-react";
-import Cookies from "js-cookie";
+import PasswordInput from "../components/PasswordInput";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { sendOtpForLogin, verifyOtpAndLogin } = useAuth();
+  // [DISABLED FOR NOW]: OTP functions commented out for email+password switch
+  // const { sendOtpForLogin, verifyOtpAndLogin } = useAuth();
+  const { loginWithEmailPassword } = useAuth();
 
-  const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
+  // [DISABLED FOR NOW]: OTP-related state commented out
+  // const [step, setStep] = useState(1);
+  // const [phone, setPhone] = useState("");
+  // const [otp, setOtp] = useState("");
+  // const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
+  // const [resendTimer, setResendTimer] = useState(120); // 120 seconds cooldown
+  // const [resending, setResending] = useState(false);
+  
+  // New email+password state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
   const [rememberMe, setRememberMe] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [resendTimer, setResendTimer] = useState(120); // 120 seconds cooldown
-  const [resending, setResending] = useState(false);
 
-  useEffect(() => {
-    const savedPhone = Cookies.get("rememberedPhone");
-    if (savedPhone) {
-      setPhone(savedPhone);
-      setRememberMe(true);
-    }
-  }, []);
+  // [DISABLED FOR NOW]: OTP-related useEffect and handlers commented out
+  // useEffect(() => {
+  //   const savedPhone = Cookies.get("rememberedPhone");
+  //   if (savedPhone) {
+  //     setPhone(savedPhone);
+  //     setRememberMe(true);
+  //   }
+  // }, []);
 
-  useEffect(() => {
-    let timer;
-    if (step === 2 && resendTimer > 0) {
-      timer = setTimeout(() => setResendTimer((prev) => prev - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [step, resendTimer]);
+  // useEffect(() => {
+  //   let timer;
+  //   if (step === 2 && resendTimer > 0) {
+  //     timer = setTimeout(() => setResendTimer((prev) => prev - 1), 1000);
+  //   }
+  //   return () => clearTimeout(timer);
+  // }, [step, resendTimer]);
 
-  const handlePhoneChange = (e) => {
-    setPhone(e.target.value);
+  // const handlePhoneChange = (e) => {
+  //   setPhone(e.target.value);
+  //   setError("");
+  // };
+
+  // const handlesendOtpForLogin = async (e) => {
+  //   e.preventDefault();
+  //   setError("");
+
+  //   if (!phone) return setError("Phone number is required");
+  //   if (!/^\d{10}$/.test(phone))
+  //     return setError("Enter a valid 10-digit phone number");
+
+  //   setLoading(true);
+  //   try {
+  //     const res = await sendOtpForLogin(phone);
+  //     if (rememberMe) {
+  //       Cookies.set("rememberedPhone", phone, { expires: 7 });
+  //     } else {
+  //       Cookies.remove("rememberedPhone");
+  //     }
+  //     setStep(2);
+  //   } catch {
+  //     setError("Failed to send OTP. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const handleOtpChange = (index, value) => {
+  //   if (value && !/^\d+$/.test(value)) return;
+  //   const newOtpInputs = [...otpInputs];
+  //   newOtpInputs[index] = value;
+  //   setOtpInputs(newOtpInputs);
+  //   setOtp(newOtpInputs.join(""));
+  //   if (value && index < 5) {
+  //     const nextInput = document.getElementById(`otp-${index + 1}`);
+  //     if (nextInput) nextInput.focus();
+  //   }
+  // };
+
+  // const handleKeyDown = (e, index) => {
+  //   if (e.key === "Backspace" && !otpInputs[index] && index > 0) {
+  //     const prevInput = document.getElementById(`otp-${index - 1}`);
+  //     if (prevInput) prevInput.focus();
+  //   }
+  // };
+
+  // const handleVerifyOTP = async (e) => {
+  //   e.preventDefault();
+  //   if (otp.length !== 6) return setError("Enter the complete 6-digit OTP");
+
+  //   setLoading(true);
+  //   try {
+  //     const result = await verifyOtpAndLogin(otp, navigate);
+  //     if (result.success) {
+  //       navigate("/dashboard");
+  //     } else {
+  //       setError(result.message || "Invalid OTP.");
+  //       setOtpInputs(["", "", "", "", "", ""]);
+  //       setOtp("");
+  //     }
+  //   } catch {
+  //     setError("Verification failed.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const handleResendOtp = async () => {
+  //   if (resending || resendTimer > 0) return;
+  //   setResending(true);
+  //   setError("");
+  //   try {
+  //     await sendOtpForLogin(phone);
+  //     setResendTimer(120); // reset timer
+  //   } catch {
+  //     setError("Failed to resend OTP. Please try again.");
+  //   } finally {
+  //     setResending(false);
+  //   }
+  // };
+
+  // New email+password handlers
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
     setError("");
   };
 
-  const handlesendOtpForLogin = async (e) => {
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+    setError("");
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!phone) return setError("Phone number is required");
-    if (!/^\d{10}$/.test(phone))
-      return setError("Enter a valid 10-digit phone number");
+    if (!email) return setError("Email is required");
+    if (!password) return setError("Password is required");
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return setError("Please enter a valid email address");
+    }
 
     setLoading(true);
     try {
-      const res = await sendOtpForLogin(phone);
-      if (rememberMe) {
-        Cookies.set("rememberedPhone", phone, { expires: 7 });
-      } else {
-        Cookies.remove("rememberedPhone");
-      }
-      setStep(2);
-    } catch {
-      setError("Failed to send OTP. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (index, value) => {
-    if (value && !/^\d+$/.test(value)) return;
-    const newOtpInputs = [...otpInputs];
-    newOtpInputs[index] = value;
-    setOtpInputs(newOtpInputs);
-    setOtp(newOtpInputs.join(""));
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === "Backspace" && !otpInputs[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      if (prevInput) prevInput.focus();
-    }
-  };
-
-  const handleVerifyOTP = async (e) => {
-    e.preventDefault();
-    if (otp.length !== 6) return setError("Enter the complete 6-digit OTP");
-
-    setLoading(true);
-    try {
-      const result = await verifyOtpAndLogin(otp, navigate);
-      if (result.success) {
-        navigate("/dashboard");
-      } else {
-        setError(result.message || "Invalid OTP.");
-        setOtpInputs(["", "", "", "", "", ""]);
-        setOtp("");
+      const result = await loginWithEmailPassword(email, password, navigate);
+      if (!result.success) {
+        setError(result.message || "Login failed. Please check your credentials.");
       }
     } catch {
-      setError("Verification failed.");
+      setError("Login failed. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resending || resendTimer > 0) return;
-    setResending(true);
-    setError("");
-    try {
-      await sendOtpForLogin(phone);
-      setResendTimer(120); // reset timer
-    } catch {
-      setError("Failed to resend OTP. Please try again.");
-    } finally {
-      setResending(false);
     }
   };
 
@@ -168,7 +215,8 @@ const Login = () => {
 
         <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-y-auto max-h-full px-6 pt-8 pb-6 mt-12 lg:mt-0">
           <div className="w-full">
-            {step === 1 && (
+            {/* [DISABLED FOR NOW]: OTP step-based UI commented out */}
+            {/* {step === 1 && (
               <h2 className="text-3xl sm:text-4xl lg:text-5xl sigmar-font font-bold text-[#006724] mb-2 text-center">
                 Login To Learn!
               </h2>
@@ -181,14 +229,33 @@ const Login = () => {
                 </span>
                 <span className="hidden lg:inline">
                   {" "}
-                  with us—we’ve got great things waiting.
+                  with us—we've got great things waiting.
                 </span>
               </p>
-            )}
+            )} */}
 
-            {step === 1 ? (
-              <form onSubmit={handlesendOtpForLogin} className="space-y-4">
-                <div className="relative mt-8">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl sigmar-font font-bold text-[#006724] mb-2 text-center">
+              Login To Learn!
+            </h2>
+
+            <p className="text-sm text-gray-600 mt-2 lg:mt-6 text-center">
+              <span className="block lg:inline">
+                Welcome back! Login to continue your journey
+              </span>
+              <span className="hidden lg:inline">
+                {" "}
+                with us—we've got great things waiting.
+              </span>
+            </p>
+
+            {/* [DISABLED FOR NOW]: OTP form commented out */}
+            {/* {step === 1 ? (
+              <form onSubmit={handlesendOtpForLogin} className="space-y-4"> */}
+            
+            {/* New email+password form */}
+            <form onSubmit={handleLogin} className="space-y-4">
+                {/* [DISABLED FOR NOW]: Phone input commented out */}
+                {/* <div className="relative mt-8">
                   <label
                     htmlFor="phone-input"
                     className={`absolute left-[1rem] z-10 px-1 bg-white transition-all duration-200 ${
@@ -230,6 +297,48 @@ const Login = () => {
                   <p className="text-sm text-gray-600 mt-1">
                     We will use this number to validate your account.
                   </p>
+                </div> */}
+
+                {/* Email input */}
+                <div className="relative mt-8">
+                  <label
+                    htmlFor="email-input"
+                    className={`absolute left-[1rem] z-10 px-1 bg-white transition-all duration-200 ${
+                      isFocused || email
+                        ? "text-2xs -top-2.5 text-green-700"
+                        : "text-2sm top-4 text-gray-400"
+                    }`}
+                  >
+                    Email
+                  </label>
+
+                  <div
+                    className={`flex items-center border-2 rounded-lg px-3 pt-4 pb-2 gap-2 transition-all duration-200 ${
+                      isFocused ? "border-green-700" : "border-green-600"
+                    }`}
+                  >
+                    <input
+                      id="email-input"
+                      type="email"
+                      value={email}
+                      onChange={handleEmailChange}
+                      onFocus={() => setIsFocused(true)}
+                      onBlur={() => setIsFocused(false)}
+                      className="w-full outline-none text-gray-800 placeholder-transparent"
+                      placeholder="Email"
+                    />
+                  </div>
+                </div>
+
+                {/* Password input with show/hide toggle */}
+                <div className="relative mt-4">
+                  <PasswordInput
+                    id="password-input"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    placeholder="Password"
+                    label="Password"
+                  />
                 </div>
 
                 {error && <p className="text-sm text-red-500">{error}</p>}
@@ -249,11 +358,11 @@ const Login = () => {
                   disabled={loading}
                   className="roboto-font w-full bg-[#068F36] hover:bg-green-700 text-white font-semibold py-2 rounded-lg transition"
                 >
-                  {loading ? "Sending..." : "Log In"}
+                  {loading ? "Logging in..." : "Log In"}
                 </button>
 
                 <p className="text-center text-sm text-gray-600">
-                  Don’t have an account?{" "}
+                  Don't have an account?{" "}
                   <a
                     href="/register"
                     className="text-blue-500 font-medium hover:underline"
@@ -262,7 +371,9 @@ const Login = () => {
                   </a>
                 </p>
               </form>
-            ) : (
+
+            {/* [DISABLED FOR NOW]: OTP verification step commented out */}
+            {/* ) : (
               <form onSubmit={handleVerifyOTP} className="space-y-4">
                 <div className="text-center">
                   <div className="flex justify-center">
@@ -303,7 +414,6 @@ const Login = () => {
                   {loading ? "Verifying..." : "Verify OTP"}
                 </button>
 
-                {/* ✅ Add resend OTP section here */}
                 <p className="text-center text-sm text-gray-600 mt-2">
                   Haven't received any OTP yet?{" "}
                   {resendTimer > 0 ? (
@@ -322,7 +432,7 @@ const Login = () => {
                   )}
                 </p>
               </form>
-            )}
+            )} */}
           </div>
         </div>
       </div>

@@ -232,25 +232,47 @@ export const adminLogin = async (req, res) => {
       });
     }
 
-    // 4. Verify password using bcrypt
+    // 4. Verify password using bcrypt (optimized)
     console.log("🔐 Verifying password...");
     
-    // Decode Base64 hash if needed
-    let decodedHash = validAdminPasswordHash;
-    try {
-      // Check if it's Base64 encoded (doesn't start with $)
-      if (!validAdminPasswordHash.startsWith('$')) {
-        decodedHash = Buffer.from(validAdminPasswordHash, 'base64').toString('utf-8');
+    // Pre-process hash to avoid repeated operations
+    let processedHash = validAdminPasswordHash;
+    
+    // Only decode Base64 if necessary (avoid unnecessary operations)
+    if (!validAdminPasswordHash.startsWith('$')) {
+      try {
+        processedHash = Buffer.from(validAdminPasswordHash, 'base64').toString('utf-8');
         console.log("🔓 Decoded Base64 hash");
+      } catch (decodeError) {
+        console.log("⚠️ Hash decode failed, using original:", decodeError.message);
+        processedHash = validAdminPasswordHash;
       }
-    } catch (decodeError) {
-      console.log("⚠️ Hash decode failed, using original:", decodeError.message);
     }
     
-    const fullHash = decodedHash.startsWith('$') ? decodedHash : `$${decodedHash}`;
+    // Ensure proper bcrypt format
+    const fullHash = processedHash.startsWith('$') ? processedHash : `$${processedHash}`;
     console.log("🔑 Hash format:", fullHash.substring(0, 10) + "...");
     
-    const isPasswordValid = await bcrypt.compare(password, fullHash);
+    // Use Promise.race to add timeout to bcrypt operation
+    const bcryptPromise = bcrypt.compare(password, fullHash);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Password verification timeout')), 10000) // 10 second timeout
+    );
+    
+    let isPasswordValid;
+    try {
+      isPasswordValid = await Promise.race([bcryptPromise, timeoutPromise]);
+    } catch (error) {
+      if (error.message === 'Password verification timeout') {
+        console.log("⏰ Password verification timed out");
+        return res.status(408).json({ 
+          success: false, 
+          message: "Login request timed out. Please try again." 
+        });
+      }
+      throw error;
+    }
+    
     if (!isPasswordValid) {
       console.log("❌ Invalid password");
       return res.status(401).json({ 

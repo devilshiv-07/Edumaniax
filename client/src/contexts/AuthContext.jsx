@@ -49,40 +49,103 @@ export function AuthProvider({ children }) {
       : localStorage.removeItem("role");
   }, [role]);
 
+  // [DISABLED FOR NOW]: OTP functions commented out for email+password switch
   // 🔹 Send OTP for Register
-  const sendOtpForRegister = async (phone) => {
-    try {
-      const res = await axios.post(`${server}/send-otp-register`, { phonenumber: phone });
-      setPhonenumber(phone);
-      toast.success("OTP sent for registration");
-      return { success: true };
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP");
-      return { success: false, message: err.response?.data?.message || "Failed" };
-    }
-  };
+  // const sendOtpForRegister = async (phone) => {
+  //   try {
+  //     const res = await axios.post(`${server}/send-otp-register`, { phonenumber: phone }, {
+  //       timeout: 45000, // 45 second timeout
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       }
+  //     });
+  //     setPhonenumber(phone);
+  //     toast.success("OTP sent for registration");
+  //     return { success: true };
+  //   } catch (err) {
+  //     console.error("Send OTP Register Error:", {
+  //       message: err.message,
+  //       code: err.code,
+  //       status: err.response?.status,
+  //       data: err.response?.data,
+  //       phone: phone
+  //     });
+  //     
+  //     let errorMessage = "Failed to send OTP";
+  //     if (err.response?.data?.message) {
+  //       errorMessage = err.response.data.message;
+  //     } else if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+  //       errorMessage = "Request timed out. Please check your internet connection and try again.";
+  //     } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+  //       errorMessage = "Network error. Please check your internet connection and try again.";
+  //     }
+  //     
+  //     toast.error(errorMessage);
+  //     return { success: false, message: errorMessage };
+  //   }
+  // };
 
   // 🔹 Send OTP for Login
-  const sendOtpForLogin = async (phone) => {
-    try {
-      const res = await axios.post(`${server}/send-otp-login`, { phonenumber: phone });
-      setPhonenumber(phone);
-      toast.success("OTP sent for login"); 
-      return { success: true };
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP");
-      return { success: false, message: err.response?.data?.message || "Failed" };
-    }
-  };
+  // const sendOtpForLogin = async (phone) => {
+  //   try {
+  //     const res = await axios.post(`${server}/send-otp-login`, { phonenumber: phone });
+  //     setPhonenumber(phone);
+  //     toast.success("OTP sent for login"); 
+  //     return { success: true };
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Failed to send OTP");
+  //     return { success: false, message: err.response?.data?.message || "Failed" };
+  //   }
+  // };
 
   // 🔹 Verify OTP and Register
-  const verifyOtpAndRegister = async (formData, otp, navigate) => {
+  // const verifyOtpAndRegister = async (formData, otp, navigate) => {
+  //   try {
+  //     const res = await axios.post(`${server}/verify-otp-register`, {
+  //       ...formData,
+  //       otp,
+  //       phonenumber,
+  //     });
+  //     const { token, user } = res.data;
+  //     localStorage.setItem("token", token);
+  //     localStorage.setItem("user", JSON.stringify(user));
+  //     setToken(token);
+  //     setUser(user);
+  //     toast.success("Registered successfully");
+  //     navigate("/dashboard");
+  //     return { success: true };
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Registration failed");
+  //     return { success: false, message: err.response?.data?.message || "Failed" };
+  //   }
+  // };
+
+  // 🔹 Verify OTP and Login
+  // const verifyOtpAndLogin = async (otp, navigate) => {
+  //   try {
+  //     const res = await axios.post(`${server}/verify-otp-login`, {
+  //       phonenumber,
+  //       otp,
+  //     });
+  //     const { token, user } = res.data;
+  //     localStorage.setItem("token", token);
+  //     localStorage.setItem("user", JSON.stringify(user));
+  //     setToken(token);
+  //     setUser(user);
+  //     toast.success("Logged in successfully");
+  //     console.log("Redirecting...")
+  //     navigate("/dashboard");
+  //     return { success: true };
+  //   } catch (err) {
+  //     toast.error(err.response?.data?.message || "Login failed");
+  //     return { success: false, message: err.response?.data?.message || "Failed" };
+  //   }
+  // };
+
+  // 🔹 Register with Email and Password (new)
+  const registerWithEmailPassword = async (formData, navigate) => {
     try {
-      const res = await axios.post(`${server}/verify-otp-register`, {
-        ...formData,
-        otp,
-        phonenumber,
-      });
+      const res = await axios.post(`${server}/register`, formData);
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -92,25 +155,31 @@ export function AuthProvider({ children }) {
       navigate("/dashboard");
       return { success: true };
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration failed");
-      return { success: false, message: err.response?.data?.message || "Failed" };
+      // Verbose client-side logging for debugging (no UI toast)
+      console.error("Registration error (client):", {
+        message: err?.message,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        stack: err?.stack
+      });
+      return { 
+        success: false, 
+        message: err.response?.data?.message || "Failed",
+        error: err.response?.data 
+      };
     }
   };
 
-  // 🔹 Verify OTP and Login
-  const verifyOtpAndLogin = async (otp, navigate) => {
+  // 🔹 Login with Email and Password (new)
+  const loginWithEmailPassword = async (email, password, navigate) => {
     try {
-      const res = await axios.post(`${server}/verify-otp-login`, {
-        phonenumber,
-        otp,
-      });
+      const res = await axios.post(`${server}/login`, { email, password });
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       setToken(token);
       setUser(user);
       toast.success("Logged in successfully");
-      console.log("Redirecting...")
       navigate("/dashboard");
       return { success: true };
     } catch (err) {
@@ -196,6 +265,11 @@ export function AuthProvider({ children }) {
       const res = await axios.post(`${server}/special/admin-login`, { 
         username, 
         password 
+      }, {
+        timeout: 60000, // 60 second timeout for admin login (bcrypt can be slow)
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
       if (res.data.success) {
@@ -217,8 +291,27 @@ export function AuthProvider({ children }) {
         return { success: false, message: "Invalid credentials" };
       }
     } catch (err) {
-      console.error("Admin login failed:", err);
-      const errorMessage = err.response?.data?.message || "Admin login failed";
+      console.error("Admin login failed:", {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        data: err.response?.data,
+        username: username
+      });
+      
+      let errorMessage = "Admin login failed";
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+        errorMessage = "Login request timed out. Please try again.";
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (err.response?.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (err.response?.status === 401) {
+        errorMessage = "Invalid admin credentials";
+      }
+      
       toast.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -260,10 +353,13 @@ export function AuthProvider({ children }) {
         token,
         user,
         phonenumber,
-        sendOtpForRegister,
-        sendOtpForLogin,
-        verifyOtpAndRegister,
-        verifyOtpAndLogin,
+        // [DISABLED FOR NOW]: OTP functions commented out for email+password switch
+        // sendOtpForRegister,
+        // sendOtpForLogin,
+        // verifyOtpAndRegister,
+        // verifyOtpAndLogin,
+        registerWithEmailPassword,
+        loginWithEmailPassword,
         fetchMe,
         logout,
         updateUser,

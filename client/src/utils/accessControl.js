@@ -149,12 +149,10 @@ const MODULE_CONFIGS = {
  */
 class AccessController {
   constructor(userSubscription = null, selectedModule = null) {
-    // console.log('AccessController: Initializing with subscriptions:', userSubscription);
-    // console.log('AccessController: Selected module:', selectedModule);
-    
+    // [DISABLED FOR NOW]: Treat every logged-in user as PRO for free mode
     this.userSubscription = userSubscription;
     this.selectedModule = selectedModule;
-    this.currentPlan = this.getCurrentPlan();
+    this.currentPlan = 'PRO';
     this.soloModules = this.getSoloModules();
     this.trialStartDate = this.getTrialStartDate();
     
@@ -516,29 +514,8 @@ class AccessController {
    * Check if user has access to specific features
    */
   hasFeatureAccess(feature) {
-    const featureRequirements = {
-      games: 'STARTER',
-      notes: 'STARTER',
-      basic_assessments: 'STARTER',
-      advanced_assessments: 'SOLO',
-      progress_tracking: 'SOLO',
-      certificates: 'SOLO', // Now available from SOLO plan
-      ai_assessment: 'PRO',
-      ai_personalization: 'PRO',
-      ai_homework: 'PRO',
-      live_sessions: 'INSTITUTIONAL',
-      bulk_management: 'INSTITUTIONAL',
-      custom_content: 'INSTITUTIONAL',
-      priority_support: 'INSTITUTIONAL'
-    };
-
-    const requiredPlan = featureRequirements[feature];
-    if (!requiredPlan) return false;
-
-    const currentPlanIndex = PLAN_HIERARCHY.indexOf(this.currentPlan);
-    const requiredPlanIndex = PLAN_HIERARCHY.indexOf(requiredPlan);
-
-    return currentPlanIndex >= requiredPlanIndex;
+    // [DISABLED FOR NOW]: All features available
+    return true;
   }
 
   /**
