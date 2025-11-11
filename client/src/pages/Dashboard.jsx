@@ -856,7 +856,7 @@ const Dashboard = () => {
               )}
 
               {/* AI Feedback - Only show for PRO plan users */}
-              {subscriptions?.[0]?.planType?.toUpperCase() === "PRO" && (
+              {/* {subscriptions?.[0]?.planType?.toUpperCase() === "PRO" && ( */}
                 <button
                   className={`flex items-center gap-3 hover:text-green-700 ${
                     selectedSection === "ai-feedback"
@@ -876,7 +876,7 @@ const Dashboard = () => {
                   />
                   <span className="font-bold">AI Feedback</span>
                 </button>
-              )}
+              {/* )} */}
 
               {/* Sales Dashboard Link - Only for SALES role */}
               {role === "SALES" && (
@@ -903,7 +903,7 @@ const Dashboard = () => {
               )}
 
               {/* My Subscriptions Button - Only if NOT Admin */}
-              {role !== "admin" && (
+              {/* {role !== "admin" && (
                 <button
                   className={`flex items-center gap-3 transition-colors duration-300 ${
                     selectedSection === "subscriptions"
@@ -923,7 +923,7 @@ const Dashboard = () => {
                   />
                   <span className="font-bold">My Subscription</span>
                 </button>
-              )}
+              )} */}
 
               <button
                 onClick={handleLogoutClick}

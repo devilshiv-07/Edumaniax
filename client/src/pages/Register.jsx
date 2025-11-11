@@ -4,14 +4,15 @@ import { useAuth } from "../contexts/AuthContext";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import AvatarSelection from "../components/AvatarSelection";
 import Spline from "@splinetool/react-spline";
+import PasswordInput from "../components/PasswordInput";
 
 const Register = () => {
   const navigate = useNavigate();
   const {
-    sendOtpForRegister,
-    verifyOtpAndRegister,
-    // You may need to add a separate verifyOtp method to your AuthContext
-    // verifyOtp,
+    // [DISABLED FOR NOW]: OTP registration commented for email+password switch
+    // sendOtpForRegister,
+    // verifyOtpAndRegister,
+    registerWithEmailPassword,
   } = useAuth();
   
   // flat formData
@@ -19,6 +20,8 @@ const Register = () => {
     name: "",
     age: "",
     phonenumber: "",
+    email: "",
+    password: "",
     userClass: "",
     gender: "",
     characterName: "",
@@ -29,11 +32,12 @@ const Register = () => {
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpError, setOtpError] = useState("");
-  const [otpVerified, setOtpVerified] = useState(false);
+  // [DISABLED FOR NOW]: OTP state commented out
+  // const [otp, setOtp] = useState("");
+  // const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
+  // const [otpSent, setOtpSent] = useState(false);
+  // const [otpError, setOtpError] = useState("");
+  // const [otpVerified, setOtpVerified] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
   // Focus states for floating labels
@@ -60,10 +64,19 @@ const Register = () => {
       if (!formData.age) errs.age = "Age is required";
       else if (parseInt(formData.age) < 13)
         errs.age = "Must be at least 13 years old";
-      if (!formData.phonenumber.trim())
-        errs.phonenumber = "Phone number is required";
-      else if (!/^\d{10}$/.test(formData.phonenumber))
-        errs.phonenumber = "Enter a valid 10-digit phone number";
+      // [DISABLED FOR NOW]: Phone number optional; keep validation commented
+      // if (!formData.phonenumber.trim())
+      //   errs.phonenumber = "Phone number is required";
+      // else if (!/^\d{10}$/.test(formData.phonenumber))
+      //   errs.phonenumber = "Enter a valid 10-digit phone number";
+      // Email + Password validations
+      if (!formData.email.trim()) errs.email = "Email is required";
+      else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) errs.email = "Enter a valid email";
+      }
+      if (!formData.password.trim()) errs.password = "Password is required";
+      else if (formData.password.length < 6) errs.password = "Password must be at least 6 characters";
       if (!formData.userClass.trim())
         errs.userClass = "User class is required";
     }
@@ -118,34 +131,16 @@ const Register = () => {
     setFormData((fd) => ({ ...fd, traits }));
   };
 
-  // Next button logic with OTP send after personal info step (step 1)
+  // Next button logic (OTP disabled)
   const handleNext = async () => {
     if (!validateStep(step)) return;
 
     if (step === 1) {
-      // Send OTP here before proceeding to OTP step
-      setLoading(true);
-      const updatedFormData = {
-        ...formData,
-        age: parseInt(formData.age, 10), // ensure age is number
-      };
-      try {
-        const result = await sendOtpForRegister(updatedFormData.phonenumber);
-        if (result.success) {
-          console.log("OTP sent successfully");
-          setOtpSent(true);
-          setStep(step + 1); // move to OTP step
-        } else {
-          console.log("Failed to send OTP:", result.message);
-        }
-      } catch (error) {
-        setErrors({ phonenumber: "Failed to send OTP. Try again." });
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setStep((s) => s + 1);
+      // Skip OTP step; go to next content step
+      setStep(3);
+      return;
     }
+    setStep((s) => s + 1);
   };
 
   const handleBack = () => {
@@ -181,52 +176,17 @@ const Register = () => {
     }
   };
 
-  // OTP verify submit - just verify OTP, don't register yet
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    if (otp.length !== 6) {
-      setOtpError("Please enter the 6-digit OTP");
-      return;
-    }
-    setLoading(true);
-    setOtpError("");
-    try {
-      // TEMPORARY SOLUTION: Just mark as verified and continue
-      // You'll need to implement actual OTP verification here
-
-      // Option 1: Add a separate verifyOtp method to your AuthContext
-      // if (verifyOtp) {
-      //   const result = await verifyOtp(formData.phonenumber, otp);
-      //   if (result.success) {
-      //     setOtpVerified(true);
-      //     setStep(3);
-      //   } else {
-      //     setOtpError(result.message || "Invalid OTP, please try again.");
-      //   }
-      // } else {
-
-      // Option 2: For now, simulate verification (REPLACE THIS WITH REAL VERIFICATION)
-      if (otp === "123456" || otp.length === 6) { // Replace with actual verification
-        setOtpVerified(true);
-        setStep(3);
-      } else {
-        setOtpError("Invalid OTP, please try again.");
-      }
-      // }
-
-    } catch (error) {
-      setOtpError("Invalid OTP, please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // const handleOtpSubmit = async (e) => { /* [DISABLED FOR NOW] */ };
 
   // Complete registration - called from step 6
   const handleCompleteRegistration = async () => {
     setLoading(true);
     try {
       const finalFormData = {
-        phonenumber: formData.phonenumber,
+        // Optional phone
+        ...(formData.phonenumber ? { phonenumber: formData.phonenumber } : {}),
+        email: formData.email,
+        password: formData.password,
         name: formData.name,
         age: parseInt(formData.age, 10),
         userClass: formData.userClass,
@@ -236,10 +196,8 @@ const Register = () => {
         characterTraits: formData.traits,
       };
 
-      // Since OTP is already verified, you might need a different method here
-      // like updateUserProfile or completeRegistration
-      // For now, using the existing method but this might need backend changes
-      const result = await verifyOtpAndRegister(finalFormData, otp, navigate);
+      // Use email+password registration
+      const result = await registerWithEmailPassword(finalFormData, navigate);
       if (!result.success) {
         console.error("Registration failed:", result.message);
       }
@@ -313,7 +271,7 @@ const Register = () => {
             </div>
           )}
 
-          <form onSubmit={step === 2 ? handleOtpSubmit : (e) => e.preventDefault()} className="px-4 sm:px-6 lg:px-5">
+          <form onSubmit={(e) => e.preventDefault()} className="px-4 sm:px-6 lg:px-5">
             {step === 1 && (
               <div>
                 <div className="space-y-3 sm:space-y-4 animate-fade-in">
@@ -328,51 +286,50 @@ const Register = () => {
                     </p>
                   </div>
 
-                  {/* Phone number field */}
+                  {/* [DISABLED FOR NOW]: Phone number field commented out */}
+                  {/* <div className="relative w-full"> ... </div> */}
+
+                  {/* Email field */}
                   <div className="relative w-full">
                     <label
-                      htmlFor="phonenumber"
+                      htmlFor="email"
                       className={`absolute left-3 px-1 bg-white transition-all duration-200 z-10
-                        ${isFocused || formData.phonenumber
+                        ${formData.email
                           ? "text-[10px] -top-2 text-green-700"
                           : "text-sm top-[14px] text-gray-400"
                         }`}
                     >
-                      Phone Number
+                      Email
                     </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder=" "
+                      className={`w-full border-2 rounded-lg px-3 py-3 text-sm focus:outline-none transition-all duration-200
+                        ${errors.email ? "border-red-600" : "border-green-600"}
+                        ${formData.email ? "border-green-700" : ""}`}
+                    />
+                    {errors.email && (
+                      <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+                    )}
+                  </div>
 
-                    <div
-                      className={`flex items-center border-2 rounded-lg px-3 py-3 gap-2 transition-all duration-200 ${
-                        isFocused ? "border-green-700" : "border-green-600"
-                      }`}
-                    >
-                      {(isFocused || formData.phonenumber) && (
-                        <>
-                          <img
-                            src="/loginPageDesign/indianNumber.svg"
-                            alt="India"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-gray-800 font-medium text-sm">+91</span>
-                        </>
-                      )}
-
-                      <input
-                        type="tel"
-                        id="phonenumber"
-                        name="phonenumber"
-                        value={formData.phonenumber}
-                        onChange={handleChange}
-                        placeholder=" "
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
-                        className={`peer w-full bg-transparent text-sm focus:outline-none 
-                          ${errors.phonenumber ? "text-red-600" : "text-gray-900"}`}
-                      />
-                    </div>
-
-                    {errors.phonenumber && (
-                      <p className="mt-1 text-xs text-red-600">{errors.phonenumber}</p>
+                  {/* Password field with show/hide toggle */}
+                  <div className="relative w-full">
+                    {/* Reuse common PasswordInput */}
+                    <PasswordInput
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={(e) => handleChange(e)}
+                      placeholder=" "
+                      label="Password"
+                    />
+                    {errors.password && (
+                      <p className="mt-1 text-xs text-red-600">{errors.password}</p>
                     )}
                   </div>
 
@@ -489,32 +446,8 @@ const Register = () => {
               </div>
             )}
 
-            {step === 2 && (
-              <div className="flex flex-col items-center space-y-4 sm:space-y-6 animate-fade-in py-4">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 text-center">OTP Verification</h2>
-                <p className="text-xs sm:text-sm text-gray-600 text-center px-2">
-                  We've sent an OTP to {formData.phonenumber}.
-                </p>
-
-                {/* OTP inputs - responsive sizing */}
-                <div className="flex justify-center gap-2 sm:gap-3">
-                  {otpInputs.map((digit, idx) => (
-                    <input
-                      key={idx}
-                      id={`otp-${idx}`}
-                      type="text"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(idx, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx)}
-                      className="w-10 h-10 sm:w-12 sm:h-12 text-center text-lg sm:text-xl font-semibold rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                      autoFocus={idx === 0}
-                    />
-                  ))}
-                </div>
-                {otpError && <p className="text-xs sm:text-sm text-red-600 text-center">{otpError}</p>}
-              </div>
-            )}
+            {/* [DISABLED FOR NOW]: OTP verification step */}
+            {/* {step === 2 && ( ... )} */}
 
             {step === 3 && (
               <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -676,7 +609,7 @@ const Register = () => {
                       loading ? "opacity-70 cursor-not-allowed" : "hover:cursor-pointer"
                     }`}
                   >
-                    {loading ? "Sending..." : "Send OTP"}
+                    {loading ? "Processing..." : "Continue"}
                   </button>
                   <div className="mt-4 sm:mt-6 text-center">
                     <p className="text-xs sm:text-sm text-gray-600">
@@ -692,17 +625,7 @@ const Register = () => {
                 </div>
               )}
 
-              {step === 2 && (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`w-full sm:w-auto px-8 sm:px-20 lg:px-40 py-2.5 sm:py-3 bg-[#068F36] text-white text-sm rounded-md transition-colors ${
-                    loading ? "opacity-70 cursor-not-allowed" : "hover:cursor-pointer"
-                  }`}
-                >
-                  {loading ? "Verifying..." : "Verify"}
-                </button>
-              )}
+              {/* [DISABLED FOR NOW]: OTP verify button */}
 
               {(step === 3 || step === 4) && (
                 <button

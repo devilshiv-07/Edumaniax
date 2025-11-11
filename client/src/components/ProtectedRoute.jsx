@@ -13,87 +13,8 @@ const ProtectedRoute = ({
   fallbackPath = '/payment-required',
   showUpgradePrompt = true
 }) => {
-  const { loading, subscriptions } = useSubscription();
-  const location = useLocation();
-  const [showInlineUpgrade, setShowInlineUpgrade] = useState(false);
-
-  // Get user's selected module from localStorage or user data
-  const selectedModule = localStorage.getItem('selectedModule') || null;
-
-  const accessControl = useAccessControl(subscriptions, selectedModule);
-
-  // Show loading while checking subscription
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Verifying your access...</p>
-          <p className="text-gray-400 text-sm mt-2">Please wait a moment</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check different types of access
-  let hasAccess = true;
-  let accessStatus = null;
-
-  if (requiredModule) {
-    hasAccess = accessControl.hasModuleAccess(requiredModule);
-    if (!hasAccess) {
-      accessStatus = accessControl.getAccessStatus(requiredModule, requiredLevel);
-    }
-  } else if (requiredFeature) {
-    hasAccess = accessControl.hasFeatureAccess(requiredFeature);
-  } else {
-    // Check plan level access
-    const planHierarchy = ['STARTER', 'SOLO', 'PRO', 'INSTITUTIONAL'];
-    const currentIndex = planHierarchy.indexOf(accessControl.currentPlan);
-    const requiredIndex = planHierarchy.indexOf(requiredPlan);
-    hasAccess = currentIndex >= requiredIndex;
-  }
-
-  // If access denied and we want to show upgrade prompt
-  if (!hasAccess && showUpgradePrompt && !showInlineUpgrade) {
-    setShowInlineUpgrade(true);
-  }
-
-  // If access denied and no inline prompt, redirect
-  if (!hasAccess && !showUpgradePrompt) {
-    const params = new URLSearchParams();
-    params.set('redirect', location.pathname);
-    if (requiredPlan) params.set('plan', requiredPlan);
-    if (requiredModule) params.set('module', requiredModule);
-    if (requiredFeature) params.set('feature', requiredFeature);
-    if (requiredLevel) params.set('level', requiredLevel.toString());
-    
-    const redirectPath = `${fallbackPath}?${params.toString()}`;
-    return <Navigate to={redirectPath} replace />;
-  }
-
-  // If showing inline upgrade prompt
-  if (!hasAccess && showInlineUpgrade) {
-    return <UpgradePrompt 
-      currentPlan={accessControl.currentPlan}
-      requiredPlan={requiredPlan}
-      requiredModule={requiredModule}
-      requiredFeature={requiredFeature}
-      requiredLevel={requiredLevel}
-      accessStatus={accessStatus}
-      onContinue={() => setShowInlineUpgrade(false)}
-      onUpgrade={() => {
-        const params = new URLSearchParams();
-        params.set('redirect', location.pathname);
-        if (requiredPlan) params.set('plan', requiredPlan);
-        if (requiredModule) params.set('module', requiredModule);
-        if (requiredFeature) params.set('feature', requiredFeature);
-        
-        window.location.href = `/payment?${params.toString()}`;
-      }}
-    />;
-  }
-
+  // [DISABLED FOR NOW]: Subscription/plan gating removed for free mode
+  // Only requirement: user must be logged in (handled by parent routing/auth)
   return children;
 };
 

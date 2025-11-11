@@ -138,49 +138,8 @@ export const requireAuth = async (req, res, next) => {
  */
 export const requireModuleAccess = (moduleKey) => {
   return async (req, res, next) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          error: 'Authentication required',
-          message: 'User must be authenticated to access modules'
-        });
-      }
-
-      const { highestPlan, selectedModule } = await getUserSubscriptionInfo(userId);
-
-      // Debug logging
-      // console.log(`[Access Check] User: ${userId}, Module: ${moduleKey}, Plan: ${highestPlan}, Selected: ${selectedModule}`);
-
-      // Check if user has access to the module
-      if (!hasModuleAccess(highestPlan, moduleKey, selectedModule)) {
-        const upgradeInfo = getUpgradeInfo(highestPlan, 'PRO');
-        
-        // console.log(`[Access Denied] User ${userId} denied access to ${moduleKey} module`);
-        
-        return res.status(403).json({
-          error: 'Access denied',
-          message: `Access to ${moduleKey} module requires a higher subscription plan`,
-          currentPlan: highestPlan,
-          requiredModule: moduleKey,
-          upgradeInfo,
-          redirectUrl: `/payment-required?plan=PRO&module=${moduleKey}`
-        });
-      }
-
-      // console.log(`[Access Granted] User ${userId} granted access to ${moduleKey} module`);
-
-      // Attach subscription info to request for further use
-      req.userSubscription = { highestPlan, selectedModule };
-      next();
-
-    } catch (error) {
-      console.error('Module access middleware error:', error);
-      res.status(500).json({
-        error: 'Access check failed',
-        message: 'Failed to verify module access'
-      });
-    }
+    // [DISABLED FOR NOW]: Always allow module access in free mode (login still required upstream)
+    return next();
   };
 };
 
@@ -189,42 +148,8 @@ export const requireModuleAccess = (moduleKey) => {
  */
 export const requireFeatureAccess = (feature) => {
   return async (req, res, next) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          error: 'Authentication required',
-          message: 'User must be authenticated to access features'
-        });
-      }
-
-      const { highestPlan } = await getUserSubscriptionInfo(userId);
-
-      // Check if user has access to the feature
-      if (!hasFeatureAccess(highestPlan, feature)) {
-        const upgradeInfo = getUpgradeInfo(highestPlan, 'PRO');
-        
-        return res.status(403).json({
-          error: 'Feature access denied',
-          message: `Access to ${feature} feature requires a higher subscription plan`,
-          currentPlan: highestPlan,
-          requiredFeature: feature,
-          upgradeInfo,
-          redirectUrl: `/payment-required?plan=PRO&feature=${feature}`
-        });
-      }
-
-      // Attach subscription info to request
-      req.userSubscription = { highestPlan };
-      next();
-
-    } catch (error) {
-      console.error('Feature access middleware error:', error);
-      res.status(500).json({
-        error: 'Access check failed',
-        message: 'Failed to verify feature access'
-      });
-    }
+    // [DISABLED FOR NOW]: Always allow feature access in free mode
+    return next();
   };
 };
 
@@ -233,44 +158,8 @@ export const requireFeatureAccess = (feature) => {
  */
 export const requirePlanLevel = (requiredPlan) => {
   return async (req, res, next) => {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({
-          error: 'Authentication required',
-          message: 'User must be authenticated'
-        });
-      }
-
-      const { highestPlan } = await getUserSubscriptionInfo(userId);
-      const planHierarchy = ['STARTER', 'SOLO', 'PRO', 'INSTITUTIONAL'];
-      
-      const userPlanIndex = planHierarchy.indexOf(highestPlan);
-      const requiredPlanIndex = planHierarchy.indexOf(requiredPlan);
-
-      if (userPlanIndex < requiredPlanIndex) {
-        const upgradeInfo = getUpgradeInfo(highestPlan, requiredPlan);
-        
-        return res.status(403).json({
-          error: 'Insufficient plan level',
-          message: `This action requires ${requiredPlan} plan or higher`,
-          currentPlan: highestPlan,
-          requiredPlan,
-          upgradeInfo,
-          redirectUrl: `/payment-required?plan=${requiredPlan}`
-        });
-      }
-
-      req.userSubscription = { highestPlan };
-      next();
-
-    } catch (error) {
-      console.error('Plan level middleware error:', error);
-      res.status(500).json({
-        error: 'Access check failed',
-        message: 'Failed to verify plan level'
-      });
-    }
+    // [DISABLED FOR NOW]: Always allow plan-level access in free mode
+    return next();
   };
 };
 
